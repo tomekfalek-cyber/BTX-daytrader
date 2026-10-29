@@ -112,6 +112,10 @@ input:focus,select:focus{outline:none;border-color:var(--red)}
 <div class="row" style="margin-top:9px"><label class="mut" style="width:200px">Max strat z rzędu</label><input id="set-dconsec" type="number" style="width:100px"></div>
 <div class="row" style="margin-top:9px"><label class="mut" style="width:200px">Klucz Twelve Data</label><input id="set-tdkey" type="password" placeholder="opcjonalnie" style="width:220px"></div>
 <div class="row" style="margin-top:12px"><button class="btn ghost" id="btn-real">Pobierz realne dane (wykres)</button></div>
+<div class="row" style="margin-top:9px"><label class="mut" style="width:200px">Dostawca danych</label><select id="set-prov"><option value="twelve">Twelve Data</option><option value="alpaca">Alpaca (US)</option></select></div>
+<div class="row" style="margin-top:9px"><label class="mut" style="width:200px">Alpaca Key ID</label><input id="set-alpkey" type="password" placeholder="PK..." style="width:220px"></div>
+<div class="row" style="margin-top:9px"><label class="mut" style="width:200px">Alpaca Secret</label><input id="set-alpsec" type="password" placeholder="sekret" style="width:220px"></div>
+<div class="row" style="margin-top:9px"><button class="btn ghost" id="btn-prov">Test dostawcy</button><span class="mut" id="prov-status" style="font-size:11px">—</span></div>
 <div class="row" style="margin-top:9px"><label class="mut" style="width:200px">Worker URL (przyszłość)</label><input id="set-worker" placeholder="https://twoj-worker.workers.dev" style="width:240px"></div>
 <div class="row" style="margin-top:9px"><button class="btn ghost" id="btn-worker">Test połączenia z Workerem</button><span class="mut" id="worker-status" style="font-size:11px">Worker: nie skonfigurowany (tryb lokalny)</span></div>
 <div class="row" style="margin-top:14px"><button class="btn" id="btn-save">Zapisz</button></div></div>
@@ -242,13 +246,13 @@ document.addEventListener('click',function(e){var t=e.target.closest?e.target.cl
 document.getElementById('btn-cycle').addEventListener('click',function(){cycle();toast('Świeca 5-min wykonana');});
 document.getElementById('btn-auto').addEventListener('click',autoToggle);
 document.getElementById('btn-reset').addEventListener('click',reset);
-document.getElementById('btn-bt').addEventListener('click',backtest);document.getElementById('btn-real').addEventListener('click',function(){var q=document.getElementById('chart-sym');fetchReal(q?q.value:'SPY');});document.getElementById('btn-worker').addEventListener('click',workerPing);
-document.getElementById('btn-save').addEventListener('click',function(){CFG.risk=Number(document.getElementById('set-risk').value)||1;CFG.maxPos=Number(document.getElementById('set-max').value)||4;CFG.capital=Number(document.getElementById('set-cap').value)||100000;CFG.allowShort=document.getElementById('set-short').value==='1';CFG.dailyLoss=Number(document.getElementById('set-dloss').value)||3;CFG.maxTrades=Number(document.getElementById('set-dtrades').value)||10;CFG.maxConsec=Number(document.getElementById('set-dconsec').value)||3;CFG.tdKey=document.getElementById('set-tdkey').value.trim();CFG.workerUrl=document.getElementById('set-worker').value.trim();if(!ST.eq.length){ST.equity=CFG.capital;ST.cash=CFG.capital;}log('Zapisano ustawienia','i');render();save();toast('Zapisano');});
+document.getElementById('btn-bt').addEventListener('click',backtest);document.getElementById('btn-real').addEventListener('click',function(){var q=document.getElementById('chart-sym');fetchReal(q?q.value:'SPY');});document.getElementById('btn-worker').addEventListener('click',workerPing);document.getElementById('btn-prov').addEventListener('click',providerTest);
+document.getElementById('btn-save').addEventListener('click',function(){CFG.risk=Number(document.getElementById('set-risk').value)||1;CFG.maxPos=Number(document.getElementById('set-max').value)||4;CFG.capital=Number(document.getElementById('set-cap').value)||100000;CFG.allowShort=document.getElementById('set-short').value==='1';CFG.dailyLoss=Number(document.getElementById('set-dloss').value)||3;CFG.maxTrades=Number(document.getElementById('set-dtrades').value)||10;CFG.maxConsec=Number(document.getElementById('set-dconsec').value)||3;CFG.tdKey=document.getElementById('set-tdkey').value.trim();CFG.workerUrl=document.getElementById('set-worker').value.trim();CFG.provider=document.getElementById('set-prov').value;CFG.alpKey=document.getElementById('set-alpkey').value.trim();CFG.alpSec=document.getElementById('set-alpsec').value.trim();if(!ST.eq.length){ST.equity=CFG.capital;ST.cash=CFG.capital;}log('Zapisano ustawienia','i');render();save();toast('Zapisano');});
 document.getElementById('chart-sym').addEventListener('change',drawCandles);
 var sel=document.getElementById('chart-sym');sel.innerHTML=SYMBOLS.map(function(m){return '<option value="'+m.s+'">'+m.s+' — '+m.n+'</option>';}).join('');
 document.getElementById('uni').innerHTML=SYMBOLS.map(function(m){return '<span class="tag">'+m.s+'</span> '+m.n;}).join('<br>');
 if(!load()){reset();}else{render();}initAI();
-document.getElementById('set-risk').value=CFG.risk;document.getElementById('set-max').value=CFG.maxPos;document.getElementById('set-cap').value=CFG.capital;document.getElementById('set-short').value=CFG.allowShort?'1':'0';document.getElementById('set-dloss').value=CFG.dailyLoss||3;document.getElementById('set-dtrades').value=CFG.maxTrades||10;document.getElementById('set-dconsec').value=CFG.maxConsec||3;document.getElementById('set-tdkey').value=CFG.tdKey||'';document.getElementById('set-worker').value=CFG.workerUrl||'';
+document.getElementById('set-risk').value=CFG.risk;document.getElementById('set-max').value=CFG.maxPos;document.getElementById('set-cap').value=CFG.capital;document.getElementById('set-short').value=CFG.allowShort?'1':'0';document.getElementById('set-dloss').value=CFG.dailyLoss||3;document.getElementById('set-dtrades').value=CFG.maxTrades||10;document.getElementById('set-dconsec').value=CFG.maxConsec||3;document.getElementById('set-tdkey').value=CFG.tdKey||'';document.getElementById('set-worker').value=CFG.workerUrl||'';document.getElementById('set-prov').value=CFG.provider||'twelve';document.getElementById('set-alpkey').value=CFG.alpKey||'';document.getElementById('set-alpsec').value=CFG.alpSec||'';
 setInterval(function(){document.getElementById('clock');},60000);render();
 function pivots(b,k){var hi=[],lo=[];for(var i=k;i<b.length-k;i++){var isH=true,isL=true;for(var j=1;j<=k;j++){if(b[i].h<=b[i-j].h||b[i].h<=b[i+j].h)isH=false;if(b[i].l>=b[i-j].l||b[i].l>=b[i+j].l)isL=false;}if(isH)hi.push(b[i].h);if(isL)lo.push(b[i].l);}return {hi:hi,lo:lo};}
 drawCandles=function(){
@@ -456,5 +460,30 @@ async function workerPing(){
   if(!u){ if(el){ el.textContent='Worker: nie skonfigurowany (tryb lokalny)'; el.style.color='var(--tx3)'; } return; }
   try{ var t0=Date.now(); var r=await fetch(u+'/state-public',{method:'GET'}); if(el){ el.textContent='Worker: HTTP '+r.status+' · '+(Date.now()-t0)+' ms'; el.style.color=(r.ok?'var(--green)':'var(--loss)'); } }
   catch(e){ if(el){ el.textContent='Worker: brak połączenia ('+e.message+')'; el.style.color='var(--loss)'; } }
+}
+// ===== ALPACA (US akcje/ETF) =====+
+async function fetchAlpaca(sym){
+  var key=String(CFG.alpKey||'').trim(), sec=String(CFG.alpSec||'').trim();
+  if(!key||!sec){ toast('Wpisz klucz i sekret Alpaca w Ustawieniach'); return; }
+  if(sym.indexOf('.WA')>=0 || /^(EUR|GBP|USD|AUD|NZD)/.test(sym)){ log('Alpaca: tylko US akcje/ETF — '+sym+' pominięty','i'); toast('Alpaca nie obsługuje GPW/FX'); return; }
+  try{
+    var u='https://data.alpaca.markets/v2/stocks/'+encodeURIComponent(sym)+'/bars?timeframe=5Min&limit=120&feed=iex&adjustment=raw';
+    var r=await fetch(u,{headers:{'APCA-API-KEY-ID':key,'APCA-API-SECRET-KEY':sec}});
+    var j=await r.json(); var arr=(j&&j.bars)||[];
+    if(!arr.length){ log('Alpaca: brak danych (HTTP '+r.status+')','r'); toast('Brak danych Alpaca'); return; }
+    var bars=arr.map(function(b){ return {t:new Date(b.t).getTime(),o:+b.o,h:+b.h,l:+b.l,c:+b.c,v:+(b.v||0)}; });
+    ST.series[sym]=bars; log('Alpaca: '+sym+' — '+bars.length+' świec 5-min (IEX)','g'); render(); save(); toast('Pobrano Alpaca: '+sym);
+  }catch(e){ log('Alpaca błąd: '+e.message,'r'); toast('Błąd Alpaca (CORS/klucz?)'); }
+}
+var fetchTwelve=fetchReal;
+fetchReal=async function(sym){ if(String(CFG.provider||'twelve')==='alpaca'){ return fetchAlpaca(sym); } return fetchTwelve(sym); };
+async function providerTest(){
+  var el=document.getElementById('prov-status');
+  if(String(CFG.provider||'twelve')==='alpaca'){
+    var key=String(CFG.alpKey||'').trim(), sec=String(CFG.alpSec||'').trim();
+    if(!key||!sec){ if(el){ el.textContent='Alpaca: brak kluczy'; el.style.color='var(--tx3)'; } return; }
+    try{ var r=await fetch('https://data.alpaca.markets/v2/stocks/SPY/bars?timeframe=1Day&limit=1&feed=iex',{headers:{'APCA-API-KEY-ID':key,'APCA-API-SECRET-KEY':sec}}); if(el){ el.textContent='Alpaca: HTTP '+r.status; el.style.color=(r.ok?'var(--green)':'var(--loss)'); } }
+    catch(e){ if(el){ el.textContent='Alpaca: błąd ('+e.message+')'; el.style.color='var(--loss)'; } }
+  } else { if(el){ el.textContent='Twelve Data: tryb aktywny'; el.style.color='var(--green)'; } }
 }
 </script></body></html>
