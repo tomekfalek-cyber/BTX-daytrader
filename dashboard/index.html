@@ -292,4 +292,122 @@ drawCandles=function(){
   var info=document.getElementById('chart-info');
   if(info){ var lk=view[view.length-1]; info.textContent=sym+' · '+f2(lk.c)+' · R: '+res.map(function(x){return f2(x);}).join(' / ')+' · S: '+sup.map(function(x){return f2(x);}).join(' / ')+' · VWAP '+f2(vw); }
 };
+// ===== ENGINE v2: wieksze uniwersum, multi-TF, sesje, realny backtest =====
+SYMBOLS = [
+ {s:'SPY',n:'S&P 500 ETF',t:'ETF',b:520,v:0.0008,mkt:'US'},
+ {s:'QQQ',n:'Nasdaq 100 ETF',t:'ETF',b:450,v:0.0010,mkt:'US'},
+ {s:'IWM',n:'Russell 2000 ETF',t:'ETF',b:210,v:0.0011,mkt:'US'},
+ {s:'DIA',n:'Dow Jones ETF',t:'ETF',b:420,v:0.0008,mkt:'US'},
+ {s:'XLK',n:'Tech Select ETF',t:'ETF',b:230,v:0.0010,mkt:'US'},
+ {s:'XLF',n:'Financials ETF',t:'ETF',b:48,v:0.0009,mkt:'US'},
+ {s:'XLE',n:'Energy ETF',t:'ETF',b:92,v:0.0011,mkt:'US'},
+ {s:'SMH',n:'Semiconductors ETF',t:'ETF',b:260,v:0.0015,mkt:'US'},
+ {s:'TLT',n:'Bonds 20Y+ ETF',t:'ETF',b:95,v:0.0009,mkt:'US'},
+ {s:'GLD',n:'Złoto ETF',t:'ETF',b:370,v:0.0010,mkt:'US'},
+ {s:'AAPL',n:'Apple',t:'Akcja',b:230,v:0.0012,mkt:'US'},
+ {s:'MSFT',n:'Microsoft',t:'Akcja',b:510,v:0.0010,mkt:'US'},
+ {s:'NVDA',n:'NVIDIA',t:'Akcja',b:215,v:0.0018,mkt:'US'},
+ {s:'AMZN',n:'Amazon',t:'Akcja',b:190,v:0.0013,mkt:'US'},
+ {s:'GOOGL',n:'Alphabet',t:'Akcja',b:300,v:0.0012,mkt:'US'},
+ {s:'META',n:'Meta',t:'Akcja',b:600,v:0.0014,mkt:'US'},
+ {s:'JPM',n:'JPMorgan',t:'Akcja',b:330,v:0.0010,mkt:'US'},
+ {s:'XOM',n:'Exxon',t:'Akcja',b:180,v:0.0011,mkt:'US'},
+ {s:'PKN.WA',n:'Orlen',t:'GPW',b:62,v:0.0012,mkt:'PL'},
+ {s:'PKO.WA',n:'PKO BP',t:'GPW',b:58,v:0.0011,mkt:'PL'},
+ {s:'PEO.WA',n:'Pekao',t:'GPW',b:160,v:0.0011,mkt:'PL'},
+ {s:'KGH.WA',n:'KGHM',t:'GPW',b:150,v:0.0013,mkt:'PL'},
+ {s:'CDR.WA',n:'CD Projekt',t:'GPW',b:120,v:0.0016,mkt:'PL'},
+ {s:'EURUSD',n:'EUR/USD',t:'FX',b:1.09,v:0.00030,mkt:'FX'},
+ {s:'GBPUSD',n:'GBP/USD',t:'FX',b:1.27,v:0.00035,mkt:'FX'},
+ {s:'USDJPY',n:'USD/JPY',t:'FX',b:151,v:0.00035,mkt:'FX'},
+ {s:'AUDUSD',n:'AUD/USD',t:'FX',b:0.66,v:0.00035,mkt:'FX'},
+ {s:'NZDUSD',n:'NZD/USD',t:'FX',b:0.61,v:0.00035,mkt:'FX'},
+ {s:'EURJPY',n:'EUR/JPY',t:'FX',b:164,v:0.00040,mkt:'FX'}
+];
+function mktOf(m){return m.mkt||'US';}
+function sessionOpen(mkt){
+  var d=new Date(); var day=d.getDay(); if(day===0||day===6){ return mkt==='FX'; }
+  var h=d.getHours()+d.getMinutes()/60;
+  if(mkt==='US') return h>=15.5 && h<22;
+  if(mkt==='PL') return h>=9 && h<17;
+  return mkt==='FX';
+}
+function sessionLabel(){
+  var d=new Date(); var day=d.getDay(); var h=d.getHours()+d.getMinutes()/60;
+  if(day>=1&&day<=5&&h>=9&&h<17.5){ return 'PL'; }
+  if(day>=1&&day<=5&&h>=15.5&&h<22){ return 'US'; }
+  return 'FX';
+}
+function htfTrend(sym){
+  var b=ST.series[sym]; if(!b||b.length<40) return 'FLAT';
+  var closes=b.map(function(x){return x.c;});
+  var h1=[]; for(var i=closes.length-12;i>=0;i-=12){ if(i<0) break; }
+  var agg=[]; for(var k=0;k+12<=closes.length;k+=12){ agg.push(closes[k+11]); }
+  if(agg.length<5) agg=closes.slice(-20);
+  var s=sma(agg,Math.min(5,agg.length)); if(s===null) return 'FLAT';
+  var last=agg[agg.length-1];
+  return last>s*1.001?'UP':(last<s*0.999?'DN':'FLAT');
+}
+evaluate=function(m){
+  var b=ST.series[m.s]; if(!b||b.length<40) return null;
+  var cl=b.map(function(x){return x.c;});
+  var c=cl[cl.length-1], s20=sma(cl,20), r2=rsi(cl,2), r14=rsi(cl,14), a=atr(b,14), vw=vwap(b);
+  var win=b.slice(-78);
+  var hi=Math.max.apply(null,win.map(function(x){return x.h;}));
+  var lo=Math.min.apply(null,win.map(function(x){return x.l;}));
+  var trend=htfTrend(m.s);
+  var g={sym:m.s,name:m.n,type:m.t,mkt:mktOf(m),price:c,rsi:r14,atr:a,htf:trend,trend:(s20!==null&&c>s20?'UP':'DN'),side:'WAIT',why:'',strength:0};
+  var canShort=CFG.allowShort || mktOf(m)==='FX';
+  if(trend==='UP' && c>hi && s20!==null && c>s20){ g.side='LONG'; g.why='ORB + zgodność 1H (trend UP)'; g.strength=3; }
+  else if(trend==='DN' && c<lo && s20!==null && c<s20 && canShort){ g.side='SHORT'; g.why='ORB + zgodność 1H (trend DN)'; g.strength=3; }
+  else if(trend!=='DN' && r2!==null && r2<8 && s20!==null && c>s20){ g.side='LONG'; g.why='RSI(2) pullback, 1H nie przeciw'; g.strength=2; }
+  else if(vw && r14!==null && r14<30 && c<vw && trend!=='DN'){ g.side='LONG'; g.why='Powrót do VWAP (wyprzedanie)'; g.strength=2; }
+  else if(vw && r14!==null && r14>70 && c>vw && canShort && trend!=='UP'){ g.side='SHORT'; g.why='Odbicie od VWAP (wykupienie)'; g.strength=1; }
+  return g;
+};
+signals=function(){
+  var out=[];
+  for(var i=0;i<SYMBOLS.length;i++){
+    var m=SYMBOLS[i];
+    if(!ST.series[m.s]) ST.series[m.s]=initSeries(m,150);
+    var g=evaluate(m); if(g){ out.push(g); }
+  }
+  return out;
+};
+backtest=function(){
+  var saved=JSON.stringify(ST);
+  var eq=CFG.capital, peak=eq, mdd=0, trades=0, wins=0, barsHeld=[];
+  var pos={};
+  for(var d=1;d<=250;d++){
+    for(var i=0;i<SYMBOLS.length;i++){ var m=SYMBOLS[i]; var a=ST.series[m.s]||initSeries(m,150); a.push(nextBar(m,a[a.length-1])); if(a.length>600)a.shift(); ST.series[m.s]=a; }
+    for(var k in pos){ var p=pos[k]; var b=ST.series[k]; var bar=b[b.length-1]; p.bars++;
+      var hitStop=(p.side==='LONG'&&bar.l<=p.stop)||(p.side==='SHORT'&&bar.h>=p.stop);
+      var hitTgt=(p.side==='LONG'&&bar.h>=p.target)||(p.side==='SHORT'&&bar.l<=p.target);
+      if(hitStop||hitTgt){ var px=hitStop?p.stop:p.target; var pnl=(p.side==='LONG'?(px-p.entry):(p.entry-px))*p.qty; eq+=pnl; trades++; if(pnl>0)wins++; barsHeld.push(p.bars); delete pos[k]; } }
+    var sg=signals();
+    for(var q=0;q<sg.length;q++){ var g=sg[q]; if(g.side==='WAIT')continue; if(pos[g.sym])continue; if(Object.keys(pos).length>=CFG.maxPos)break;
+      var sd=(g.atr||g.price*0.004)*1.5; var qty=Math.max(1,Math.floor((eq*(CFG.risk/100))/sd));
+      pos[g.sym]={sym:g.sym,side:g.side,entry:g.price,qty:qty,stop:g.side==='LONG'?g.price-sd:g.price+sd,target:g.side==='LONG'?g.price+3*sd:g.price-3*sd,bars:0}; }
+    if(eq>peak)peak=eq; var dd=(eq-peak)/peak; if(dd<mdd)mdd=dd;
+  }
+  ST=JSON.parse(saved);
+  var ret=eq/CFG.capital-1; var wr=trades?Math.round(wins/trades*100):0;
+  var avgB=barsHeld.length?barsHeld.reduce(function(s,x){return s+x;},0)/barsHeld.length:0;
+  document.getElementById('bt-out').innerHTML='<div class="row" style="gap:18px"><div>Transakcji <b>'+trades+'</b></div><div>Win rate <b>'+wr+'%</b></div><div>Kapitał <b>'+money(eq)+'</b></div><div>Zwrot <b class="'+(ret>=0?'pos':'neg')+'">'+fp(ret)+'</b></div><div>Max DD <b class="neg">'+fp(mdd)+'</b></div><div>Średnio <b>'+avgB.toFixed(0)+'</b> świec</div></div><div class="mut" style="margin-top:8px">Backtest na tych samych regułach co live (multi-TF, ATR SL, 3R).</div>';
+};
+renderSig=function(){
+  var rows=(ST.sig||[]).map(function(g){var b=g.side==='WAIT'?'<span class="pill wait">WAIT</span>':'<span class="pill '+(g.side==='LONG'?'buy':'sell')+'">'+g.side+'</span>';var st='';for(var i=0;i<(g.strength||0);i++)st+='●';return [g.sym,g.name,b,'<span class="num">'+f2(g.price)+'</span>',f2(g.rsi,1),g.htf||'—',g.trend,'<span class="mut">'+st+'</span>',g.why||'—'];});
+  document.getElementById('tbl-sig').innerHTML=rows.length?tbl(['Symbol','Nazwa','Sygnał','Cena','RSI','1H','5m','Siła','Uzasadnienie'],rows):'<div class="mut">Brak sygnałów — kliknij „Wykonaj cykl”.</div>';
+  var best=(ST.sig||[]).filter(function(x){return x.side!=='WAIT';}).sort(function(a,b){return (b.strength||0)-(a.strength||0);}).slice(0,5);
+  document.getElementById('desk-sig').innerHTML=best.length?tbl(['Symbol','Sygnał','Cena','1H','Siła'],best.map(function(g){return [g.sym,'<span class="pill '+(g.side==='LONG'?'buy':'sell')+'">'+g.side+'</span>','<span class="num">'+f2(g.price)+'</span>',g.htf||'—',(g.strength||0)+'/3'];} )):'<div class="mut">Brak setupów w tym cyklu — filtry (trend 1H + wybicie) nie przepuściły żadnego sygnału.</div>';
+};
+// sesje: oznacz w badge i nie otwieraj poza sesją
+var _openPos0=openPos;
+openPos=function(g){ var m=null; for(var i=0;i<SYMBOLS.length;i++){ if(SYMBOLS[i].s===g.sym){ m=SYMBOLS[i]; break; } } if(m && !sessionOpen(mktOf(m))){ log('Poza sesją '+mktOf(m)+' — pomijam '+g.sym,'i'); return; } _openPos0(g); };
+// odswiez badge sesji
+var _render0=render;
+render=function(){ _render0(); var b=document.querySelector('.badge[style]')||null; var el=document.getElementById('sess-badge'); if(el){ var s=sessionLabel(); el.textContent='sesja: '+s; el.style.color=(s==='FX'?'var(--gold)':'var(--green)'); } };
+// dopisz nowe serie i przelicz
+for(var _i=0;_i<SYMBOLS.length;_i++){ if(!ST.series[SYMBOLS[_i].s]) ST.series[SYMBOLS[_i].s]=initSeries(SYMBOLS[_i],150); }
+render(); save();
 </script></body></html>
