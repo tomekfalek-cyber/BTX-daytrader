@@ -112,7 +112,7 @@ input:focus,select:focus{outline:none;border-color:var(--red)}
 <div class="row" style="margin-top:9px"><label class="mut" style="width:200px">Max strat z rzędu</label><input id="set-dconsec" type="number" style="width:100px"></div>
 <div class="row" style="margin-top:9px"><label class="mut" style="width:200px">Klucz Twelve Data</label><input id="set-tdkey" type="password" placeholder="opcjonalnie" style="width:220px"></div>
 <div class="row" style="margin-top:12px"><button class="btn ghost" id="btn-real">Pobierz realne dane (wykres)</button></div>
-<div class="row" style="margin-top:9px"><label class="mut" style="width:200px">Dostawca danych</label><select id="set-prov"><option value="twelve">Twelve Data</option><option value="alpaca">Alpaca (US)</option></select></div>
+<div class="row" style="margin-top:9px"><label class="mut" style="width:200px">Dostawca danych</label><select id="set-prov"><option value="twelve">Twelve Data</option><option value="alpaca">Alpaca (US)</option><option value="stooq">Stooq (GPW, EOD)</option></select></div>
 <div class="row" style="margin-top:9px"><label class="mut" style="width:200px">Alpaca Key ID</label><input id="set-alpkey" type="password" placeholder="PK..." style="width:220px"></div>
 <div class="row" style="margin-top:9px"><label class="mut" style="width:200px">Alpaca Secret</label><input id="set-alpsec" type="password" placeholder="sekret" style="width:220px"></div>
 <div class="row" style="margin-top:9px"><button class="btn ghost" id="btn-prov">Test dostawcy</button><span class="mut" id="prov-status" style="font-size:11px">—</span></div>
@@ -476,7 +476,7 @@ async function fetchAlpaca(sym){
   }catch(e){ log('Alpaca błąd: '+e.message,'r'); toast('Błąd Alpaca (CORS/klucz?)'); }
 }
 var fetchTwelve=fetchReal;
-fetchReal=async function(sym){ if(String(CFG.provider||'twelve')==='alpaca'){ return fetchAlpaca(sym); } return fetchTwelve(sym); };
+fetchReal=async function(sym){ var p=String(CFG.provider||'twelve'); if(p==='alpaca') return fetchAlpaca(sym); if(p==='stooq') return fetchStooq(sym); return fetchTwelve(sym); };
 async function providerTest(){
   var el=document.getElementById('prov-status');
   if(String(CFG.provider||'twelve')==='alpaca'){
@@ -485,5 +485,22 @@ async function providerTest(){
     try{ var r=await fetch('https://data.alpaca.markets/v2/stocks/SPY/bars?timeframe=1Day&limit=1&feed=iex',{headers:{'APCA-API-KEY-ID':key,'APCA-API-SECRET-KEY':sec}}); if(el){ el.textContent='Alpaca: HTTP '+r.status; el.style.color=(r.ok?'var(--green)':'var(--loss)'); } }
     catch(e){ if(el){ el.textContent='Alpaca: błąd ('+e.message+')'; el.style.color='var(--loss)'; } }
   } else { if(el){ el.textContent='Twelve Data: tryb aktywny'; el.style.color='var(--green)'; } }
+}
+// ===== STOOQ (GPW, EOD, bez klucza) =====
+async function fetchStooq(sym){
+  if(String(sym).indexOf('.WA')<0){ toast('Stooq: tylko GPW (.WA)'); return; }
+  var base=String(sym).replace('.WA','').toLowerCase();
+  try{
+    var u='https://stooq.com/q/d/l/?s='+base+'&i=d';
+    var r=await fetch(u); if(!r.ok){ throw new Error('HTTP '+r.status); }
+    var txt=await r.text();
+    var lines=String(txt).trim().split(/\r?\n/);
+    if(lines.length<3 || lines[0].toLowerCase().indexOf('date')<0){ throw new Error('brak danych'); }
+    var bars=[];
+    for(var i=1;i<lines.length;i++){ var c=lines[i].split(','); if(c.length<5) continue; var o=+c[1],h=+c[2],l=+c[3],cl=+c[4],v=+(c[5]||0); if(!isFinite(cl)) continue; bars.push({t:new Date(c[0]).getTime(),o:o,h:h,l:l,c:cl,v:v}); }
+    bars=bars.slice(-120);
+    if(!bars.length) throw new Error('puste');
+    ST.series[sym]=bars; log('Stooq: '+sym+' — '+bars.length+' sesji (EOD)','g'); render(); save(); toast('Pobrano Stooq: '+sym);
+  }catch(e){ log('Stooq: '+e.message+' — możliwe CORS (użyj Workera)','r'); toast('Stooq: błąd (CORS?)'); }
 }
 </script></body></html>
