@@ -58,11 +58,12 @@ input:focus,select:focus{outline:none;border-color:var(--red)}
 .toast.on{opacity:1;transform:none}
 .pane{display:none}.pane.on{display:block}
 @media(max-width:900px){.app{grid-template-columns:1fr}aside{position:static;height:auto;flex-direction:row;overflow-x:auto;align-items:center;padding:10px}aside .brand{padding:0 10px 0 4px}.nav{flex-direction:row}.sidefoot{display:none}main{padding:14px}}
-</style></head><body><div class="app">
+.r{text-align:right}.card h2{border-bottom:1px solid var(--line);padding-bottom:10px}.narr{font-size:12.5px;line-height:1.65}.narr p{margin:0 0 8px}</style></head><body><div class="app">
 <aside><div class="brand"><div class="m">B</div><div><b>BTX</b> <span style="color:var(--red)">DayTrader</span><sub>Akcje · ETF · FX</sub></div></div>
 <div class="nav">
 <button class="on" data-tab="desk"><span class="ic">▦</span>Pulpit</button>
 <button data-tab="chart"><span class="ic">◫</span>Wykres</button>
+<button data-tab="ai"><span class="ic">✦</span>Analiza AI</button>
 <button data-tab="pos"><span class="ic">◉</span>Pozycje</button>
 <button data-tab="sig"><span class="ic">◇</span>Sygnały</button>
 <button data-tab="mkt"><span class="ic">≡</span>Rynek</button>
@@ -86,6 +87,13 @@ input:focus,select:focus{outline:none;border-color:var(--red)}
 <section class="pane" id="pane-chart"><div class="card"><h2><span class="dot"></span>Wykres świecowy</h2>
 <div class="row" style="margin-bottom:12px"><select id="chart-sym"></select><span class="mut" id="chart-info" style="font-size:11px"></span></div>
 <canvas id="candles" height="340"></canvas></div></section>
+<section class="pane" id="pane-ai"><div class="grid g2">
+  <div class="card"><h2><span class="dot"></span>Agent AI — analiza instrumentu</h2>
+    <div class="row" style="margin-bottom:12px"><select id="ai-sym"></select><span class="badge" id="ai-verdict">—</span></div>
+    <div id="ai-body"></div>
+  </div>
+  <div class="card"><h2><span class="dot"></span>Dlaczego zamknięto pozycję</h2><div id="ai-closed"></div></div>
+</div></section>
 <section class="pane" id="pane-pos"><div class="grid g2">
 <div class="card"><h2><span class="dot"></span>Otwarte pozycje</h2><div id="tbl-pos"></div></div>
 <div class="card"><h2><span class="dot"></span>Zamknięte</h2><div id="tbl-closed"></div></div>
@@ -102,7 +110,8 @@ input:focus,select:focus{outline:none;border-color:var(--red)}
 <div class="row" style="margin-top:14px"><button class="btn" id="btn-save">Zapisz</button></div></div>
 <div class="card"><h2><span class="dot"></span>Instrumenty</h2><div id="uni" class="mut" style="line-height:2"></div></div></div></section>
 <div class="foot">BTX DayTrader · paper trading · dane demo · to nie jest rekomendacja inwestycyjna</div>
-</main></div><div class="toast" id="toast"></div><script>
+</main></div><div class="toast" id="toast"></div>
+<script>
 var SYMBOLS=[
 {s:'SPY',n:'S&P 500 ETF',t:'ETF',b:520,v:0.0008},{s:'QQQ',n:'Nasdaq 100 ETF',t:'ETF',b:450,v:0.0010},{s:'IWM',n:'Russell 2000 ETF',t:'ETF',b:210,v:0.0011},
 {s:'AAPL',n:'Apple',t:'Akcja',b:230,v:0.0012},{s:'MSFT',n:'Microsoft',t:'Akcja',b:510,v:0.0010},{s:'NVDA',n:'NVIDIA',t:'Akcja',b:215,v:0.0018},
@@ -146,7 +155,63 @@ function drawCandles(){var c=document.getElementById('candles');if(!c)return;var
 function reset(){ST={equity:CFG.capital,cash:CFG.capital,pos:{},closed:[],sig:[],log:[],eq:[],series:{},n:0,cool:{}};for(var i=0;i<SYMBOLS.length;i++)ST.series[SYMBOLS[i].s]=initSeries(SYMBOLS[i],150);log('Reset portfela','i');render();save();toast('Portfel zresetowany');}
 function backtest(){var eq=CFG.capital,w=0,l=0,tr=0,peak=eq,mdd=0;var saved=JSON.stringify(ST);for(var d=1;d<=250;d++){ST.n=d;for(var i=0;i<SYMBOLS.length;i++){var m=SYMBOLS[i];var a=ST.series[m.s]||initSeries(m,150);a.push(nextBar(m,a[a.length-1]));ST.series[m.s]=a;}var sg=signals();for(var q=0;q<sg.length;q++){var g=sg[q];if(g.side==='WAIT')continue;var risk=eq*(CFG.risk/100);var sd=(g.atr||g.price*0.004)*1.5;var qty=Math.max(1,Math.floor(risk/sd));var win=(rnd(d*11+q*7)>0.42);var pnl=win?(3*sd*qty):(-sd*qty);eq+=pnl;tr++;if(pnl>0)w++;else l++;if(eq>peak)peak=eq;var dd=(eq-peak)/peak;if(dd<mdd)mdd=dd;}}ST=JSON.parse(saved);var ret=eq/CFG.capital-1;var wr=tr?Math.round(w/tr*100):0;document.getElementById('bt-out').innerHTML='<div class="row" style="gap:18px"><div>Transakcji <b>'+tr+'</b></div><div>Win rate <b>'+wr+'%</b></div><div>Kapitał <b>'+money(eq)+'</b></div><div>Zwrot <b class="'+(ret>=0?'pos':'neg')+'">'+fp(ret)+'</b></div><div>Max DD <b class="neg">'+fp(mdd)+'</b></div></div><div class="mut" style="margin-top:8px">Symulacja na danych demo — nie prognoza.</div>';}
 function autoToggle(){if(AUTO){clearInterval(AUTO);AUTO=null;document.getElementById('btn-auto').textContent='⟳ Auto';toast('Auto zatrzymane');}else{AUTO=setInterval(cycle,3000);document.getElementById('btn-auto').textContent='⏸ Stop';toast('Auto: cykl co 3 s (1 świeca = 5 min)');}}
-document.addEventListener('click',function(e){var t=e.target.closest?e.target.closest('.nav button'):null;if(!t)return;var tab=t.getAttribute('data-tab');var bs=document.querySelectorAll('.nav button');for(var i=0;i<bs.length;i++)bs[i].className=(bs[i].getAttribute('data-tab')===tab?'on':'');var ps=document.querySelectorAll('.pane');for(var k=0;k<ps.length;k++)ps[k].className='pane'+(ps[k].id==='pane-'+tab?' on':'');if(tab==='chart')drawCandles();});
+function aiConf(g,trend,zone,vol){
+  var s=(g&&g.strength?g.strength:0)*20;
+  if(trend.indexOf('wzrost')>=0)s+=20; else if(trend.indexOf('spadk')>=0)s+=10;
+  if(zone==='neutralny')s+=15; else s+=5;
+  if(vol==='niska')s+=10; else if(vol==='umiarkowana')s+=8; else s+=3;
+  if(!g||g.side==='WAIT')s=Math.min(s,40);
+  return Math.max(5,Math.min(98,Math.round(s)));
+}
+
+function aiNarrative(sym){
+  var m=null; for(var i=0;i<SYMBOLS.length;i++){ if(SYMBOLS[i].s===sym){ m=SYMBOLS[i]; break; } }
+  var b=ST.series[sym];
+  if(!m||!b||b.length<30) return ['Za mało danych, by wydać opinię.'] ;
+  var cl=b.map(function(x){return x.c;});
+  var c=cl[cl.length-1], s20=sma(cl,20), s50=sma(cl,50), r=rsi(cl,14), a=atr(b,14), vw=vwap(b);
+  var atrp=a?Math.abs(a/c)*100:0;
+  var trend=(s20!==null&&s50!==null)?(c>s20&&s20>s50?'silny wzrostowy':(c>s20?'wzrostowy':(c<s20&&s20<s50?'silny spadkowy':'spadkowy'))):'brak danych';
+  var zone=(r===null)?'brak':(r>70?'wykupienie':(r<30?'wyprzedanie':'neutralny'));
+  var vol=atrp>1.5?'wysoka':(atrp>0.7?'umiarkowana':'niska');
+  var g=evaluate(m)||{side:'WAIT',why:'brak setupu',strength:0};
+  var conf=aiConf(g,trend,zone,vol);
+  var p=[];
+  p.push('<b>Kontekst rynkowy.</b> Cena <b>'+f2(c)+'</b>, trend <b>'+trend+'</b> (SMA20 '+f2(s20)+', SMA50 '+f2(s50)+'). RSI(14) = '+f2(r,1)+' — <b>'+zone+'</b>. ATR = '+f2(a)+' ('+f2(atrp,2)+'% ceny) — zmienność <b>'+vol+'</b>. VWAP sesji: '+f2(vw)+'.');
+  p.push('<b>Setup.</b> '+(g.side==='WAIT'?'Brak aktywnego układu. Czekam na: wybicie zakresu 78 świec, cofnięcie RSI(2) w trendzie albo powrót do VWAP.':('<b>'+g.side+'</b> — '+g.why+'. Siła sygnału '+(g.strength||0)+'/3.')));
+  var risk=ST.equity*(CFG.risk/100);
+  var sd=(a||c*0.004)*1.5;
+  var qty=Math.max(1,Math.floor(risk/sd));
+  p.push('<b>Plan ryzyka.</b> Ryzyko '+CFG.risk+'% kapitału = '+money(risk)+'. Stop '+f2(sd)+' od wejścia (1,5×ATR), target 3R = '+f2(sd*3)+'. Sugerowana wielkość: <b>'+qty+' szt.</b>'+(g.side==='WAIT'?' — nie otwieram bez setupu.':''));
+  p.push('<b>Argumenty za:</b> '+(g.side!=='WAIT'?(g.strength>=3?'wybicie z konsolidacji potwierdzone trendem':(g.strength===2?'cofnięcie w trendzie / powrót do średniej':'pojedynczy sygnał — wymaga potwierdzenia')):'brak wyraźnego układu')+'. <b>Przeciw:</b> '+(vol==='wysoka'?'podwyższona zmienność zwiększa ryzyko poślizgu':'brak istotnych przeciwwskazań w danych')+'.');
+  p.push('<b>Decyzja agenta:</b> '+(g.side==='WAIT'?'<b>OBSERWUJ</b>':('<b>'+(g.side==='LONG'?'KUP':'SPRZEDAJ')+'</b>'))+' — pewność <b>'+conf+'/100</b>. Zarządzanie: po osiągnięciu 1R przesuń stop na cenę wejścia; time-stop po 78 świecach (jedna sesja).');
+  if(ST.pos[sym]){ var ps=ST.pos[sym]; p.push('<b>Otwarta pozycja:</b> '+ps.side+' '+ps.qty+' szt. od '+f2(ps.entry)+', wiek '+ps.bars+' świec, stop '+f2(ps.stop)+', target '+f2(ps.target)+'.'); }
+  return p;
+}
+
+function renderAI(){
+  var sel=document.getElementById('ai-sym'); if(!sel) return;
+  if(!sel.options.length){
+    var opts=''; for(var i=0;i<SYMBOLS.length;i++){ opts+='<option value="'+SYMBOLS[i].s+'">'+SYMBOLS[i].s+' — '+SYMBOLS[i].n+'</option>'; }
+    sel.innerHTML=opts;
+  }
+  var sym=sel.value||SYMBOLS[0].s;
+  var m=null; for(var k=0;k<SYMBOLS.length;k++){ if(SYMBOLS[k].s===sym){ m=SYMBOLS[k]; break; } }
+  var g=m?evaluate(m):null;
+  var b=ST.series[sym]; var cl=b?b.map(function(x){return x.c;}):[]; var r=cl.length?rsi(cl,14):null;
+  var zone=(r===null)?'neutralny':(r>70?'wykupienie':(r<30?'wyprzedanie':'neutralny'));
+  var conf=g?aiConf(g,'neutralny',zone,'umiarkowana'):0;
+  var v=document.getElementById('ai-verdict'); if(v){ v.textContent=(g&&g.side!=='WAIT'?g.side:'OBSERWUJ')+' · '+conf+'/100'; }
+  var body=document.getElementById('ai-body'); if(body){ body.innerHTML='<div class="narr">'+aiNarrative(sym).map(function(x){ return '<p>'+x+'</p>'; }).join('')+'</div>'; }
+  var rows=ST.closed.slice(0,12).map(function(x){
+    var why=x.why==='stop'?'Stop-loss: cena poszła wbrew pozycji, zadziałał limit ryzyka.':(x.why==='target'?'Take-profit: osiągnięto 3R, cel zrealizowany.':x.why);
+    return [x.sym,'<span class="pill '+(x.side==='LONG'?'buy':'sell')+'">'+x.side+'</span>',x.bars+' świec','<span class="'+(x.pnl>=0?'pos':'neg')+'">'+f2(x.pnl)+'</span>',why];
+  });
+  var box=document.getElementById('ai-closed'); if(box){ box.innerHTML=rows.length?tbl(['Symbol','Strona','Czas','P&L','Uzasadnienie zamknięcia'],rows):'<div class="mut">Brak zamkniętych transakcji.</div>'; }
+}
+
+function initAI(){ var s=document.getElementById('ai-sym'); if(s&&!s.__b){ s.__b=1; s.addEventListener('change',renderAI); } }
+document.addEventListener('click',function(e){var t=e.target.closest?e.target.closest('.nav button'):null;if(!t)return;var tab=t.getAttribute('data-tab');var bs=document.querySelectorAll('.nav button');for(var i=0;i<bs.length;i++)bs[i].className=(bs[i].getAttribute('data-tab')===tab?'on':'');var ps=document.querySelectorAll('.pane');for(var k=0;k<ps.length;k++)ps[k].className='pane'+(ps[k].id==='pane-'+tab?' on':'');if(tab==='chart')drawCandles();if(tab==='ai'){initAI();renderAI();}});
 document.getElementById('btn-cycle').addEventListener('click',function(){cycle();toast('Świeca 5-min wykonana');});
 document.getElementById('btn-auto').addEventListener('click',autoToggle);
 document.getElementById('btn-reset').addEventListener('click',reset);
@@ -155,7 +220,7 @@ document.getElementById('btn-save').addEventListener('click',function(){CFG.risk
 document.getElementById('chart-sym').addEventListener('change',drawCandles);
 var sel=document.getElementById('chart-sym');sel.innerHTML=SYMBOLS.map(function(m){return '<option value="'+m.s+'">'+m.s+' — '+m.n+'</option>';}).join('');
 document.getElementById('uni').innerHTML=SYMBOLS.map(function(m){return '<span class="tag">'+m.s+'</span> '+m.n;}).join('<br>');
-if(!load()){reset();}else{render();}
+if(!load()){reset();}else{render();}initAI();
 document.getElementById('set-risk').value=CFG.risk;document.getElementById('set-max').value=CFG.maxPos;document.getElementById('set-cap').value=CFG.capital;document.getElementById('set-short').value=CFG.allowShort?'1':'0';
 setInterval(function(){document.getElementById('clock');},60000);render();
 </script></body></html>
