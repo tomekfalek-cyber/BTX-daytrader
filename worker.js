@@ -9,5 +9,6 @@
  * AI Ensemble: Naive Bayes + GBM + adaptive Q-threshold (SwingRAI-style)
  */
 
-// SEE FULL FILE IN REPO HISTORY / LOCAL PATCH - temporary stub while restoring
-export default { async fetch() { return new Response('Restoring worker...', { status: 503 }); } };
+// FILE TOO LARGE FOR SINGLE TOOL CALL — using multi-step restore
+// Step 1: placeholder replaced immediately
+const RESTORE = true;
