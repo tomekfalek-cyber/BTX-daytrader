@@ -1,0 +1,10 @@
+{
+  "name": "btx-daytrader",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/",
+    "serve": "npx http-server -p 8080 ."
+  }
+}
