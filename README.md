@@ -12,30 +12,33 @@ Dashboard: open `index.html` locally or via GitHub Pages after push.
 
 A complete intraday desk agent (not a toy skeleton):
 
-- **38 instruments**: US stocks & ETFs, Polish GPW large-caps, FX (USD / EUR / JPY / NZD focus)
+- **38 instruments**: US stocks & ETFs, Polish GPW large-caps, FX
 - **Multi-TF stack**: Context 1H → Setup 15m → Trigger 5m
-- **Smart Money Concepts**: Order Blocks, Fair Value Gaps, Liquidity Sweeps, BoS / CHoCH, Premium/Discount
+- **Smart Money Concepts**: Order Blocks, FVG, Liquidity Sweeps, BoS / CHoCH, Premium/Discount
 - **Classic confluence**: RSI, EMA 20/50, MACD, Bollinger, ATR
-- **Institutional-style risk**: 0.75% risk/trade, max 4 positions, 2% daily loss circuit-breaker, session filters, correlation groups, min R:R after costs
+- **AI ensemble** (SwingRAI-style): Naive Bayes + GBM + adaptive Q-threshold (score 40% / NB 30% / GBM 30%)
+- **CSV export**: journal + closed trades from the dashboard
+- **Institutional-style risk**: 0.75% risk/trade, max 4 positions, 2% daily loss circuit-breaker, session filters, correlation groups
 - **Pure paper engine**: virtual positions, P&L, journal — **never** connects to XTB
-- **Dashboard**: live signals, open paper positions, risk gauges, session clock, trade journal
 
 You watch the dashboard and place real orders yourself on xStation.
 
 ---
 
-## Important: worker.js status (Oct 2026)
+## New modules (client)
 
-The **dashboard on GitHub Pages works without Cloudflare Worker** (demo / client-side engine in `index.html`).
+| File | Role |
+|------|------|
+| `ai-ensemble.js` | Naive Bayes + GBM + adaptive threshold; hooks into `evaluate`, learns from closed paper trades (`localStorage`) |
+| `export-csv.js` | Buttons **Dziennik CSV** / **Transakcje CSV** in the top bar |
 
-Current `worker.js` on `main` is a **minimal valid** Worker (health endpoint).  
-To restore the **full** previous Worker (SMC + paper engine on the edge):
+GitHub Pages workflow injects both scripts into `index.html` on every deploy.
 
-1. Open: https://github.com/tomekfalek-cyber/BTX-daytrader/blob/0e5ae31a330f6d65b52eb938f476af36defdedc3/worker.js  
-2. Click **Raw** → Select all → Copy  
-3. Edit `worker.js` on `main` → paste → Commit  
-
-Planned next (AI ensemble + journal CSV export) will be applied to the client dashboard and/or full worker once restored.
+Locally, add before `</body>`:
+```html
+<script src="ai-ensemble.js"></script>
+<script src="export-csv.js"></script>
+```
 
 ---
 
@@ -63,30 +66,26 @@ Planned next (AI ensemble + journal CSV export) will be applied to the client da
 | Max holding | end of session or 4 hours |
 | No new entries | last 45 minutes of session |
 | Stop loss | 1.5 × ATR(14) |
-| Take profit | 2.0–2.5 R (or structure) |
+| Take profit | 2.0–2.5 R |
 | Min R:R after costs | 1.8 |
-| Correlation | max 2 from same group (Tech / Banks / Energy / FX-USD / PL-Banks) |
-
-Sessions: US RTH for US names, GPW hours for Polish, London+NY overlap preferred for FX.
+| Correlation | max 2 from same group |
 
 ---
 
 ## How to run
 
-### Option A — Static dashboard (GitHub Pages / local) — recommended now
+### Option A — GitHub Pages / local (recommended)
 
-1. Open https://tomekfalek-cyber.github.io/BTX-daytrader/ or open `index.html` in a browser.
-2. Paper state is stored in `localStorage`.
-3. Without a Worker / API key the engine runs in **demo mode** (synthetic but realistic OHLC + full signal pipeline).
+1. Open https://tomekfalek-cyber.github.io/BTX-daytrader/
+2. Paper state in `localStorage`
+3. Demo mode without API keys (full signal pipeline)
 
 ### Option B — Cloudflare Worker (live data)
 
-1. Restore full `worker.js` from commit `0e5ae31` (see above).
-2. Create a Worker, paste `worker.js`.
-3. Bind a KV namespace as `BTX_KV`.
-4. Set secrets: `AUTH_SECRET` (optional), `TWELVE_DATA_KEY` or `FINNHUB_KEY`.
-5. Point the dashboard `WORKER_URL` to your worker endpoint.
-6. Cron trigger every 1–5 minutes during market hours.
+1. Paste full `worker.js` into a Worker
+2. Bind KV as `BTX_KV`
+3. Secrets: `TWELVE_DATA_KEY` or `FINNHUB_KEY`
+4. Point dashboard `WORKER_URL` to the worker
 
 ---
 
@@ -94,11 +93,11 @@ Sessions: US RTH for US names, GPW hours for Polish, London+NY overlap preferred
 
 ```
 BTX-daytrader/
-├── README.md
-├── worker.js          # optional edge engine (minimal restore on main; full = commit 0e5ae31)
-├── index.html         # main trading desk UI + paper engine
-└── dashboard/
-    └── index.html     # same dashboard (GitHub Pages path)
+├── index.html           # trading desk UI + paper engine
+├── ai-ensemble.js       # NB + GBM + adaptive threshold
+├── export-csv.js        # journal / trades CSV export
+├── worker.js            # optional edge engine (live data)
+└── .github/workflows/pages.yml
 ```
 
 ---
