@@ -95,6 +95,101 @@ tbody tr:hover td{background:rgba(47,125,225,.10)}
 input,select{border-radius:3px;background:var(--bg3)}
 canvas{border-radius:0;background:var(--bg2)}
 .toast{border-radius:3px}
+</style><style id="pro-theme">
+/* v5: nowoczesny, spokojny interfejs */
+:root{--bg:#0A0D12;--bg2:#12161D;--bg3:#181D26;--bg4:#202733;--line:rgba(255,255,255,.07);--line2:rgba(255,255,255,.12);--tx:#EEF1F6;--tx2:#A8B1BF;--tx3:#707B8C;--red:#F0343F;--red2:#D42631;--green:#34D399;--loss:#FB7185;--gold:#FBBF24;--blue:#60A5FA;--r:14px}
+body{font-family:Inter,system-ui,"Segoe UI",sans-serif;font-size:13px;background:radial-gradient(1200px 600px at 80% -10%,rgba(240,52,63,.07),transparent 60%),var(--bg);letter-spacing:.005em}
+.num,.kpi .v,td,.log,.pl,.kv b{font-family:Inter,system-ui,sans-serif;font-variant-numeric:tabular-nums}
+.app{grid-template-columns:232px 1fr}
+aside{width:232px;background:rgba(14,17,23,.92);border-right:1px solid var(--line);padding:20px 14px}
+.brand{padding:2px 8px 22px}
+.brand .m{width:36px;height:36px;border-radius:11px;background:linear-gradient(145deg,#FF4D58,#B3121D);box-shadow:0 8px 20px rgba(240,52,63,.28);font-size:16px}
+.nav{gap:2px;margin-top:0}
+.navlabel{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--tx3);font-weight:600;padding:16px 10px 6px}
+.nav button{border-radius:10px;padding:9px 11px;font-weight:500;color:var(--tx2);gap:11px}
+.nav button .ic{display:inline-flex;width:20px;justify-content:center;opacity:.85}
+.nav button:hover{background:rgba(255,255,255,.04);color:var(--tx)}
+.nav button.on{background:linear-gradient(90deg,rgba(240,52,63,.18),rgba(240,52,63,.04));color:#fff;box-shadow:none}
+.nav button.on .ic{color:var(--red);opacity:1}
+.sidefoot{border-top:1px solid var(--line)}
+main{padding:0 28px 48px;max-width:1500px}
+.topbar{position:sticky;top:0;z-index:20;margin:0 -28px 18px;padding:14px 28px;background:rgba(10,13,18,.82);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.topbar h1{font-size:18px;font-weight:700}
+.btn{border-radius:10px;padding:9px 16px;font-weight:600;background:linear-gradient(180deg,#F5434D,#D92934);box-shadow:0 4px 14px rgba(240,52,63,.22)}
+.btn:hover{background:linear-gradient(180deg,#FF5560,#E02D38)}
+.btn.ghost{background:var(--bg3);border:1px solid var(--line2);box-shadow:none;color:var(--tx)}
+.btn.ghost:hover{background:var(--bg4);border-color:rgba(255,255,255,.2)}
+.badge{border-radius:99px;padding:5px 11px;font-weight:600}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:0 0 18px;background:none;border:0}
+.kpi{background:linear-gradient(180deg,var(--bg3),var(--bg2));border:1px solid var(--line);border-radius:var(--r);padding:15px 17px}
+.kpi .l{font-size:10.5px;letter-spacing:.1em;color:var(--tx3);font-weight:600}
+.kpi .v{font-size:23px;font-weight:600;margin-top:6px;letter-spacing:-.02em}
+.kpi .d{margin-top:4px;color:var(--tx3);font-size:11px}
+section.pane,.foot{margin-left:0;margin-right:0}
+.card{background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);padding:18px 20px;box-shadow:0 1px 0 rgba(255,255,255,.03) inset}
+.card>*:not(h2){margin-left:0;margin-right:0}
+.card>h2+*{margin-top:0}
+.card>h2{margin:0 0 14px;padding:0 0 12px;background:none;border:0;border-bottom:1px solid var(--line);border-left:0;color:var(--tx2);font-size:11px;letter-spacing:.12em}
+.card>h2 .dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--red);box-shadow:0 0 0 3px rgba(240,52,63,.18)}
+.grid{gap:14px}
+table{border-collapse:separate;border-spacing:0}
+th{background:none;position:static;color:var(--tx3);font-size:10px;letter-spacing:.1em;padding:8px 10px;border-bottom:1px solid var(--line)}
+td{padding:11px 10px;border-bottom:1px solid var(--line);vertical-align:top;line-height:1.5}
+tbody tr:nth-child(even) td{background:none}
+tbody tr:hover td{background:rgba(255,255,255,.025)}
+tbody tr:last-child td{border-bottom:0}
+.pill{border-radius:7px;padding:3px 10px;font-weight:700;letter-spacing:.04em}
+.buy{background:rgba(52,211,153,.14);color:var(--green)}
+.sell{background:rgba(251,113,133,.14);color:var(--loss)}
+.wait{background:rgba(255,255,255,.06);color:var(--tx3)}
+.gold{color:var(--gold)}
+.tag{border-radius:6px}
+input,select{border-radius:9px;background:var(--bg3);border:1px solid var(--line2);padding:9px 11px}
+input:focus,select:focus{border-color:var(--red);box-shadow:0 0 0 3px rgba(240,52,63,.14)}
+canvas{border-radius:12px;background:var(--bg3)}
+.toast{border-radius:12px;background:var(--bg4);border:1px solid var(--line2);border-left:3px solid var(--red);box-shadow:0 12px 30px rgba(0,0,0,.4)}
+.narr{font-size:13px;line-height:1.7;color:var(--tx2)}
+/* wprowadzenia i objaśnienia */
+details.intro{background:linear-gradient(90deg,rgba(96,165,250,.09),rgba(96,165,250,.02));border:1px solid rgba(96,165,250,.2);border-radius:12px;padding:11px 16px;margin-bottom:14px;color:var(--tx2)}
+details.intro summary{cursor:pointer;font-weight:600;color:var(--blue);list-style:none}
+details.intro summary::-webkit-details-marker{display:none}
+details.intro p{margin-top:8px;line-height:1.7;font-size:12.8px}
+details.more{margin-top:6px}
+details.more summary{cursor:pointer;color:var(--blue);font-size:11.5px;font-weight:500;list-style:none}
+details.more summary::-webkit-details-marker{display:none}
+details.more summary:before{content:"▸ "}
+details.more[open] summary:before{content:"▾ "}
+details.more p,details.more ul,details.more ol{margin:6px 0 2px 0;padding-left:18px;color:var(--tx2);font-size:12px;line-height:1.65}
+details.more p{padding-left:0}
+.lesson{margin-top:6px;padding:8px 10px;border-radius:9px;background:rgba(251,191,36,.07);border:1px solid rgba(251,191,36,.18);color:var(--tx2);font-size:11.8px;line-height:1.6}
+details.gl{border:1px solid var(--line);border-radius:12px;padding:12px 16px;margin-bottom:8px;background:var(--bg3)}
+details.gl summary{cursor:pointer;display:flex;flex-direction:column;gap:3px;list-style:none}
+details.gl summary::-webkit-details-marker{display:none}
+details.gl summary b{font-size:13.5px}
+details.gl summary span{color:var(--tx3);font-size:12px}
+details.gl p{margin-top:10px;line-height:1.75;color:var(--tx2);font-size:12.8px}
+/* karty pozycji */
+.pcard{background:var(--bg3);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:12px}
+.pcard .ph{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.pcard .ph>div{flex:1}
+.pcard .sym{font-size:16px}
+.pcard .pl{font-size:18px;font-weight:700}
+.rbar{position:relative;height:8px;border-radius:99px;background:linear-gradient(90deg,rgba(251,113,133,.35),rgba(255,255,255,.07) 33%,rgba(52,211,153,.35));margin:6px 0 6px}
+.rbar .rfill{display:none}
+.rbar i{position:absolute;top:-3px;width:2px;height:14px;background:var(--blue);border-radius:2px}
+.rbar b{position:absolute;top:-4px;width:14px;height:14px;margin-left:-7px;border-radius:50%;background:#fff;box-shadow:0 0 0 3px rgba(255,255,255,.2)}
+.rlab{display:flex;justify-content:space-between;font-size:11px;color:var(--tx3);margin-bottom:12px}
+.kv{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px}
+.kv div{background:var(--bg2);border-radius:10px;padding:8px 10px}
+.kv span{display:block;font-size:10px;color:var(--tx3);letter-spacing:.08em;text-transform:uppercase}
+.kv b{font-size:13.5px;font-weight:600}
+.hold{font-size:12px;padding:8px 11px;border-radius:9px;margin-bottom:8px}
+.hold.warn{background:rgba(251,191,36,.08);color:var(--gold)}
+.hold.ok{background:rgba(52,211,153,.08);color:var(--green)}
+.xtb{font-size:12px;padding:9px 11px;border-radius:9px;background:rgba(96,165,250,.08);color:var(--tx2);margin-bottom:6px}
+.xtb b{color:var(--tx)}
+.pcard .why{font-size:11.5px;color:var(--tx3);line-height:1.6}
+@media(max-width:900px){.app{grid-template-columns:1fr}aside{width:auto}.navlabel{display:none}.topbar{margin:0 -14px 14px;padding:10px 14px}main{padding:0 14px 40px}}
 </style></head><body><div class="app">
 <aside><div class="brand"><div class="m">B</div><div><b>BTX</b> <span style="color:var(--red)">DayTrader</span><sub>Akcje · ETF · FX</sub></div></div>
 <div class="nav">
@@ -256,7 +351,7 @@ function renderAI(){
   var body=document.getElementById('ai-body'); if(body){ body.innerHTML='<div class="narr">'+aiNarrative(sym).map(function(x){ return '<p>'+x+'</p>'; }).join('')+'</div>'; }
   var rows=ST.closed.slice(0,12).map(function(x){
     var why=x.why==='stop'?'Stop-loss: cena poszła wbrew pozycji, zadziałał limit ryzyka.':(x.why==='target'?'Take-profit: osiągnięto 3R, cel zrealizowany.':(x.why==='time-stop'?'Time-stop: sesja się kończy, pozycja nie dała 3R — zamknięcie rynkowe.':x.why));
-    return [x.sym,'<span class="pill '+(x.side==='LONG'?'buy':'sell')+'">'+x.side+'</span>',x.bars+' świec','<span class="'+(x.pnl>=0?'pos':'neg')+'">'+f2(x.pnl)+'</span>',why];
+    return [x.sym,'<span class="pill '+(x.side==='LONG'?'buy':'sell')+'">'+x.side+'</span>',x.bars+' świec','<span class="'+(x.pnl>=0?'pos':'neg')+'">'+f2(x.pnl)+'</span>',why+aiLesson(x)];
   });
   var box=document.getElementById('ai-closed'); if(box){ box.innerHTML=rows.length?tbl(['Symbol','Strona','Czas','P&L','Uzasadnienie zamknięcia'],rows):'<div class="mut">Brak zamkniętych transakcji.</div>'; }
 }
@@ -624,7 +719,7 @@ backtest=function(){
       var hs=p.side==='LONG'?bar.l<=stp0:bar.h>=stp0, ht=p.side==='LONG'?bar.h>=p.target:bar.l<=p.target;
       if(hs||ht){ var px=hs?stp0:p.target, r=calcClose(p,px); eq+=r.gross-r.feeOut; fees+=r.feeOut; trades++; if(r.gross-r.feeOut-p.feeIn>0)wins++; held.push(p.bars); delete pos[k]; } }
     var sg=signals(), used=0; for(var z in pos) used+=pos[z].margin;
-    for(var q=0;q<sg.length;q++){ var g=sg[q]; if(g.side==='WAIT'||pos[g.sym]) continue; if(Object.keys(pos).length>=CFG.maxPos) break;
+    for(var q=0;q<sg.length;q++){ var g=sg[q]; if(g.side==='WAIT'||pos[g.sym]||(g.age||1)<(CFG.confirm||2)) continue; if(Object.keys(pos).length>=CFG.maxPos) break;
       var m=symM(g.sym), sp=sizePlan(m,g.price,g.atr,eq,eq-used); if(!sp.ok){ skipped++; continue; }
       var lg=g.side==='LONG';
       pos[g.sym]={sym:g.sym,side:g.side,qty:sp.qty,entry:g.price,stop:lg?g.price-sp.sd:g.price+sp.sd,target:lg?g.price+3*sp.sd:g.price-3*sp.sd,risk0:sp.sd,rate:sp.rate,margin:sp.margin,feeIn:sp.feeIn,f:sp.f,bars:0,be:false};
@@ -673,7 +768,7 @@ function syncSettings(){
 }
 function applySmallProfile(){
   CFG.capital=500; CFG.risk=1; CFG.maxPos=2; CFG.allowShort=false; CFG.dailyLoss=3; CFG.maxTrades=6; CFG.maxConsec=3;
-  CFG.scan={US:false,PL:true,FX:true}; CFG.fees=defaultFees(); CFG.rates={USD:3.7,JPY:0.0245}; CFG.fxLev=30;
+  CFG.scan={US:false,PL:true,FX:true}; CFG.fees=defaultFees(); CFG.rates={USD:3.7,JPY:0.0245}; CFG.fxLev=30; CFG.autoSec=300; CFG.minHold=6; CFG.confirm=2; CFG.v5=1;
   syncSettings(); reset();
 }
 syncSettings();
@@ -693,6 +788,201 @@ render=function(){
   var k=document.querySelector('.kpis'); if(!k||document.getElementById('s-cash')) return;
   k.insertAdjacentHTML('beforeend','<div class="kpi"><div class="l">Wolne środki</div><div class="v" id="s-cash">—</div><div class="d">po odjęciu depozytu</div></div><div class="kpi"><div class="l">Opłaty łącznie</div><div class="v" id="s-fees">—</div><div class="d">prowizje · przewalutowanie · spread</div></div>');
   var d=k.children[2].querySelector('.d'); if(d) d.id='s-pos-d';
+})();
+
+// ===== v5: nowy interfejs, edukacja, min. 30 min w pozycji, potwierdzenie sygnału =====
+function pf(x,m){ if(x===null||x===undefined||isNaN(x)) return '—'; var d=2; if(m&&m.mkt==='FX') d=x>50?3:5; return Number(x).toFixed(d); }
+function xtbSym(m){ if(m.mkt==='US') return m.s+'.US'; if(m.mkt==='PL') return m.s.replace('.WA','.PL'); return m.s; }
+function minBars(){ return Math.max(6,CFG.minHold||6); }
+if(!CFG.v5){ CFG.v5=1; CFG.minHold=minBars(); CFG.confirm=2; CFG.autoSec=300; }
+(function(){ function sv(i,v){ var e=document.getElementById(i); if(e) e.value=v; } sv('set-minhold',CFG.minHold); sv('set-autosec',CFG.autoSec||300);
+  var l=document.getElementById('set-minhold'); if(l){ l.min=6; l.parentNode.querySelector('label').textContent='Min. trzymanie (świece×5 min; 6 = 30 min)'; }
+  var a=document.getElementById('set-autosec'); if(a){ a.parentNode.querySelector('label').textContent='Auto: sekundy na świecę (300 = czas rzeczywisty)'; }
+  var tb=document.getElementById('set-tstop'); if(tb){ tb.parentNode.querySelector('label').textContent='Time-stop (świece×5 min)'; }
+})();
+
+// ---- sygnał musi utrzymać się min. 2 świece (10 min) — czas na reakcję ----
+var _signals5=signals;
+signals=function(){
+  var out=_signals5(), prev=ST.age||{}, now={};
+  out.forEach(function(g){ if(g.side==='WAIT') return; var k=g.sym+':'+g.side; now[k]=(prev[k]||0)+1; g.age=now[k]; });
+  ST.age=now; return out;
+};
+var _openPos5=openPos;
+openPos=function(g){
+  if((g.age||1)<(CFG.confirm||2)){ ST.skip=ST.skip||{}; var k=g.sym+g.side+'age'; if(!ST.skip[k]||ST.skip[k]!==ST.n-1){ log('SYGNAŁ '+g.side+' '+g.sym+' czeka na potwierdzenie (utrzymanie przez '+(CFG.confirm||2)+' świece)','i'); } ST.skip[k]=ST.n; return; }
+  _openPos5(g);
+};
+
+// ---- cykl: min. czas w pozycji, stop awaryjny 2× w tym czasie ----
+cycle=function(){
+  ST.n++; checkLimits();
+  for(var i=0;i<SYMBOLS.length;i++){ var m=SYMBOLS[i], a=ST.series[m.s];
+    if(!a||!a.length){ ST.series[m.s]=initSeries(m,150); } else { a.push(nextBar(m,a[a.length-1])); if(a.length>400) a.shift(); }
+    if(ST.cool[m.s]>0) ST.cool[m.s]--; }
+  var minB=minBars();
+  for(var k in ST.pos){ var p=ST.pos[k], b=last(k); if(!b) continue; p.bars++;
+    var long=p.side==='LONG', stp0=p.stop;
+    if(p.bars<minB){
+      var em=long?p.entry-2*p.risk0:p.entry+2*p.risk0;
+      if(long?b.l<=em:b.h>=em){ closePos(k,'stop awaryjny (2× ryzyko) w okresie min. trzymania',Math.min(em,b.o)*(long?1:0)+Math.max(em,b.o)*(long?0:1)); }
+      continue; }
+    if(!p.be){ var mv=long?(b.c-p.entry):(p.entry-b.c); if(mv>=p.risk0){ p.stop=p.entry; p.be=true; log('BE: stop na wejściu — '+p.sym,'g'); } }
+    if(p.bars>=(CFG.timeStop||60)){ closePos(k,'time-stop',b.c); continue; }
+    if(long){ if(b.l<=stp0){ closePos(k,'stop',Math.min(stp0,b.o)); continue; } if(b.h>=p.target){ closePos(k,'target',Math.max(p.target,b.o)); continue; } }
+    else { if(b.h>=stp0){ closePos(k,'stop',Math.max(stp0,b.o)); continue; } if(b.l<=p.target){ closePos(k,'target',Math.min(p.target,b.o)); continue; } }
+  }
+  var sg=signals(); ST.sig=sg; var opened=0;
+  var ranked=sg.filter(function(x){return x.side!=='WAIT';}).sort(function(a,b){return b.strength-a.strength;});
+  for(var q=0;q<ranked.length;q++){ var g=ranked[q]; if(ST.pos[g.sym]) continue; if(ST.cool[g.sym]>0) continue; if(Object.keys(ST.pos).length>=CFG.maxPos) break;
+    var n0=Object.keys(ST.pos).length; openPos(g); if(Object.keys(ST.pos).length>n0) opened++; }
+  ST.eq.push(ST.equity); if(ST.eq.length>400) ST.eq.shift();
+  log('Świeca #'+ST.n+' (5 min): sygnały '+ranked.length+', otwarte '+opened,'i');
+  render(); save();
+};
+
+// ---- EDUKACJA: słownik ----
+var GLOSS=[
+ {t:'Świeca 5-minutowa (OHLC)',s:'Jedna „klatka” wykresu: cena otwarcia, najwyższa, najniższa i zamknięcia z 5 minut.',d:'Zielona świeca zamknęła się powyżej otwarcia, czerwona poniżej. Cienie (knoty) pokazują, dokąd cena sięgnęła i została odrzucona. Dlatego stop i cel sprawdzamy po high/low świecy, a nie tylko po cenie zamknięcia — cena mogła dotknąć poziomu w trakcie.',x:'Długi dolny knot po spadku = kupujący odrzucili niższe ceny.'},
+ {t:'ATR — średni zakres ruchu',s:'Ile instrument zwykle przechodzi w jednej świecy. To miara zmienności.',d:'ATR(14) to średnia z 14 ostatnich zakresów świec. Używamy go do ustawienia stop-lossa (1,5×ATR): stop zbyt blisko zostanie wybity przez zwykły szum, zbyt daleko oznacza większą stratę albo mniejszy wolumen. Gdy ATR rośnie, rynek się „rozpędza”; gdy maleje — konsoliduje i często szykuje wybicie.',x:'ATR = 0,20% ceny → stop około 0,30% od wejścia.'},
+ {t:'RSI (wskaźnik siły względnej)',s:'Oscylator 0–100 pokazujący, czy ostatnie wzrosty przeważają nad spadkami.',d:'Powyżej 70 = wykupienie, poniżej 30 = wyprzedanie. To NIE jest sygnał sam w sobie: w silnym trendzie RSI może długo siedzieć powyżej 70. Bot używa RSI(2) do łapania krótkich cofnięć w trendzie oraz RSI(14) do oceny, czy ruch nie jest przeciągnięty.',x:'RSI(2) < 8 w trendzie wzrostowym = bardzo głębokie, krótkie cofnięcie.'},
+ {t:'SMA 20 i SMA 50',s:'Średnie kroczące cen zamknięcia z 20 i 50 świec — prosty filtr trendu.',d:'Cena nad SMA20, a SMA20 nad SMA50 = trend wzrostowy w ujęciu krótkim. Średnie reagują z opóźnieniem, więc dobrze pokazują kierunek, ale słabo wskazują dokładne wejście. W konsolidacji cena przecina je często — to wtedy sygnały trendowe zawodzą.',x:'Cena pod SMA20 i SMA50 → nie szukamy longów na wybiciach.'},
+ {t:'VWAP',s:'Średnia cena ważona wolumenem — „uczciwa cena” sesji dla dużych graczy.',d:'Instytucje często porównują swoje transakcje do VWAP. Cena nad VWAP sugeruje przewagę kupujących, pod VWAP — sprzedających. Powrót do VWAP po mocnym wychyleniu bywa celem krótkoterminowych odbić.',x:'Wyprzedanie (RSI<30) pod VWAP → możliwy powrót w górę do średniej.'},
+ {t:'Wiele interwałów (1H i 5m)',s:'Kierunek ustalamy na wyższym interwale, wejście na niższym.',d:'Trend 1H to „prąd rzeki”, wykres 5m to Twoje wiosło. Wejścia zgodne z trendem 1H mają statystycznie wyższą szansę, bo nie walczysz z większym kapitałem. Gdy 5m i 1H są sprzeczne, bot obniża pewność albo odpuszcza.',x:'1H = UP, a 5m daje pullback → klasyczne wejście z trendem.'},
+ {t:'BoS — przełamanie struktury',s:'Cena zamyka się powyżej ostatniego szczytu (lub poniżej dołka) swingu.',d:'Rynek tworzy szczyty i dołki. Jeśli cena pokona ostatni znaczący szczyt, struktura jest wzrostowa; pokonanie dołka — spadkowa. BoS potwierdza kontynuację ruchu. Przeciwieństwem jest CHoCH — zmiana charakteru (pierwsze przełamanie w przeciwną stronę), czyli możliwy początek odwrócenia.',x:'BoS w górę + strefa discount = rozsądny kandydat na long.'},
+ {t:'Sweep płynności',s:'Krótkie wyjście poza ostatni szczyt/dołek (zebranie stopów) i szybki powrót.',d:'Nad szczytami i pod dołkami stoją zlecenia stop innych uczestników. Duzi gracze często „zbierają” tę płynność, po czym cena zawraca. Świeca, która wybija dołek, ale zamyka się nad nim, to typowy sweep — sygnał odrzucenia niższych cen.',x:'Knot pod dołkiem + zamknięcie nad nim → przewaga popytu.'},
+ {t:'Order Block (OB)',s:'Ostatnia świeca przeciwna przed silnym impulsem — strefa, w której działał duży gracz.',d:'Po mocnym ruchu w górę ostatnia czerwona świeca przed nim to potencjalny OB popytu. Gdy cena wraca do tej strefy, często reaguje. Traktujemy OB jako obszar, nie linię — dlatego bot sprawdza, czy cena jest „w” bloku.',x:'Cena wraca do OB popytu w trendzie wzrostowym → miejsce na long ze stopem pod blokiem.'},
+ {t:'FVG — luka wartości godziwej',s:'Trzy świece, w których cena przeskoczyła przedział bez handlu po obu stronach.',d:'Gwałtowny ruch zostawia lukę między szczytem pierwszej a dołkiem trzeciej świecy. Rynek lubi do takich luk wracać i je „wypełniać”. Wejście w FVG zgodne z trendem daje dobrą cenę i bliski stop.',x:'FVG popytowe po impulsie w górę = strefa możliwego powrotu i odbicia.'},
+ {t:'Premium / Discount',s:'Czy cena jest w drogiej czy tańszej połowie ostatniego zakresu.',d:'Dzielimy zakres z ostatnich 78 świec na pół. Powyżej środka (Equilibrium) jest premium — lepiej szukać sprzedaży, poniżej discount — lepiej kupować. Kupowanie w discount i sprzedawanie w premium poprawia stosunek zysku do ryzyka.',x:'Long w strefie premium = kupujesz drogo, stop musi być dalej lub wejście gorsze.'},
+ {t:'ORB — wybicie zakresu',s:'Wybicie powyżej maksimum (lub poniżej minimum) z ostatnich 78 świec, czyli sesji.',d:'Klasyczna strategia momentum: po konsolidacji cena wychodzi z zakresu z energią. Najlepiej działa zgodnie z trendem 1H i przy rosnącej zmienności. Fałszywe wybicia są częste w wąskim, bocznym rynku — stąd filtr 1H.',x:'Zamknięcie powyżej max 78 świec przy trendzie 1H UP.'},
+ {t:'R i R:R (stosunek zysku do ryzyka)',s:'1R = odległość od wejścia do stop-lossa, czyli kwota, którą ryzykujesz.',d:'Target 3R oznacza zysk trzy razy większy niż ryzyko. Przy R:R = 3 wystarczy 30% skutecznych transakcji, by wyjść na zero przed kosztami. Dlatego ważniejsze od win rate jest, by strata była mała, a zysk duży. Koszty (spread, przewalutowanie) zmniejszają realny R:R — bot liczy go netto.',x:'Ryzyko 5 PLN, cel 15 PLN = 3R.'},
+ {t:'Stop-loss i Take-profit',s:'Zlecenia, które automatycznie zamykają pozycję przy stracie lub zysku.',d:'Stop-loss musisz ustawić od razu po wejściu na XTB — to Twoja polisa. Take-profit zamyka zysk bez Twojej obecności. Nigdy nie przesuwaj stopa dalej od ceny (w stronę większej straty). Wolno tylko zacieśniać go w stronę zysku.',x:'Long 100 szt. @10,00, SL 9,80 → maksymalna strata 20 PLN.'},
+ {t:'Break-even (BE)',s:'Gdy zysk osiągnie +1R, stop przesuwamy na cenę wejścia.',d:'Od tej chwili transakcja nie może już przynieść straty (poza kosztami). Cena często wraca do wejścia i wybija BE — to normalny koszt ochrony kapitału. Zamknięcie na BE to wynik około minus opłaty, a nie porażka.',x:'Wejście 100, ryzyko 2 → po osiągnięciu 102 stop idzie na 100.'},
+ {t:'Min. czas trzymania i time-stop',s:'Minimum 30 minut w pozycji, maksimum domyślnie 60 świec (5 godzin).',d:'Minimum daje Ci czas na ręczne złożenie zlecenia na XTB i uniknięcie nadmiernego handlu (każda transakcja kosztuje). W pierwszych 30 minutach działa tylko stop awaryjny 2× ryzyka. Time-stop zamyka pozycję, gdy rynek nic nie robi — kapitał nie powinien stać zamrożony bez powodu.',x:'Świeca = 5 min, więc 6 świec = 30 min.'},
+ {t:'Wielkość pozycji',s:'Ile sztuk kupić, żeby stop-loss kosztował Cię ustalony procent kapitału.',d:'Wolumen = ryzyko w PLN ÷ odległość stopa w PLN. Przy 500 PLN i 1% ryzyka wolno stracić 5 PLN. Bot ogranicza wolumen także przez dostępne środki i depozyt. To nie wielkość pozycji, tylko ryzyko decyduje o tym, czy konto przetrwa serię strat.',x:'Ryzyko 5 PLN, stop 0,25 PLN/szt. → 20 szt.'},
+ {t:'Spread',s:'Różnica między ceną kupna a sprzedaży — ukryty koszt każdej transakcji.',d:'Wchodząc, od razu „tracisz” spread. Przy krótkoterminowym handlu i małym koncie spread może zjeść ćwierć celu. Dlatego bot odrzuca sygnały, w których R:R po kosztach spada poniżej 1,8.',x:'Spread 0,08% przy celu 0,6% to 13% zysku.'},
+ {t:'Przewalutowanie',s:'Opłata za zamianę PLN na walutę instrumentu (np. USD) — przy kupnie i sprzedaży.',d:'Przy koncie w PLN handel akcjami w USD oznacza około 0,5% za każdą stronę, czyli około 1% za rundę. Przy typowym celu 0,5–1% to zjada cały zysk. Dlatego w profilu 500 PLN rynek US jest domyślnie wyłączony.',x:'Wartość 400 PLN → ok. 4 PLN kosztu rundy.'},
+ {t:'Dźwignia, depozyt i lot (CFD na FX)',s:'Depozyt to część wartości pozycji blokowana na koncie; dźwignia 1:30 = depozyt 3,3%.',d:'Dźwignia nie zwiększa Twojego ryzyka sama w sobie — robi to wolumen. Ale pozwala otworzyć pozycję znacznie większą niż kapitał, więc stop musi być zawsze. Lot 0,01 = 1000 jednostek waluty bazowej, najmniejsza pozycja na XTB.',x:'0,01 lot EURUSD ≈ 150 PLN depozytu przy 1:30.'},
+ {t:'Korelacja pozycji',s:'Instrumenty, które poruszają się razem, to w praktyce jedna większa pozycja.',d:'Dwa banki lub dwie pary z USD mogą jednocześnie dać stop. Bot ogranicza do 2 pozycji w jednej grupie (np. Tech, Banki PL, FX-USD), żeby jedno zdarzenie nie wywaliło całego dnia.',x:'EURUSD i GBPUSD long = podwójna ekspozycja na słabe USD.'},
+ {t:'Drawdown (obsunięcie)',s:'Spadek kapitału od ostatniego szczytu.',d:'Każda strategia ma serie strat. Drawdown 10% wymaga zysku 11%, żeby wrócić, a 50% wymaga 100%. Limity dnia (strata %, liczba transakcji, seria strat) mają Cię powstrzymać przed „odrabianiem” na tilcie.',x:'Strata 3% dziennie → blokada do następnego dnia.'},
+ {t:'Win rate a oczekiwana wartość',s:'Skuteczność sama niczego nie mówi — liczy się średni wynik transakcji.',d:'Oczekiwana wartość = skuteczność × średni zysk − (1−skuteczność) × średnia strata − koszty. 40% skuteczności przy 3R daje dodatni wynik, a 70% przy małym zysku i dużej stracie — ujemny. Prowadź dziennik: potrzeba kilkudziesięciu transakcji, by wnioski miały sens.',x:'40% × 3R − 60% × 1R = +0,6R na transakcję (przed kosztami).'},
+ {t:'Paper trading i dane demo',s:'Symulacja bez prawdziwych pieniędzy; dane demo są losowe.',d:'Dopóki dane są syntetyczne, wynik niczego nie dowodzi. Prawdziwa weryfikacja zaczyna się po podłączeniu realnych notowań i obserwowaniu kilkudziesięciu sygnałów. Dopiero wtedy testuj z kwotą 500 PLN i porównuj wyniki z papierem.',x:'Najpierw 4 tygodnie obserwacji, potem małe kwoty.'}
+];
+var FACTOR_EDU={
+ 'Trend 5m':'Pokazuje kierunek krótkoterminowy. Cena nad SMA20 i SMA20 nad SMA50 = pełny trend wzrostowy (+2). Sama cena nad SMA20 to słabszy sygnał (+1). Odwrotnie dla spadków.',
+ 'Trend 1H':'Kierunek na wyższym interwale. Wejścia zgodne z nim mają większą szansę powodzenia; sprzeczne z nim bot traktuje jako ryzykowne i obniża pewność.',
+ 'Struktura (BoS)':'Przełamanie ostatniego swingowego szczytu lub dołka potwierdza kontynuację trendu. Brak BoS = rynek w konsolidacji, brak potwierdzenia.',
+ 'Sweep płynności':'Wybicie poza ostatni szczyt/dołek z powrotem do zakresu. Zwykle oznacza zebranie stopów i odrzucenie ruchu — wskazuje kierunek przeciwny do wybicia.',
+ 'Strefa Premium/Discount':'Powyżej środka zakresu to „drogo” (premium), poniżej „tanio” (discount). Longi lepiej brać w discount, shorty w premium.',
+ 'Order Block / FVG':'Strefy, w których wcześniej pojawił się duży popyt lub podaż albo luka w cenie. Wejście w takiej strefie daje bliski, logiczny stop.',
+ 'RSI(14)':'Poniżej 30 wyprzedanie (sprzyja longom), powyżej 70 wykupienie (sprzyja shortom). W silnym trendzie traktuj ostrożnie — to filtr, nie sygnał.',
+ 'VWAP':'Cena nad VWAP = przewaga kupujących w sesji, pod VWAP = sprzedających. Służy też jako magnes dla odbić.',
+ 'Momentum (5 świec)':'Zmiana ceny z 5 świec podzielona przez ATR. Wartość powyżej 1 ATR oznacza wyraźny impuls w danym kierunku.'
+};
+var WHY_EDU=[
+ ['BoS w górę','Cena pokonała ostatni swingowy szczyt — struktura wzrostowa.'],['BoS w dół','Cena pokonała ostatni swingowy dołek — struktura spadkowa.'],
+ ['sweep płynności dołem','Cena zebrała stopy pod dołkiem i zawróciła — sygnał odrzucenia dołu.'],['sweep płynności górą','Cena zebrała stopy nad szczytem i zawróciła — sygnał odrzucenia góry.'],
+ ['Order Block','Cena jest w strefie, gdzie wcześniej działał duży gracz — możliwa reakcja.'],['FVG','Cena wróciła do luki po impulsie — rynek często ją wypełnia.'],
+ ['strefa discount','Cena w tańszej połowie zakresu — lepsza cena dla longa.'],['strefa premium','Cena w droższej połowie zakresu — lepsza cena dla shorta.'],
+ ['ORB','Wybicie z zakresu sesji zgodne z trendem 1H.'],['RSI(2)','Głębokie, krótkie cofnięcie w trendzie — szansa na powrót do kierunku.'],
+ ['VWAP','Odchylenie od średniej ważonej wolumenem — możliwy powrót do niej.']
+];
+function whyEdu(w){ var o=[]; WHY_EDU.forEach(function(e){ if(String(w).indexOf(e[0])>=0) o.push('<li><b>'+e[0]+':</b> '+e[1]+'</li>'); }); return o.length?'<details class="more"><summary>Co to znaczy?</summary><ul>'+o.join('')+'</ul></details>':''; }
+function aiLesson(x){
+  var f=x.fees||0, t;
+  if(x.why==='target') t='Plan zadziałał. Opłaty to '+f2(f)+' PLN — zawsze patrz na wynik netto, nie brutto. Wniosek: trzymaj się celu zamiast go przesuwać.';
+  else if(x.be) t='Rynek dał +1R, więc stop poszedł na wejście. Wynik to w przybliżeniu minus opłaty ('+f2(f)+' PLN) — to koszt ochrony kapitału, nie błąd.';
+  else if(x.why==='time-stop') t='Rynek nie zrobił ruchu przez '+x.bars+' świec. Kapitał stał zamrożony i generował koszty. Wniosek: wąski, boczny rynek to słabe środowisko dla wybić.';
+  else if(String(x.why).indexOf('awaryjny')>=0) t='Cena poszła szybko wbrew pozycji, zanim minął minimalny czas trzymania. Stop awaryjny ograniczył stratę do ok. 2× planowanej. Sprawdź, czy wejście nie było zbyt blisko ważnej wiadomości lub otwarcia sesji.';
+  else t='Strata mieści się w zaplanowanym ryzyku. Sama strata nie jest błędem; błędem byłoby przesunięcie stopa. Sprawdź, czy wejście było zgodne z trendem 1H i czy cena nie weszła w opór.';
+  return '<div class="lesson">💡 '+t+'</div>';
+}
+function aiHowTo(A){
+  var P=A.plan, m=A.m, buy=P.side==='LONG', vol=m.mkt==='FX'?(f2(P.qty/100000,2)+' lot'):(P.qty+' szt.');
+  return '<details class="more" open style="margin-top:12px"><summary>Jak wprowadzić to zlecenie w xStation (krok po kroku)</summary><ol>'+
+   '<li>Wyszukaj instrument: <b>'+xtbSym(m)+'</b> (nazwę sprawdź w xStation — mogą się różnić).</li>'+
+   '<li>Kliknij <b>'+(buy?'KUP (BUY)':'SPRZEDAJ (SELL)')+'</b>, wolumen: <b>'+vol+'</b>.</li>'+
+   '<li>Ustaw od razu <b>Stop Loss: '+pf(P.stop,m)+'</b> i <b>Take Profit: '+pf(P.tp,m)+'</b> — nie składaj zlecenia bez stopa.</li>'+
+   '<li>Po osiągnięciu <b>'+pf(P.be,m)+'</b> (+1R) przesuń stop na cenę wejścia.</li>'+
+   '<li>Minimalny czas trzymania: '+(minBars()*5)+' minut. Nie zamykaj z nerwów przed tym czasem, chyba że trafi stop.</li></ol></details>';
+}
+// ---- pozycje jako karty ----
+renderPos=function(){
+  var h='';
+  for(var k in ST.pos){ var p=ST.pos[k], m=symM(k)||{s:k,n:k,mkt:'US'}, cur=last(k)?last(k).c:p.entry, pnl=openPnl(p);
+    var span=(p.target-p.stop)||1, pct=Math.max(0,Math.min(100,(cur-p.stop)/span*100)), ent=Math.max(0,Math.min(100,(p.entry-p.stop)/span*100));
+    var minB=minBars(), rem=Math.max(0,minB-p.bars), long=p.side==='LONG';
+    var vol=m.mkt==='FX'?(f2(p.qty/100000,2)+' lot'):(p.qty+' szt.');
+    h+='<div class="pcard"><div class="ph"><div><b class="sym">'+p.sym+'</b> <span class="mut">'+m.n+'</span></div><span class="pill '+(long?'buy':'sell')+'">'+(long?'BUY':'SELL')+'</span><span class="pl '+(pnl>=0?'pos':'neg')+'">'+(pnl>=0?'+':'')+f2(pnl)+' PLN</span></div>'+
+     '<div class="rbar"><div class="rfill" style="width:'+pct+'%"></div><i style="left:'+ent+'%" title="wejście"></i><b style="left:'+pct+'%"></b></div>'+
+     '<div class="rlab"><span class="neg">SL '+pf(p.stop,m)+'</span><span>wejście '+pf(p.entry,m)+'</span><span class="pos">TP '+pf(p.target,m)+'</span></div>'+
+     '<div class="kv"><div><span>Cena</span><b>'+pf(cur,m)+'</b></div><div><span>Wolumen</span><b>'+vol+'</b></div><div><span>W pozycji</span><b>'+(p.bars*5)+' min</b></div><div><span>Opłaty</span><b>'+f2((p.feeIn||0))+' PLN</b></div></div>'+
+     '<div class="hold '+(rem?'warn':'ok')+'">'+(rem?'⏱ Min. czas trzymania: jeszcze '+(rem*5)+' min — działa tylko stop awaryjny (2× ryzyko)':'✔ Minimalny czas minął — stop i cel w pełni aktywne')+(p.be?' · stop na wejściu (BE)':'')+'</div>'+
+     '<div class="xtb">Na XTB: <b>'+(long?'KUP':'SPRZEDAJ')+' '+xtbSym(m)+'</b> · '+vol+' · SL '+pf(p.stop,m)+' · TP '+pf(p.target,m)+'</div>'+
+     '<div class="why">Powód wejścia: '+p.why+'</div></div>'; }
+  document.getElementById('tbl-pos').innerHTML=h||'<div class="mut">Brak pozycji — kliknij „Wykonaj cykl”. Sygnał musi utrzymać się '+(CFG.confirm||2)+' świece, zanim zostanie otwarta pozycja.</div>';
+};
+renderClosed=function(){
+  var rows=ST.closed.slice(0,20).map(function(x){ var m=symM(x.sym);
+    return [x.sym,'<span class="pill '+(x.side==='LONG'?'buy':'sell')+'">'+(x.side==='LONG'?'BUY':'SELL')+'</span>',pf(x.entry,m)+' → '+pf(x.exit,m),(x.bars*5)+' min','<span class="num mut">'+f2(x.fees||0)+'</span>','<span class="'+(x.pnl>=0?'pos':'neg')+'">'+(x.pnl>=0?'+':'')+f2(x.pnl)+' PLN</span>',x.why+aiLesson(x)]; });
+  document.getElementById('tbl-closed').innerHTML=rows.length?tbl(['Symbol','Strona','Cena','Czas','Opłaty','P&amp;L netto','Powód i wniosek'],rows):'<div class="mut">Brak zamkniętych transakcji.</div>';
+};
+// ---- sygnały z objaśnieniami ----
+renderSig=function(){
+  var rows=(ST.sig||[]).map(function(g){ var m=symM(g.sym);
+    var b=g.side==='WAIT'?'<span class="pill wait">CZEKAJ</span>':'<span class="pill '+(g.side==='LONG'?'buy':'sell')+'">'+(g.side==='LONG'?'BUY':'SELL')+'</span>';
+    var st=''; for(var i=0;i<(g.strength||0);i++) st+='●';
+    return ['<b>'+g.sym+'</b><div class="mut" style="font-size:10.5px">'+g.name+'</div>',b,'<span class="num">'+pf(g.price,m)+'</span>',f2(g.rsi,1),g.htf||'—',g.trend,'<span class="gold">'+st+'</span>',g.age?(g.age+'/'+(CFG.confirm||2)):'—',(g.why||'—')+(g.side!=='WAIT'?whyEdu(g.why):'')]; });
+  document.getElementById('tbl-sig').innerHTML=rows.length?tbl(['Instrument','Sygnał','Cena','RSI','1H','5m','Siła','Potw.','Uzasadnienie'],rows):'<div class="mut">Brak sygnałów — kliknij „Wykonaj cykl”.</div>';
+  var best=(ST.sig||[]).filter(function(x){return x.side!=='WAIT';}).sort(function(a,b){return (b.strength||0)-(a.strength||0);}).slice(0,5);
+  document.getElementById('desk-sig').innerHTML=best.length?tbl(['Instrument','Sygnał','Cena','1H','Siła'],best.map(function(g){return [g.sym,'<span class="pill '+(g.side==='LONG'?'buy':'sell')+'">'+(g.side==='LONG'?'BUY':'SELL')+'</span>','<span class="num">'+pf(g.price,symM(g.sym))+'</span>',g.htf||'—',(g.strength||0)+'/3'];})):'<div class="mut">Brak setupów w tym cyklu — filtry (trend 1H, struktura, koszty) nie przepuściły żadnego sygnału. To normalne: dobry system często „nic nie robi”.</div>';
+};
+// ---- analiza: objaśnienia czynników, plan w xStation, wnioski ----
+// (patrz podmiany w renderAI)
+
+// ---- menu: ikony SVG, sekcje, zakładka Wiedza ----
+(function(){
+  var IC={
+   desk:'<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',
+   chart:'<path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/>',
+   ai:'<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 17l.7 1.8L21.5 19.5 19.7 20.2 19 22l-.7-1.8L16.5 19.5l1.8-.7z"/>',
+   pos:'<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5a2 2 0 012-2h2a2 2 0 012 2v2"/>',
+   sig:'<path d="M13 2L4 14h7l-1 8 9-12h-7z"/>',
+   mkt:'<path d="M4 6h16M4 12h16M4 18h10"/>',
+   bt:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+   log:'<path d="M5 4h11a3 3 0 013 3v13H8a3 3 0 01-3-3z"/><path d="M8 4v16"/>',
+   edu:'<path d="M2 9l10-5 10 5-10 5z"/><path d="M6 11v5c0 1.5 3 3 6 3s6-1.5 6-3v-5"/>',
+   cfg:'<path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/>'
+  };
+  var nav=document.querySelector('.nav'); if(!nav) return;
+  var btn={}; Array.prototype.forEach.call(nav.querySelectorAll('button'),function(b){ btn[b.getAttribute('data-tab')]=b; });
+  var eb=document.createElement('button'); eb.setAttribute('data-tab','edu'); eb.innerHTML='<span class="ic"></span>Wiedza'; btn.edu=eb;
+  var groups=[['Przegląd',['desk','chart','mkt']],['Decyzje',['ai','sig','pos','log']],['Narzędzia',['bt','edu','cfg']]];
+  var names={desk:'Pulpit',chart:'Wykres',mkt:'Rynek',ai:'Analiza',sig:'Sygnały',pos:'Pozycje',log:'Dziennik',bt:'Backtest',edu:'Wiedza',cfg:'Ustawienia'};
+  nav.innerHTML='';
+  groups.forEach(function(g){ var l=document.createElement('div'); l.className='navlabel'; l.textContent=g[0]; nav.appendChild(l);
+    g[1].forEach(function(t){ var b=btn[t]; if(!b) return; b.innerHTML='<span class="ic"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">'+IC[t]+'</svg></span>'+names[t]; nav.appendChild(b); }); });
+  // zakładka Wiedza
+  var foot=document.querySelector('.foot');
+  var sec=document.createElement('section'); sec.className='pane'; sec.id='pane-edu';
+  sec.innerHTML='<div class="card"><h2><span class="dot"></span>Wiedza — słownik i zasady</h2><input id="gloss-q" placeholder="Szukaj pojęcia, np. ATR, stop, spread…" style="width:100%;max-width:420px;margin-bottom:14px"><div id="gloss"></div></div>';
+  foot.parentNode.insertBefore(sec,foot);
+  function drawG(q){ q=(q||'').toLowerCase(); document.getElementById('gloss').innerHTML=GLOSS.filter(function(e){ return !q||(e.t+' '+e.s+' '+e.d).toLowerCase().indexOf(q)>=0; }).map(function(e){
+    return '<details class="gl"><summary><b>'+e.t+'</b><span>'+e.s+'</span></summary><p>'+e.d+'</p><p class="mut"><b>Przykład:</b> '+e.x+'</p></details>'; }).join('')||'<div class="mut">Brak wyników.</div>'; }
+  drawG(''); document.getElementById('gloss-q').addEventListener('input',function(){ drawG(this.value); });
+  // wprowadzenia do ekranów
+  var INTRO={
+   desk:['Jak czytać Pulpit','Góra: stan konta w PLN — kapitał (zrealizowany), P&amp;L, wolne środki po odjęciu depozytu i łączne opłaty. Krzywa kapitału pokazuje, czy strategia buduje wynik czy go traci. „Najlepsze sygnały” to sygnały z ostatniej świecy; „Rynek — skrót” pokazuje trend skanowanych instrumentów.'],
+   chart:['Jak czytać wykres','Zielone/czerwone świece to wzrost/spadek w 5 minut. Żółta linia to SMA20, niebieska SMA50, fioletowa przerywana to VWAP. Czerwone poziome linie R1/R2 to opory (tu cena często zawraca w dół), zielone S1/S2 to wsparcia. Przy otwartej pozycji widać wejście, SL i TP.'],
+   ai:['Jak czytać analizę','Pewność 0–100 to nie prawdopodobieństwo wygranej — to zgodność czynników. Każdy czynnik daje punkty od −2 do +2; kliknij jego opis, by zobaczyć, dlaczego jest ważny. KUP/SPRZEDAJ pojawia się tylko, gdy silnik potwierdza kierunek, pewność jest co najmniej 55 i lista kontrolna jest zaliczona (w tym koszty XTB). „PRZYGOTUJ SIĘ” = setup się tworzy, ale czegoś brakuje.'],
+   pos:['Jak działają pozycje','Pasek pokazuje, gdzie jest cena między stop-lossem (lewo) a celem (prawo); kropka to wejście. Każda pozycja trwa minimum 30 minut czasu rynku (6 świec po 5 min) — w tym czasie zamyka ją tylko stop awaryjny 2× ryzyka. Czas liczy się świecami: w trybie demo 1 świeca = 1 cykl, w trybie Auto 300 s odpowiada to czasowi rzeczywistemu. Sygnał musi też utrzymać się 2 świece, zanim powstanie pozycja — masz czas, by wpisać ją na XTB.'],
+   sig:['Jak czytać sygnały','BUY/SELL to propozycja kierunku, siła ● do ●●● mówi o liczbie potwierdzeń (BoS, sweep, strefy OB/FVG, trend). „Potw.” to liczba kolejnych świec, przez które sygnał się utrzymuje. Kliknij „Co to znaczy?”, aby zobaczyć objaśnienie każdej przesłanki. Brak sygnału to też informacja.'],
+   mkt:['Jak czytać Rynek','Lista wszystkich instrumentów z ceną, zmianą, SMA20, RSI i ATR. Rynki wyłączone w ustawieniach nie generują sygnałów, ale ich dane nadal się odświeżają.'],
+   bt:['Jak czytać Backtest','Test reguł na 250 sesjach z uwzględnieniem opłat XTB. Uwaga: przy danych demo (losowych) wynik niczego nie dowodzi. Zwróć uwagę na maksymalny drawdown i liczbę transakcji odrzuconych przez koszty.'],
+   log:['Dziennik','Chronologia zdarzeń bota: otwarcia, zamknięcia, pominięcia przez koszty lub limity, blokady dnia. Dobry nawyk: czytaj dziennik po każdej sesji i zapisuj wnioski.'],
+   cfg:['Ustawienia','Profil 500 PLN ustawia ryzyko 1% (5 PLN), max 2 pozycje, rynki GPW i FX oraz opłaty. Opłaty XTB sprawdź w aktualnej tabeli. Min. trzymanie nie może być krótsze niż 6 świec (30 min).']
+  };
+  Object.keys(INTRO).forEach(function(t){ var p=document.getElementById('pane-'+t); if(p) p.insertAdjacentHTML('afterbegin','<details class="intro" open><summary>ℹ '+INTRO[t][0]+'</summary><p>'+INTRO[t][1]+'</p></details>'); });
 })();
 
 // ===== v3: SYGNAŁY DŹWIĘKOWE (WebAudio, bez plików) =====
@@ -806,14 +1096,14 @@ function aiAnalyze(m){
   var inFvL=fvL&&c>=fvL.bottom&&c<=fvL.top, inFvS=fvS&&c>=fvS.bottom&&c<=fvS.top;
   var win=b.slice(-78), hi78=Math.max.apply(null,win.map(function(x){return x.h;})), lo78=Math.min.apply(null,win.map(function(x){return x.l;}));
   var F=[]; function add(n,s,note){ F.push({n:n,s:s,note:note}); }
-  add('Trend 5m', c>s20&&s20>s50?2:(c>s20?1:(c<s20&&s20<s50?-2:-1)), 'cena '+f2(c)+' vs SMA20 '+f2(s20)+' / SMA50 '+f2(s50));
+  add('Trend 5m', c>s20&&s20>s50?2:(c>s20?1:(c<s20&&s20<s50?-2:-1)), 'cena '+pf(c,m)+' vs SMA20 '+pf(s20,m)+' / SMA50 '+pf(s50,m));
   add('Trend 1H', htf==='UP'?2:(htf==='DN'?-2:0), htf==='UP'?'wyższy interwał rosnący':(htf==='DN'?'wyższy interwał spadkowy':'boczny'));
   add('Struktura (BoS)', bos==='UP'?1:(bos==='DN'?-1:0), bos?('wybicie struktury '+(bos==='UP'?'w górę':'w dół')):'brak przełamania struktury');
   add('Sweep płynności', sweep==='LONG'?1:(sweep==='SHORT'?-1:0), sweep?('zebrana płynność '+(sweep==='LONG'?'pod dołkiem — odrzucenie w górę':'nad szczytem — odrzucenie w dół')):'brak');
-  add('Strefa Premium/Discount', pd.zone==='discount'?1:-1, pd.zone==='discount'?'cena tanio względem zakresu (EQ '+f2(pd.eq)+')':'cena drogo względem zakresu (EQ '+f2(pd.eq)+')');
+  add('Strefa Premium/Discount', pd.zone==='discount'?1:-1, pd.zone==='discount'?'cena tanio względem zakresu (EQ '+pf(pd.eq,m)+')':'cena drogo względem zakresu (EQ '+pf(pd.eq,m)+')');
   add('Order Block / FVG', (nearOBL?1:0)+(inFvL?1:0)-(nearOBS?1:0)-(inFvS?1:0), (nearOBL?'w OB popytu ':'')+(inFvL?'w FVG popytu ':'')+(nearOBS?'w OB podaży ':'')+(inFvS?'w FVG podaży':'')||'poza strefami');
   add('RSI(14)', r14<30?1:(r14>70?-1:0), 'RSI '+f2(r14,1)+(r14<30?' — wyprzedanie':(r14>70?' — wykupienie':' — neutralnie'))+', RSI(2) '+f2(r2,1));
-  add('VWAP', vw?(c>vw?1:-1):0, vw?('cena '+(c>vw?'powyżej':'poniżej')+' VWAP '+f2(vw)):'brak');
+  add('VWAP', vw?(c>vw?1:-1):0, vw?('cena '+(c>vw?'powyżej':'poniżej')+' VWAP '+pf(vw,m)):'brak');
   var mom=(c-cl[L-6])/a;
   add('Momentum (5 świec)', mom>1?1:(mom<-1?-1:0), f2(mom,2)+' ATR');
   var total=F.reduce(function(s,x){return s+x.s;},0);
@@ -865,11 +1155,11 @@ function aiAnalyze(m){
   // wyzwalacze
   var trig=[];
   if(side==='WAIT'||g.side==='WAIT'){
-    trig.push('LONG: zamknięcie powyżej <b>'+f2(hi78)+'</b> (max 78 świec) przy trendzie 1H ≠ DN');
-    if(canShort) trig.push('SHORT: zamknięcie poniżej <b>'+f2(lo78)+'</b> (min 78 świec) przy trendzie 1H ≠ UP');
+    trig.push('LONG: zamknięcie powyżej <b>'+pf(hi78,m)+'</b> (max 78 świec) przy trendzie 1H ≠ DN');
+    if(canShort) trig.push('SHORT: zamknięcie poniżej <b>'+pf(lo78,m)+'</b> (min 78 świec) przy trendzie 1H ≠ UP');
     trig.push('Pullback: RSI(2) &lt; 8 powyżej SMA20 (teraz '+f2(r2,1)+')');
   }
-  if(plan) trig.push('Unieważnienie: '+(plan.side==='LONG'?'zamknięcie poniżej ':'zamknięcie powyżej ')+'<b>'+f2(plan.stop)+'</b>');
+  if(plan) trig.push('Unieważnienie: '+(plan.side==='LONG'?'zamknięcie poniżej ':'zamknięcie powyżej ')+'<b>'+pf(plan.stop,m)+'</b>');
   // historia
   var hist=ST.closed.filter(function(x){return x.sym===m.s;});
   var hw=hist.filter(function(x){return x.pnl>0;}).length, hp=hist.reduce(function(s,x){return s+x.pnl;},0);
@@ -895,7 +1185,7 @@ renderAI=function(){
     var col=aiColor(A.vcls);
     if(v){ v.textContent=A.verdict+' · '+A.conf+'/100'; v.style.color=col; v.style.background='rgba(255,255,255,.06)'; }
     var h='<div style="height:8px;background:var(--bg4);border-radius:9px;margin-bottom:4px"><div style="width:'+A.conf+'%;height:100%;border-radius:9px;background:'+col+'"></div></div><div class="mut" style="font-size:10.5px;margin-bottom:12px">Pewność '+A.conf+'/100 · bilans czynników '+(A.total>0?'+':'')+A.total+' · reżim: '+A.regime+' · ATR '+f2(A.atrp,2)+'%</div>';
-    var fr=A.F.map(function(x){ return '<tr><td>'+x.n+'</td><td>'+aiBar(x.s)+'</td><td class="mut">'+x.note+'</td></tr>'; }).join('');
+    var fr=A.F.map(function(x){ return '<tr><td>'+x.n+'</td><td>'+aiBar(x.s)+'</td><td class="mut">'+x.note+'<details class="more"><summary>Dlaczego to ważne?</summary><p>'+(FACTOR_EDU[x.n]||'')+'</p></details></td></tr>'; }).join('');
     h+='<h2 style="margin-top:4px">Czynniki</h2><table><tbody>'+fr+'</tbody></table>';
     h+='<div class="narr" style="margin-top:12px"><p><b>Wniosek.</b> '+(A.side==='WAIT'
       ?('Brak przewagi — bilans '+A.total+' nie przekracza progu ±3'+(A.g.side!=='WAIT'?'':', a silnik nie widzi setupu')+'. Czekam na wyzwalacz.')
@@ -903,12 +1193,12 @@ renderAI=function(){
     A.notes.forEach(function(n){ h+='<p class="neg">⚠ '+n+'</p>'; });
     h+='</div>';
     if(A.plan){ var P=A.plan; h+='<h2>Plan transakcji ('+P.side+')</h2><table><tbody>'+
-      '<tr><td>Wejście</td><td class="num">'+f2(P.entry)+'</td><td class="mut">cena rynkowa</td></tr>'+
-      '<tr><td>Stop-loss</td><td class="num neg">'+f2(P.stop)+'</td><td class="mut">1,5×ATR = '+f2(P.sd)+(P.struct?' · strukturalny: '+f2(P.struct):'')+'</td></tr>'+
-      '<tr><td>Break-even</td><td class="num">'+f2(P.be)+'</td><td class="mut">po +1R przesuń stop na wejście</td></tr>'+
-      '<tr><td>Take-profit</td><td class="num pos">'+f2(P.tp)+'</td><td class="mut">3R'+(P.rrNote?' · ⚠ '+P.rrNote:'')+'</td></tr>'+
+      '<tr><td>Wejście</td><td class="num">'+pf(P.entry,A.m)+'</td><td class="mut">cena rynkowa</td></tr>'+
+      '<tr><td>Stop-loss</td><td class="num neg">'+pf(P.stop,A.m)+'</td><td class="mut">1,5×ATR = '+pf(P.sd,A.m)+(P.struct?' · strukturalny: '+pf(P.struct,A.m):'')+'</td></tr>'+
+      '<tr><td>Break-even</td><td class="num">'+pf(P.be,A.m)+'</td><td class="mut">po +1R przesuń stop na wejście</td></tr>'+
+      '<tr><td>Take-profit</td><td class="num pos">'+pf(P.tp,A.m)+'</td><td class="mut">3R'+(P.rrNote?' · ⚠ '+P.rrNote:'')+'</td></tr>'+
       '<tr><td>Wielkość</td><td class="num">'+P.qty+(P.sp.lev>1?' (lot '+f2(P.qty/100000,2)+')':' szt.')+'</td><td class="mut">ryzyko ok. '+f2(P.risk)+' PLN · wartość '+money(P.notional)+' PLN'+(P.sp.lev>1?' · depozyt '+money(P.sp.margin)+' PLN':'')+' · opłaty '+f2(P.sp.feeIn+P.sp.feeOut)+' PLN</td></tr></tbody></table>'; }
-    h+='<h2 style="margin-top:14px">Lista kontrolna</h2><div style="line-height:1.9">'+A.checks.map(function(x){ return '<div class="'+(x.ok?'pos':'neg')+'">'+(x.ok?'✔':'✖')+' <span style="color:var(--tx2)">'+x.t+'</span></div>'; }).join('')+'</div>';
+    if(A.plan) h+=aiHowTo(A); h+='<h2 style="margin-top:14px">Lista kontrolna</h2><div style="line-height:1.9">'+A.checks.map(function(x){ return '<div class="'+(x.ok?'pos':'neg')+'">'+(x.ok?'✔':'✖')+' <span style="color:var(--tx2)">'+x.t+'</span></div>'; }).join('')+'</div>';
     if(A.trig.length) h+='<h2 style="margin-top:14px">Co by zmieniło ocenę</h2><div class="narr">'+A.trig.map(function(t){return '<p>• '+t+'</p>';}).join('')+'</div>';
     h+='<div class="mut" style="margin-top:10px;font-size:11px">Historia '+A.m.s+' w tej sesji: '+(A.hist.n?(A.hist.n+' transakcji, '+A.hist.w+' wygranych, P&amp;L '+f2(A.hist.pnl)):'brak transakcji')+'. Dane demo — to nie jest rekomendacja inwestycyjna.</div>';
     if(body) body.innerHTML=h;
@@ -924,7 +1214,7 @@ renderAI=function(){
   // zamknięte pozycje
   var rows=ST.closed.slice(0,12).map(function(x){
     var why=x.why==='stop'?(x.be?'Stop na wejściu (break-even) — kapitał ochroniony po osiągnięciu +1R.':'Stop-loss: cena poszła wbrew pozycji, zadziałał limit ryzyka.'):(x.why==='target'?'Take-profit: osiągnięto 3R.':(x.why==='time-stop'?'Time-stop: po '+x.bars+' świecach pozycja nie dała 3R — zamknięcie rynkowe.':x.why));
-    return [x.sym,'<span class="pill '+(x.side==='LONG'?'buy':'sell')+'">'+x.side+'</span>',x.bars+' świec','<span class="'+(x.pnl>=0?'pos':'neg')+'">'+f2(x.pnl)+'</span>',why];
+    return [x.sym,'<span class="pill '+(x.side==='LONG'?'buy':'sell')+'">'+x.side+'</span>',x.bars+' świec','<span class="'+(x.pnl>=0?'pos':'neg')+'">'+f2(x.pnl)+'</span>',why+aiLesson(x)];
   });
   var box=document.getElementById('ai-closed'); if(box){ box.innerHTML=rows.length?tbl(['Symbol','Strona','Czas','P&L','Uzasadnienie zamknięcia'],rows):'<div class="mut">Brak zamkniętych transakcji.</div>'; }
 };
