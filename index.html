@@ -506,4 +506,247 @@ async function fetchStooq(sym){
     ST.series[sym]=bars; log('Stooq: '+sym+' — '+bars.length+' sesji (EOD)','g'); render(); save(); toast('Pobrano Stooq: '+sym);
   }catch(e){ log('Stooq: '+e.message+' — możliwe CORS (użyj Workera)','r'); toast('Stooq: błąd (CORS?)'); }
 }
+// ===== v3: SYGNAŁY DŹWIĘKOWE (WebAudio, bez plików) =====
+var AUDIO={ctx:null,end:0};
+function actx(){
+  if(!AUDIO.ctx){ try{ AUDIO.ctx=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){ return null; } }
+  if(AUDIO.ctx.state==='suspended'){ try{ AUDIO.ctx.resume(); }catch(e){} }
+  return AUDIO.ctx;
+}
+function soundOn(){ return CFG.sound!==false; }
+function playNotes(notes,type,gap,dur){
+  var ctx=actx(); if(!ctx) return;
+  var now=ctx.currentTime; var t0=Math.max(now,AUDIO.end)+0.03;
+  if(t0-now>5) return;
+  var vol=(CFG.vol===undefined?0.5:CFG.vol)*0.35;
+  for(var i=0;i<notes.length;i++){
+    var o=ctx.createOscillator(), g=ctx.createGain(), t=t0+i*gap;
+    o.type=type; o.frequency.setValueAtTime(notes[i],t);
+    g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(Math.max(0.0002,vol),t+0.015); g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+    o.connect(g); g.connect(ctx.destination); o.start(t); o.stop(t+dur+0.03);
+  }
+  AUDIO.end=t0+notes.length*gap+dur;
+}
+var SFX={
+  long:   function(){ playNotes([523,659,784],'triangle',0.11,0.22); },
+  short:  function(){ playNotes([784,659,523],'triangle',0.11,0.22); },
+  tp:     function(){ playNotes([523,659,784,1047],'sine',0.09,0.24); },
+  stop:   function(){ playNotes([247,196],'sawtooth',0.18,0.3); },
+  be:     function(){ playNotes([660,660],'sine',0.12,0.12); },
+  time:   function(){ playNotes([440,392],'sine',0.15,0.2); },
+  block:  function(){ playNotes([440,330,440,330],'square',0.14,0.16); },
+  strong: function(){ playNotes([988,1319,1568],'sine',0.08,0.2); }
+};
+function sfx(k){ if(!soundOn()) return; if(SFX[k]) SFX[k](); }
+(function(){
+  var ctl=document.querySelector('.controls'), lb=document.getElementById('limit-badge');
+  if(ctl&&lb){
+    lb.insertAdjacentHTML('beforebegin','<button class="btn ghost" id="btn-sound" title="Sygnały dźwiękowe"></button>');
+    lb.insertAdjacentHTML('afterend','<span class="badge" id="sess-badge" style="background:rgba(255,255,255,.05)">sesja: —</span>');
+  }
+  function paint(){ var b=document.getElementById('btn-sound'); if(b) b.textContent=soundOn()?'🔔 Dźwięk':'🔕 Wyciszone'; }
+  paint();
+  var bs=document.getElementById('btn-sound');
+  if(bs) bs.addEventListener('click',function(){ CFG.sound=!soundOn(); paint(); save(); if(soundOn()) sfx('tp'); toast(soundOn()?'Dźwięk włączony':'Dźwięk wyciszony'); });
+  var sv=document.getElementById('btn-save');
+  if(sv){
+    sv.parentNode.insertAdjacentHTML('beforebegin',
+      '<div class="row" style="margin-top:9px"><label class="mut" style="width:200px">Sygnały dźwiękowe</label><select id="set-sound"><option value="1">włączone</option><option value="0">wyłączone</option></select></div>'+
+      '<div class="row" style="margin-top:9px"><label class="mut" style="width:200px">Głośność</label><select id="set-vol"><option value="0.25">25%</option><option value="0.5">50%</option><option value="0.75">75%</option><option value="1">100%</option></select>'+
+      '<button class="btn ghost" id="btn-snd-test">Testuj dźwięki</button></div>');
+    document.getElementById('set-sound').value=soundOn()?'1':'0';
+    document.getElementById('set-vol').value=String(CFG.vol===undefined?0.5:CFG.vol);
+    document.getElementById('set-sound').addEventListener('change',function(){ CFG.sound=this.value==='1'; paint(); save(); });
+    document.getElementById('set-vol').addEventListener('change',function(){ CFG.vol=Number(this.value); save(); sfx('long'); });
+    document.getElementById('btn-snd-test').addEventListener('click',function(){ var was=CFG.sound; CFG.sound=true; ['long','short','tp','stop','be','block','strong'].forEach(function(k){ SFX[k](); }); CFG.sound=was; });
+  }
+})();
+document.addEventListener('click',function(){ actx(); });
+
+// zamknięcia pozycji -> dźwięk zależny od powodu
+var _closePos1=closePos;
+closePos=function(sym,why,px){
+  var n0=ST.closed.length; _closePos1(sym,why,px);
+  if(ST.closed.length>n0){ var t=ST.closed[0];
+    if(t.why==='target') sfx('tp'); else if(t.why==='time-stop') sfx(t.pnl>0?'tp':'time'); else sfx(t.pnl>0.0001?'tp':(Math.abs(t.pnl)<=0.0001?'be':'stop')); }
+};
+// blokada dnia + poprawny reset dzienny (wcześniej limity nigdy się nie zerowały)
+var _checkLimits1=checkLimits;
+checkLimits=function(){
+  var today=new Date().toDateString();
+  if(ST.day!==today){ ST.day=today; ST.dayStart=ST.equity; ST.dayTrades=0; ST.consecLoss=0; ST.blocked=false; }
+  var was=!!ST.blocked; _checkLimits1();
+  if(ST.blocked&&!was){ sfx('block'); toast('⛔ Blokada dnia — limit ryzyka osiągnięty'); log('BLOKADA DNIA: limit strat / transakcji / serii strat','r'); }
+};
+// nowe sygnały -> dźwięk (kupno / sprzedaż / silny) — kluczowe, bo desk działa jako sygnalizator do ręcznego handlu
+function signalAlerts(){
+  var prev=ST.sigKeys||{}, cur={}, fresh=[];
+  (ST.sig||[]).forEach(function(g){ if(g.side==='WAIT') return; var k=g.sym+':'+g.side; cur[k]=1; if(!prev[k]) fresh.push(g); });
+  ST.sigKeys=cur;
+  if(!fresh.length) return;
+  fresh.sort(function(a,b){ return (b.strength||0)-(a.strength||0); });
+  var top=fresh[0];
+  if((top.strength||0)>=3) sfx('strong');
+  sfx(top.side==='LONG'?'long':'short');
+  toast('Nowy sygnał: '+top.side+' '+top.sym+(fresh.length>1?' (+'+(fresh.length-1)+')':''));
+}
+var _cycle1=cycle;
+cycle=function(){ _cycle1(); signalAlerts(); };
+
+// ===== v3: ANALIZA AI — wieloczynnikowa, z planem transakcji i listą kontrolną =====
+function aiGroup(m){
+  var s=m.s;
+  if(/^(AAPL|MSFT|NVDA|GOOGL|META|AMZN|QQQ|XLK|SMH)$/.test(s)) return 'Tech';
+  if(/^(JPM|XLF)$/.test(s)) return 'Banki US';
+  if(/^(PKO|PEO)\.WA$/.test(s)) return 'Banki PL';
+  if(/^(XOM|XLE|PKN\.WA)$/.test(s)) return 'Energia';
+  if(m.mkt==='FX') return s.indexOf('USD')>=0?'FX-USD':'FX-JPY';
+  return s;
+}
+function aiAnalyze(m){
+  var b=ST.series[m.s]; if(!b||b.length<60) return null;
+  var cl=b.map(function(x){return x.c;}), L=cl.length, c=cl[L-1];
+  var s20=sma(cl,20), s50=sma(cl,50), r14=rsi(cl,14), r2=rsi(cl,2), a=atr(b,14)||c*0.004, vw=vwap(b);
+  var atrp=a/c*100, h=0, hn=0;
+  for(var k=0;k<6;k++){ var v=atr(b.slice(0,b.length-k*10),14); if(v){h+=v;hn++;} }
+  var volRatio=hn?a/(h/hn):1;
+  var regime=volRatio>1.35?'ekspansja zmienności':(volRatio<0.8?'kompresja (możliwe wybicie)':'normalna zmienność');
+  var htf=htfTrend(m.s), bos=smcBOS(b), sweep=smcSweep(b), pd=pdZone(b);
+  var obL=smcOB(b,'LONG'), obS=smcOB(b,'SHORT'), fvL=smcFVG(b,'LONG'), fvS=smcFVG(b,'SHORT');
+  var nearOBL=obL&&c>=obL.bottom*0.998&&c<=obL.top*1.002, nearOBS=obS&&c>=obS.bottom*0.998&&c<=obS.top*1.002;
+  var inFvL=fvL&&c>=fvL.bottom&&c<=fvL.top, inFvS=fvS&&c>=fvS.bottom&&c<=fvS.top;
+  var win=b.slice(-78), hi78=Math.max.apply(null,win.map(function(x){return x.h;})), lo78=Math.min.apply(null,win.map(function(x){return x.l;}));
+  var F=[]; function add(n,s,note){ F.push({n:n,s:s,note:note}); }
+  add('Trend 5m', c>s20&&s20>s50?2:(c>s20?1:(c<s20&&s20<s50?-2:-1)), 'cena '+f2(c)+' vs SMA20 '+f2(s20)+' / SMA50 '+f2(s50));
+  add('Trend 1H', htf==='UP'?2:(htf==='DN'?-2:0), htf==='UP'?'wyższy interwał rosnący':(htf==='DN'?'wyższy interwał spadkowy':'boczny'));
+  add('Struktura (BoS)', bos==='UP'?1:(bos==='DN'?-1:0), bos?('wybicie struktury '+(bos==='UP'?'w górę':'w dół')):'brak przełamania struktury');
+  add('Sweep płynności', sweep==='LONG'?1:(sweep==='SHORT'?-1:0), sweep?('zebrana płynność '+(sweep==='LONG'?'pod dołkiem — odrzucenie w górę':'nad szczytem — odrzucenie w dół')):'brak');
+  add('Strefa Premium/Discount', pd.zone==='discount'?1:-1, pd.zone==='discount'?'cena tanio względem zakresu (EQ '+f2(pd.eq)+')':'cena drogo względem zakresu (EQ '+f2(pd.eq)+')');
+  add('Order Block / FVG', (nearOBL?1:0)+(inFvL?1:0)-(nearOBS?1:0)-(inFvS?1:0), (nearOBL?'w OB popytu ':'')+(inFvL?'w FVG popytu ':'')+(nearOBS?'w OB podaży ':'')+(inFvS?'w FVG podaży':'')||'poza strefami');
+  add('RSI(14)', r14<30?1:(r14>70?-1:0), 'RSI '+f2(r14,1)+(r14<30?' — wyprzedanie':(r14>70?' — wykupienie':' — neutralnie'))+', RSI(2) '+f2(r2,1));
+  add('VWAP', vw?(c>vw?1:-1):0, vw?('cena '+(c>vw?'powyżej':'poniżej')+' VWAP '+f2(vw)):'brak');
+  var mom=(c-cl[L-6])/a;
+  add('Momentum (5 świec)', mom>1?1:(mom<-1?-1:0), f2(mom,2)+' ATR');
+  var total=F.reduce(function(s,x){return s+x.s;},0);
+  var lean=total>=3?'LONG':(total<=-3?'SHORT':'WAIT');
+  var g=evaluate(m)||{side:'WAIT',strength:0,why:''};
+  var canShort=CFG.allowShort||m.mkt==='FX';
+  var side=g.side!=='WAIT'?g.side:lean;
+  var notes=[];
+  if(side==='SHORT'&&!canShort){ notes.push('Short wyłączony w ustawieniach (dla akcji/ETF).'); side='WAIT'; }
+  var conf=Math.round(Math.abs(total)/9*100);
+  if(g.side!=='WAIT'&&g.side===lean) conf+=12;
+  if(g.side!=='WAIT'&&lean!=='WAIT'&&g.side!==lean){ conf-=25; notes.push('Silnik sygnałów i bilans czynników wskazują przeciwne kierunki — konflikt.'); }
+  if(side==='WAIT') conf=Math.min(conf,45);
+  var open=sessionOpen(m.mkt||'US'); if(!open){ conf-=15; }
+  if(volRatio>1.6) conf-=8;
+  conf=Math.max(3,Math.min(97,conf));
+  // plan
+  var plan=null;
+  if(side!=='WAIT'){
+    var sd=a*1.5, long=side==='LONG';
+    var stop=long?c-sd:c+sd, tp=long?c+3*sd:c-3*sd;
+    var pv=pivots(b.slice(-90),3), lvl=null;
+    if(long){ pv.hi.forEach(function(x){ if(x>c&&(lvl===null||x<lvl)) lvl=x; }); } else { pv.lo.forEach(function(x){ if(x<c&&(lvl===null||x>lvl)) lvl=x; }); }
+    var rr=3, rrNote='';
+    if(lvl!==null&&Math.abs(lvl-c)<3*sd){ rr=Math.abs(lvl-c)/sd; rrNote='najbliższy '+(long?'opór':'poziom wsparcia')+' '+f2(lvl)+' leży przed celem 3R — realny R:R ≈ '+f2(rr,1); }
+    var sw=swingPts(b,3), struct=null;
+    if(long&&sw.lo&&sw.lo.p<c) struct=sw.lo.p-0.25*a; if(!long&&sw.hi&&sw.hi.p>c) struct=sw.hi.p+0.25*a;
+    var risk=ST.equity*(CFG.risk/100), qty=Math.max(1,Math.floor(risk/sd));
+    plan={side:side,entry:c,stop:stop,tp:tp,sd:sd,rr:rr,rrNote:rrNote,struct:struct,qty:qty,risk:risk,notional:qty*c,be:long?c+sd:c-sd};
+  }
+  // lista kontrolna
+  var grp=aiGroup(m), same=0; for(var pk in ST.pos){ var pm=null; for(var q=0;q<SYMBOLS.length;q++){ if(SYMBOLS[q].s===pk){pm=SYMBOLS[q];break;} } if(pm&&aiGroup(pm)===grp) same++; }
+  var openN=Object.keys(ST.pos).length;
+  var checks=[
+    {ok:!ST.blocked,t:'Limity dnia (strata / liczba transakcji / seria strat)'},
+    {ok:open,t:'Sesja '+(m.mkt||'US')+' otwarta'},
+    {ok:openN<CFG.maxPos,t:'Wolne miejsce w portfelu ('+openN+'/'+CFG.maxPos+')'},
+    {ok:same<2,t:'Korelacja — grupa „'+grp+'”: '+same+'/2'},
+    {ok:!ST.pos[m.s]&&!(ST.cool[m.s]>0),t:ST.pos[m.s]?'Pozycja już otwarta':(ST.cool[m.s]>0?'Cooldown po ostatniej transakcji ('+ST.cool[m.s]+' św.)':'Brak otwartej pozycji / cooldownu')},
+    {ok:volRatio<1.6,t:'Zmienność nie ekstremalna (ATR ×'+f2(volRatio,2)+' średniej)'}
+  ];
+  if(plan){ checks.push({ok:plan.rr>=1.8,t:'R:R po uwzględnieniu poziomów ≥ 1,8 (jest '+f2(plan.rr,1)+')'}); checks.push({ok:plan.notional<=ST.cash,t:'Wystarczająca gotówka ('+money(plan.notional)+' z '+money(ST.cash)+')'}); }
+  var fails=checks.filter(function(x){return !x.ok;}).length;
+  // werdykt
+  var verdict, vcls;
+  if(ST.blocked){ verdict='BLOKADA DNIA'; vcls='neg'; }
+  else if(side!=='WAIT'&&g.side===side&&conf>=55&&fails===0){ verdict=side==='LONG'?'KUP':'SPRZEDAJ'; vcls=side==='LONG'?'pos':'neg'; }
+  else if(side!=='WAIT'&&conf>=40){ verdict='PRZYGOTUJ SIĘ ('+(side==='LONG'?'long':'short')+')'; vcls='gold'; }
+  else { verdict='OBSERWUJ'; vcls='mut'; }
+  // wyzwalacze
+  var trig=[];
+  if(side==='WAIT'||g.side==='WAIT'){
+    trig.push('LONG: zamknięcie powyżej <b>'+f2(hi78)+'</b> (max 78 świec) przy trendzie 1H ≠ DN');
+    if(canShort) trig.push('SHORT: zamknięcie poniżej <b>'+f2(lo78)+'</b> (min 78 świec) przy trendzie 1H ≠ UP');
+    trig.push('Pullback: RSI(2) &lt; 8 powyżej SMA20 (teraz '+f2(r2,1)+')');
+  }
+  if(plan) trig.push('Unieważnienie: '+(plan.side==='LONG'?'zamknięcie poniżej ':'zamknięcie powyżej ')+'<b>'+f2(plan.stop)+'</b>');
+  // historia
+  var hist=ST.closed.filter(function(x){return x.sym===m.s;});
+  var hw=hist.filter(function(x){return x.pnl>0;}).length, hp=hist.reduce(function(s,x){return s+x.pnl;},0);
+  return {m:m,c:c,F:F,total:total,lean:lean,g:g,side:side,conf:conf,plan:plan,checks:checks,verdict:verdict,vcls:vcls,trig:trig,notes:notes,regime:regime,volRatio:volRatio,atrp:atrp,htf:htf,pd:pd,hi78:hi78,lo78:lo78,hist:{n:hist.length,w:hw,pnl:hp},grp:grp,fails:fails};
+}
+function aiPick(s){ var el=document.getElementById('ai-sym'); if(el){ el.value=s; renderAI(); } }
+function aiColor(v){ return v==='pos'?'var(--green)':(v==='neg'?'var(--loss)':(v==='gold'?'var(--gold)':'var(--tx3)')); }
+function aiBar(s){
+  var w=Math.abs(s)/2*50, col=s>0?'var(--green)':'var(--loss)';
+  return '<div style="position:relative;width:90px;height:8px;background:var(--bg4);border-radius:6px"><div style="position:absolute;left:50%;top:-2px;width:1px;height:12px;background:var(--line2)"></div>'+(s?'<div style="position:absolute;top:0;height:8px;border-radius:6px;background:'+col+';width:'+w+'%;'+(s>0?'left:50%':'right:50%')+'"></div>':'')+'</div>';
+}
+var _oldRenderAI=renderAI;
+renderAI=function(){
+  var sel=document.getElementById('ai-sym'); if(!sel) return;
+  if(!sel.options.length){ sel.innerHTML=SYMBOLS.map(function(m){return '<option value="'+m.s+'">'+m.s+' — '+m.n+'</option>';}).join(''); }
+  var sym=sel.value||SYMBOLS[0].s, m=null;
+  for(var i=0;i<SYMBOLS.length;i++){ if(SYMBOLS[i].s===sym){ m=SYMBOLS[i]; break; } }
+  var A=m?aiAnalyze(m):null;
+  var v=document.getElementById('ai-verdict'), body=document.getElementById('ai-body');
+  if(!A){ if(v) v.textContent='—'; if(body) body.innerHTML='<div class="mut">Za mało danych (min. 60 świec) — wykonaj kilka cykli.</div>'; }
+  else {
+    var col=aiColor(A.vcls);
+    if(v){ v.textContent=A.verdict+' · '+A.conf+'/100'; v.style.color=col; v.style.background='rgba(255,255,255,.06)'; }
+    var h='<div style="height:8px;background:var(--bg4);border-radius:9px;margin-bottom:4px"><div style="width:'+A.conf+'%;height:100%;border-radius:9px;background:'+col+'"></div></div><div class="mut" style="font-size:10.5px;margin-bottom:12px">Pewność '+A.conf+'/100 · bilans czynników '+(A.total>0?'+':'')+A.total+' · reżim: '+A.regime+' · ATR '+f2(A.atrp,2)+'%</div>';
+    var fr=A.F.map(function(x){ return '<tr><td>'+x.n+'</td><td>'+aiBar(x.s)+'</td><td class="mut">'+x.note+'</td></tr>'; }).join('');
+    h+='<h2 style="margin-top:4px">Czynniki</h2><table><tbody>'+fr+'</tbody></table>';
+    h+='<div class="narr" style="margin-top:12px"><p><b>Wniosek.</b> '+(A.side==='WAIT'
+      ?('Brak przewagi — bilans '+A.total+' nie przekracza progu ±3'+(A.g.side!=='WAIT'?'':', a silnik nie widzi setupu')+'. Czekam na wyzwalacz.')
+      :('Przewaga <b>'+(A.side==='LONG'?'popytu':'podaży')+'</b>: silnik '+(A.g.side===A.side?'<b>potwierdza</b> ('+A.g.why+')':'jeszcze nie potwierdza (bilans czynników wskazuje kierunek, brak pełnej konfluencji)')+'.'))+'</p>';
+    A.notes.forEach(function(n){ h+='<p class="neg">⚠ '+n+'</p>'; });
+    h+='</div>';
+    if(A.plan){ var P=A.plan; h+='<h2>Plan transakcji ('+P.side+')</h2><table><tbody>'+
+      '<tr><td>Wejście</td><td class="num">'+f2(P.entry)+'</td><td class="mut">cena rynkowa</td></tr>'+
+      '<tr><td>Stop-loss</td><td class="num neg">'+f2(P.stop)+'</td><td class="mut">1,5×ATR = '+f2(P.sd)+(P.struct?' · strukturalny: '+f2(P.struct):'')+'</td></tr>'+
+      '<tr><td>Break-even</td><td class="num">'+f2(P.be)+'</td><td class="mut">po +1R przesuń stop na wejście</td></tr>'+
+      '<tr><td>Take-profit</td><td class="num pos">'+f2(P.tp)+'</td><td class="mut">3R'+(P.rrNote?' · ⚠ '+P.rrNote:'')+'</td></tr>'+
+      '<tr><td>Wielkość</td><td class="num">'+P.qty+' szt.</td><td class="mut">ryzyko '+money(P.risk)+' ('+CFG.risk+'%) · wartość '+money(P.notional)+'</td></tr></tbody></table>'; }
+    h+='<h2 style="margin-top:14px">Lista kontrolna</h2><div style="line-height:1.9">'+A.checks.map(function(x){ return '<div class="'+(x.ok?'pos':'neg')+'">'+(x.ok?'✔':'✖')+' <span style="color:var(--tx2)">'+x.t+'</span></div>'; }).join('')+'</div>';
+    if(A.trig.length) h+='<h2 style="margin-top:14px">Co by zmieniło ocenę</h2><div class="narr">'+A.trig.map(function(t){return '<p>• '+t+'</p>';}).join('')+'</div>';
+    h+='<div class="mut" style="margin-top:10px;font-size:11px">Historia '+A.m.s+' w tej sesji: '+(A.hist.n?(A.hist.n+' transakcji, '+A.hist.w+' wygranych, P&amp;L '+f2(A.hist.pnl)):'brak transakcji')+'. Dane demo — to nie jest rekomendacja inwestycyjna.</div>';
+    if(body) body.innerHTML=h;
+  }
+  // ranking okazji
+  var rk=document.getElementById('ai-rank');
+  if(rk){
+    var all=SYMBOLS.map(aiAnalyze).filter(Boolean).sort(function(x,y){ var ax=x.side!=='WAIT'?1:0, ay=y.side!=='WAIT'?1:0; return (ay-ax)||(y.conf-x.conf); }).slice(0,6);
+    rk.innerHTML=all.length?tbl(['Instrument','Werdykt','Pewność','Bilans','1H','Silnik'],all.map(function(x){
+      return ['<a href="#" onclick="aiPick(\''+x.m.s+'\');return false" style="color:var(--tx);font-weight:700;text-decoration:none">'+x.m.s+'</a>','<span style="color:'+aiColor(x.vcls)+';font-weight:700">'+x.verdict+'</span>','<span class="num">'+x.conf+'</span>','<span class="num">'+(x.total>0?'+':'')+x.total+'</span>',x.htf,x.g.side==='WAIT'?'<span class="mut">—</span>':x.g.side];
+    })):'<div class="mut">Wykonaj kilka cykli, by zebrać dane.</div>';
+  }
+  // zamknięte pozycje
+  var rows=ST.closed.slice(0,12).map(function(x){
+    var why=x.why==='stop'?(x.pnl>=-0.0001?'Stop na wejściu (break-even) — kapitał ochroniony po osiągnięciu +1R.':'Stop-loss: cena poszła wbrew pozycji, zadziałał limit ryzyka.'):(x.why==='target'?'Take-profit: osiągnięto 3R.':(x.why==='time-stop'?'Time-stop: po '+x.bars+' świecach pozycja nie dała 3R — zamknięcie rynkowe.':x.why));
+    return [x.sym,'<span class="pill '+(x.side==='LONG'?'buy':'sell')+'">'+x.side+'</span>',x.bars+' świec','<span class="'+(x.pnl>=0?'pos':'neg')+'">'+f2(x.pnl)+'</span>',why];
+  });
+  var box=document.getElementById('ai-closed'); if(box){ box.innerHTML=rows.length?tbl(['Symbol','Strona','Czas','P&L','Uzasadnienie zamknięcia'],rows):'<div class="mut">Brak zamkniętych transakcji.</div>'; }
+};
+(function(){
+  var pane=document.getElementById('pane-ai');
+  if(pane&&!document.getElementById('ai-rank')) pane.insertAdjacentHTML('afterbegin','<div class="card" style="margin-bottom:12px"><h2><span class="dot"></span>Ranking okazji (klik = analiza)</h2><div id="ai-rank"></div></div>');
+})();
+(function(){ var s=document.getElementById('ai-sym'); if(s){ s.removeEventListener('change',_oldRenderAI); s.addEventListener('change',function(){ renderAI(); }); } })();
+// odświeżaj analizę po każdym cyklu, gdy zakładka jest otwarta
+var _render2=render;
+render=function(){ _render2(); var p=document.getElementById('pane-ai'); if(p&&p.className.indexOf('on')>=0) renderAI(); };
+render();
+
 </script></body></html>
