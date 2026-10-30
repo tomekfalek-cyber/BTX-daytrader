@@ -190,6 +190,12 @@ details.gl p{margin-top:10px;line-height:1.75;color:var(--tx2);font-size:12.8px}
 .xtb b{color:var(--tx)}
 .pcard .why{font-size:11.5px;color:var(--tx3);line-height:1.6}
 @media(max-width:900px){.app{grid-template-columns:1fr}aside{width:auto}.navlabel{display:none}.topbar{margin:0 -14px 14px;padding:10px 14px}main{padding:0 14px 40px}}
+</style><style id="llm-css">
+.llm{background:linear-gradient(180deg,rgba(167,139,250,.10),rgba(167,139,250,.03));border:1px solid rgba(167,139,250,.25);border-radius:12px;padding:14px 16px;margin-bottom:14px;line-height:1.6}
+.llm .lh{font-weight:700;margin-bottom:10px}
+.llm .lt{margin-top:10px;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--tx3);font-weight:600}
+.llm ul{margin:4px 0 0 18px;color:var(--tx2);font-size:12.5px;line-height:1.65}
+.llm p{color:var(--tx2);font-size:12.8px}
 </style></head><body><div class="app">
 <aside><div class="brand"><div class="m">B</div><div><b>BTX</b> <span style="color:var(--red)">DayTrader</span><sub>Akcje · ETF · FX</sub></div></div>
 <div class="nav">
@@ -641,8 +647,8 @@ async function fetchStooq(sym){
 // ===== v4: KONTO MAŁE (PLN), OPŁATY XTB, WYBÓR RYNKÓW =====
 // Opłaty to ustawienia — zweryfikuj w aktualnej tabeli opłat XTB (domyślnie: 0% prowizji akcje/ETF real do limitu obrotu,
 // 0,5% przewalutowania dla instrumentów w USD, spread jako szacunek kosztu wejścia).
-function defaultFees(){ return {US:{comm:0,conv:0.5,spread:0.03},PL:{comm:0,conv:0,spread:0.08},FX:{comm:0,conv:0,spread:0.01}}; }
-function feeOf(m){ var f=(CFG.fees||defaultFees())[m.mkt||'US']||{comm:0,conv:0,spread:0}; return {comm:(+f.comm||0)/100,conv:(+f.conv||0)/100,spr:(+f.spread||0)/100}; }
+function defaultFees(){ return {US:{comm:0,conv:0.5,spread:0.03,slip:0.02},PL:{comm:0,conv:0,spread:0.08,slip:0.05},FX:{comm:0,conv:0,spread:0.01,slip:0.003}}; }
+function feeOf(m){ var f=(CFG.fees||defaultFees())[m.mkt||'US']||{comm:0,conv:0,spread:0}; return {comm:(+f.comm||0)/100,conv:(+f.conv||0)/100,spr:(+f.spread||0)/100,slip:(+f.slip||0)/100}; }
 function rateOf(m){
   var r=CFG.rates||{USD:3.7,JPY:0.0245};
   if(m.mkt==='PL') return 1;
@@ -736,13 +742,13 @@ reset=function(){ _reset4(); ST.feesTot=0; ST.skip={}; ST.day=new Date().toDateS
 (function(){
   var sv=document.getElementById('btn-save'); if(!sv) return;
   function fr(mk,lab){ var f=(CFG.fees||defaultFees())[mk];
-    return '<tr><td>'+lab+'</td>'+['comm','conv','spread'].map(function(k){ return '<td><input type="number" step="0.01" min="0" id="fee-'+mk+'-'+k+'" style="width:70px"></td>'; }).join('')+'</tr>'; }
+    return '<tr><td>'+lab+'</td>'+['comm','conv','spread','slip'].map(function(k){ return '<td><input type="number" step="0.01" min="0" id="fee-'+mk+'-'+k+'" style="width:70px"></td>'; }).join('')+'</tr>'; }
   sv.parentNode.insertAdjacentHTML('beforebegin',
    '<div id="xtb-box" style="margin-top:14px;padding-top:12px;border-top:1px solid var(--line)">'+
    '<div class="mut" style="font-size:10px;letter-spacing:.12em;text-transform:uppercase;margin-bottom:8px">Konto XTB (PLN) i koszty</div>'+
    '<div class="row"><label class="mut" style="width:200px">Skanowane rynki</label>'+
    '<label><input type="checkbox" id="scan-US"> US akcje/ETF</label><label><input type="checkbox" id="scan-PL"> GPW</label><label><input type="checkbox" id="scan-FX"> FX</label></div>'+
-   '<table style="margin-top:10px;width:auto"><thead><tr><th>Rynek</th><th>Prowizja %</th><th>Przewalut. %</th><th>Spread %</th></tr></thead><tbody>'+fr('US','US akcje/ETF')+fr('PL','GPW')+fr('FX','FX (CFD)')+'</tbody></table>'+
+   '<table style="margin-top:10px;width:auto"><thead><tr><th>Rynek</th><th>Prowizja %</th><th>Przewalut. %</th><th>Spread %</th><th>Poślizg %</th></tr></thead><tbody>'+fr('US','US akcje/ETF')+fr('PL','GPW')+fr('FX','FX (CFD)')+'</tbody></table>'+
    '<div class="row" style="margin-top:9px"><label class="mut" style="width:200px">Kurs USD/PLN</label><input type="number" step="0.01" id="rate-usd" style="width:90px"></div>'+
    '<div class="row" style="margin-top:9px"><label class="mut" style="width:200px">Kurs JPY/PLN</label><input type="number" step="0.0001" id="rate-jpy" style="width:90px"></div>'+
    '<div class="row" style="margin-top:9px"><label class="mut" style="width:200px">Dźwignia FX (1:x)</label><input type="number" id="set-fxlev" style="width:90px"></div>'+
@@ -754,7 +760,7 @@ reset=function(){ _reset4(); ST.feesTot=0; ST.skip={}; ST.day=new Date().toDateS
 function readExtra(){
   CFG.scan={US:document.getElementById('scan-US').checked,PL:document.getElementById('scan-PL').checked,FX:document.getElementById('scan-FX').checked};
   CFG.fees=CFG.fees||defaultFees();
-  ['US','PL','FX'].forEach(function(mk){ ['comm','conv','spread'].forEach(function(k){ CFG.fees[mk][k]=Number(document.getElementById('fee-'+mk+'-'+k).value)||0; }); });
+  ['US','PL','FX'].forEach(function(mk){ ['comm','conv','spread','slip'].forEach(function(k){ CFG.fees[mk][k]=Number(document.getElementById('fee-'+mk+'-'+k).value)||0; }); });
   CFG.rates={USD:Number(document.getElementById('rate-usd').value)||3.7,JPY:Number(document.getElementById('rate-jpy').value)||0.0245};
   CFG.fxLev=Number(document.getElementById('set-fxlev').value)||30;
   save(); render();
@@ -763,7 +769,7 @@ function syncSettings(){
   function sv(id,v){ var e=document.getElementById(id); if(e) e.value=v; }
   sv('set-risk',CFG.risk); sv('set-max',CFG.maxPos); sv('set-cap',CFG.capital); sv('set-short',CFG.allowShort?'1':'0'); sv('set-dtrades',CFG.maxTrades||10); sv('set-dloss',CFG.dailyLoss||3);
   var s=CFG.scan||{US:true,PL:true,FX:true}; ['US','PL','FX'].forEach(function(mk){ var e=document.getElementById('scan-'+mk); if(e) e.checked=s[mk]!==false; });
-  var f=CFG.fees||defaultFees(); ['US','PL','FX'].forEach(function(mk){ ['comm','conv','spread'].forEach(function(k){ sv('fee-'+mk+'-'+k,f[mk][k]); }); });
+  var f=CFG.fees||defaultFees(); ['US','PL','FX'].forEach(function(mk){ ['comm','conv','spread','slip'].forEach(function(k){ sv('fee-'+mk+'-'+k,f[mk][k]); }); });
   var r=CFG.rates||{USD:3.7,JPY:0.0245}; sv('rate-usd',r.USD); sv('rate-jpy',r.JPY); sv('set-fxlev',CFG.fxLev||30);
 }
 function applySmallProfile(){
@@ -858,7 +864,7 @@ var GLOSS=[
  {t:'R i R:R (stosunek zysku do ryzyka)',s:'1R = odległość od wejścia do stop-lossa, czyli kwota, którą ryzykujesz.',d:'Target 3R oznacza zysk trzy razy większy niż ryzyko. Przy R:R = 3 wystarczy 30% skutecznych transakcji, by wyjść na zero przed kosztami. Dlatego ważniejsze od win rate jest, by strata była mała, a zysk duży. Koszty (spread, przewalutowanie) zmniejszają realny R:R — bot liczy go netto.',x:'Ryzyko 5 PLN, cel 15 PLN = 3R.'},
  {t:'Stop-loss i Take-profit',s:'Zlecenia, które automatycznie zamykają pozycję przy stracie lub zysku.',d:'Stop-loss musisz ustawić od razu po wejściu na XTB — to Twoja polisa. Take-profit zamyka zysk bez Twojej obecności. Nigdy nie przesuwaj stopa dalej od ceny (w stronę większej straty). Wolno tylko zacieśniać go w stronę zysku.',x:'Long 100 szt. @10,00, SL 9,80 → maksymalna strata 20 PLN.'},
  {t:'Break-even (BE)',s:'Gdy zysk osiągnie +1R, stop przesuwamy na cenę wejścia.',d:'Od tej chwili transakcja nie może już przynieść straty (poza kosztami). Cena często wraca do wejścia i wybija BE — to normalny koszt ochrony kapitału. Zamknięcie na BE to wynik około minus opłaty, a nie porażka.',x:'Wejście 100, ryzyko 2 → po osiągnięciu 102 stop idzie na 100.'},
- {t:'Min. czas trzymania i time-stop',s:'Minimum 30 minut w pozycji, maksimum domyślnie 60 świec (5 godzin).',d:'Minimum daje Ci czas na ręczne złożenie zlecenia na XTB i uniknięcie nadmiernego handlu (każda transakcja kosztuje). W pierwszych 30 minutach działa tylko stop awaryjny 2× ryzyka. Time-stop zamyka pozycję, gdy rynek nic nie robi — kapitał nie powinien stać zamrożony bez powodu.',x:'Świeca = 5 min, więc 6 świec = 30 min.'},
+ {t:'Min. czas trzymania i time-stop',s:'Minimum 30 minut w pozycji, maksimum domyślnie 60 świec (5 godzin).',d:'Minimum daje Ci czas na ręczne złożenie zlecenia na XTB i uniknięcie nadmiernego handlu (każda transakcja kosztuje). Stop-loss i take-profit działają od początku — to automatyczne zlecenia, które nie wymagają Twojej reakcji. Time-stop zamyka pozycję, gdy rynek nic nie robi — kapitał nie powinien stać zamrożony bez powodu.',x:'Świeca = 5 min, więc 6 świec = 30 min.'},
  {t:'Wielkość pozycji',s:'Ile sztuk kupić, żeby stop-loss kosztował Cię ustalony procent kapitału.',d:'Wolumen = ryzyko w PLN ÷ odległość stopa w PLN. Przy 500 PLN i 1% ryzyka wolno stracić 5 PLN. Bot ogranicza wolumen także przez dostępne środki i depozyt. To nie wielkość pozycji, tylko ryzyko decyduje o tym, czy konto przetrwa serię strat.',x:'Ryzyko 5 PLN, stop 0,25 PLN/szt. → 20 szt.'},
  {t:'Spread',s:'Różnica między ceną kupna a sprzedaży — ukryty koszt każdej transakcji.',d:'Wchodząc, od razu „tracisz” spread. Przy krótkoterminowym handlu i małym koncie spread może zjeść ćwierć celu. Dlatego bot odrzuca sygnały, w których R:R po kosztach spada poniżej 1,8.',x:'Spread 0,08% przy celu 0,6% to 13% zysku.'},
  {t:'Przewalutowanie',s:'Opłata za zamianę PLN na walutę instrumentu (np. USD) — przy kupnie i sprzedaży.',d:'Przy koncie w PLN handel akcjami w USD oznacza około 0,5% za każdą stronę, czyli około 1% za rundę. Przy typowym celu 0,5–1% to zjada cały zysk. Dlatego w profilu 500 PLN rynek US jest domyślnie wyłączony.',x:'Wartość 400 PLN → ok. 4 PLN kosztu rundy.'},
@@ -917,7 +923,7 @@ renderPos=function(){
      '<div class="rbar"><div class="rfill" style="width:'+pct+'%"></div><i style="left:'+ent+'%" title="wejście"></i><b style="left:'+pct+'%"></b></div>'+
      '<div class="rlab"><span class="neg">SL '+pf(p.stop,m)+'</span><span>wejście '+pf(p.entry,m)+'</span><span class="pos">TP '+pf(p.target,m)+'</span></div>'+
      '<div class="kv"><div><span>Cena</span><b>'+pf(cur,m)+'</b></div><div><span>Wolumen</span><b>'+vol+'</b></div><div><span>W pozycji</span><b>'+(p.bars*5)+' min</b></div><div><span>Opłaty</span><b>'+f2((p.feeIn||0))+' PLN</b></div></div>'+
-     '<div class="hold '+(rem?'warn':'ok')+'">'+(rem?'⏱ Min. czas trzymania: jeszcze '+(rem*5)+' min — działa tylko stop awaryjny (2× ryzyko)':'✔ Minimalny czas minął — stop i cel w pełni aktywne')+(p.be?' · stop na wejściu (BE)':'')+'</div>'+
+     '<div class="hold '+(rem?'warn':'ok')+'">'+(rem?(CFG.holdStop==='wide'?'⏱ Min. czas trzymania: jeszcze '+(rem*5)+' min — działa tylko stop awaryjny (2× ryzyko)':'⏱ Jeszcze '+(rem*5)+' min do minimalnego czasu trzymania — SL i TP działają normalnie (to zlecenia na XTB), nie zamykaj ręcznie przed czasem'):'✔ Minimalny czas minął — stop i cel w pełni aktywne')+(p.be?' · stop na wejściu (BE)':'')+'</div>'+
      '<div class="xtb">Na XTB: <b>'+(long?'KUP':'SPRZEDAJ')+' '+xtbSym(m)+'</b> · '+vol+' · SL '+pf(p.stop,m)+' · TP '+pf(p.target,m)+'</div>'+
      '<div class="why">Powód wejścia: '+p.why+'</div></div>'; }
   document.getElementById('tbl-pos').innerHTML=h||'<div class="mut">Brak pozycji — kliknij „Wykonaj cykl”. Sygnał musi utrzymać się '+(CFG.confirm||2)+' świece, zanim zostanie otwarta pozycja.</div>';
@@ -975,7 +981,7 @@ renderSig=function(){
    desk:['Jak czytać Pulpit','Góra: stan konta w PLN — kapitał (zrealizowany), P&amp;L, wolne środki po odjęciu depozytu i łączne opłaty. Krzywa kapitału pokazuje, czy strategia buduje wynik czy go traci. „Najlepsze sygnały” to sygnały z ostatniej świecy; „Rynek — skrót” pokazuje trend skanowanych instrumentów.'],
    chart:['Jak czytać wykres','Zielone/czerwone świece to wzrost/spadek w 5 minut. Żółta linia to SMA20, niebieska SMA50, fioletowa przerywana to VWAP. Czerwone poziome linie R1/R2 to opory (tu cena często zawraca w dół), zielone S1/S2 to wsparcia. Przy otwartej pozycji widać wejście, SL i TP.'],
    ai:['Jak czytać analizę','Pewność 0–100 to nie prawdopodobieństwo wygranej — to zgodność czynników. Każdy czynnik daje punkty od −2 do +2; kliknij jego opis, by zobaczyć, dlaczego jest ważny. KUP/SPRZEDAJ pojawia się tylko, gdy silnik potwierdza kierunek, pewność jest co najmniej 55 i lista kontrolna jest zaliczona (w tym koszty XTB). „PRZYGOTUJ SIĘ” = setup się tworzy, ale czegoś brakuje.'],
-   pos:['Jak działają pozycje','Pasek pokazuje, gdzie jest cena między stop-lossem (lewo) a celem (prawo); kropka to wejście. Każda pozycja trwa minimum 30 minut czasu rynku (6 świec po 5 min) — w tym czasie zamyka ją tylko stop awaryjny 2× ryzyka. Czas liczy się świecami: w trybie demo 1 świeca = 1 cykl, w trybie Auto 300 s odpowiada to czasowi rzeczywistemu. Sygnał musi też utrzymać się 2 świece, zanim powstanie pozycja — masz czas, by wpisać ją na XTB.'],
+   pos:['Jak działają pozycje','Pasek pokazuje, gdzie jest cena między stop-lossem (lewo) a celem (prawo); kropka to wejście. Każda pozycja trwa minimum 30 minut czasu rynku (6 świec po 5 min) — stop-loss i take-profit działają normalnie (to zlecenia na XTB), a bot nie robi wcześniejszych wyjść czasowych ani break-even. Czas liczy się świecami: w trybie demo 1 świeca = 1 cykl, w trybie Auto 300 s odpowiada to czasowi rzeczywistemu. Sygnał musi też utrzymać się 2 świece, zanim powstanie pozycja — masz czas, by wpisać ją na XTB.'],
    sig:['Jak czytać sygnały','BUY/SELL to propozycja kierunku, siła ● do ●●● mówi o liczbie potwierdzeń (BoS, sweep, strefy OB/FVG, trend). „Potw.” to liczba kolejnych świec, przez które sygnał się utrzymuje. Kliknij „Co to znaczy?”, aby zobaczyć objaśnienie każdej przesłanki. Brak sygnału to też informacja.'],
    mkt:['Jak czytać Rynek','Lista wszystkich instrumentów z ceną, zmianą, SMA20, RSI i ATR. Rynki wyłączone w ustawieniach nie generują sygnałów, ale ich dane nadal się odświeżają.'],
    bt:['Jak czytać Backtest','Test reguł na 250 sesjach z uwzględnieniem opłat XTB. Uwaga: przy danych demo (losowych) wynik niczego nie dowodzi. Zwróć uwagę na maksymalny drawdown i liczbę transakcji odrzuconych przez koszty.'],
@@ -983,6 +989,353 @@ renderSig=function(){
    cfg:['Ustawienia','Profil 500 PLN ustawia ryzyko 1% (5 PLN), max 2 pozycje, rynki GPW i FX oraz opłaty. Opłaty XTB sprawdź w aktualnej tabeli. Min. trzymanie nie może być krótsze niż 6 świec (30 min).']
   };
   Object.keys(INTRO).forEach(function(t){ var p=document.getElementById('pane-'+t); if(p) p.insertAdjacentHTML('afterbegin','<details class="intro" open><summary>ℹ '+INTRO[t][0]+'</summary><p>'+INTRO[t][1]+'</p></details>'); });
+})();
+
+// ===== v6: realistyczne wykonanie zleceń + Claude (model językowy) =====
+function minOfDay(ts){ var d=new Date(ts); return d.getHours()*60+d.getMinutes(); }
+function sessionOpenAt(mkt,ts){
+  var d=new Date(ts), day=d.getDay(), mi=d.getHours()*60+d.getMinutes();
+  if(mkt==='FX'){ if(day===6) return false; if(day===0) return mi>=23*60; if(day===5) return mi<23*60; return true; }
+  if(day===0||day===6) return false;
+  if(mkt==='PL') return mi>=9*60&&mi<17*60;
+  return mi>=15*60+30&&mi<22*60;
+}
+function minsToClose(mkt,ts){
+  var d=new Date(ts), day=d.getDay(), mi=d.getHours()*60+d.getMinutes();
+  if(mkt==='FX') return day===5?23*60-mi:99999;
+  return (mkt==='PL'?17*60:22*60)-mi;
+}
+sessionOpen=function(mkt){ var t=Date.now(); return sessionOpenAt(mkt,t)&&minsToClose(mkt,t)>=45; };
+function edgeFactor(mkt,ts){
+  var mi=minOfDay(ts);
+  if(mkt==='US') return (mi<15*60+45||mi>=21*60+45)?2:1;
+  if(mkt==='PL') return (mi<9*60+15||mi>=16*60+45)?2:1;
+  if(mkt==='FX') return (mi>=22*60)?2.5:1;
+  return 1;
+}
+// spread i poślizg zależą od pory sesji i zmienności bieżącej świecy
+function execParams(m,sym,bar){
+  var f=feeOf(m), b=ST.series[sym], a=(b&&atr(b,14))||bar.c*0.004;
+  var vf=Math.min(3,Math.max(1,(bar.h-bar.l)/a));
+  var spr=f.spr*edgeFactor(mktOf(m),bar.t)*Math.sqrt(vf);
+  return {hs:bar.c*spr/2,slip:bar.c*(f.slip||0),sprPct:spr};
+}
+function fillEntry(side,bar,ep){ return side==='LONG'?bar.o+ep.hs+ep.slip:bar.o-ep.hs-ep.slip; }
+function marketExitPx(p,bar,ep,withSlip){ var s=withSlip?ep.slip:0; return p.side==='LONG'?bar.c-ep.hs-s:bar.c+ep.hs+s; }
+// stop = zlecenie rynkowe po przebiciu (poślizg, luki), target = limit (bez poślizgu); long wychodzi po bid, short po ask
+function checkExit(p,bar,ep){
+  var s=p.stpEff;
+  if(p.side==='LONG'){
+    if(bar.l-ep.hs<=s) return {why:'stop',px:Math.min(s,bar.o-ep.hs)-ep.slip};
+    if(bar.h-ep.hs>=p.target) return {why:'target',px:Math.max(p.target,bar.o-ep.hs)};
+  } else {
+    if(bar.h+ep.hs>=s) return {why:'stop',px:Math.max(s,bar.o+ep.hs)+ep.slip};
+    if(bar.l+ep.hs<=p.target) return {why:'target',px:Math.min(p.target,bar.o+ep.hs)};
+  }
+  return null;
+}
+function manageExit(p,m,b,useSess){
+  p.bars++;
+  var ep=execParams(m,p.sym,b), long=p.side==='LONG', minB=minBars();
+  if(useSess&&minsToClose(mktOf(m),b.t)<=5) return {why:'koniec sesji',px:marketExitPx(p,b,ep,true),ref:b.c};
+  var stp0=p.stop;
+  if(p.bars<minB&&CFG.holdStop==='wide'){
+    var em=long?p.entry-2*p.risk0:p.entry+2*p.risk0;
+    var re=checkExit({side:p.side,stpEff:em,target:long?1e18:-1e18},b,ep);
+    return re?{why:'stop awaryjny (2× ryzyko) w okresie min. trzymania',px:re.px,ref:em}:null;
+  }
+  if(!p.be&&p.bars>=minB){ var mv=long?(b.c-p.entry):(p.entry-b.c); if(mv>=p.risk0){ p.stop=p.entry; p.be=true; } }
+  var r=checkExit({side:p.side,stpEff:stp0,target:p.target},b,ep);
+  if(r) return {why:r.why,px:r.px,ref:r.why==='stop'?stp0:p.target};
+  if(p.bars>=(CFG.timeStop||60)) return {why:'time-stop',px:marketExitPx(p,b,ep,true),ref:b.c};
+  return null;
+}
+function buildPos(o,m,bar,cash){
+  var ep=execParams(m,o.sym,bar), long=o.side==='LONG', fill=fillEntry(o.side,bar,ep);
+  var adverse=long?fill-o.price:o.price-fill;
+  if(adverse>0.5*o.sd) return {ok:false,reason:'cena uciekła o '+f2(adverse/o.sd,2)+'R od sygnału'};
+  if(long?fill<=o.stop:fill>=o.stop) return {ok:false,reason:'cena otworzyła się za stop-lossem'};
+  var rate=rateOf(m), f=feeOf(m), lev=mktOf(m)==='FX'?(CFG.fxLev||30):1, notional=o.qty*fill*rate, margin=notional/lev, fee=notional*(f.comm+f.conv);
+  if(margin+fee>cash) return {ok:false,reason:'brak wolnych środków w chwili otwarcia'};
+  var ex=Math.abs(fill-bar.o)*o.qty*rate;
+  return {ok:true,p:{sym:o.sym,side:o.side,qty:o.qty,entry:fill,stop:o.stop,target:o.target,why:o.why,bars:0,risk0:Math.abs(fill-o.stop),be:false,at:new Date().toLocaleTimeString('pl-PL'),rate:rate,lev:lev,margin:margin,feeIn:fee,f:{comm:f.comm,conv:f.conv},exec:ex,sigPx:o.price}};
+}
+// rozmiar pozycji z kosztami: prowizje + przewalutowanie + spread + poślizg
+sizePlan=function(m,price,a,eq,cash){
+  var rate=rateOf(m), fx=mktOf(m)==='FX', lev=fx?(CFG.fxLev||30):1, f=feeOf(m), step=fx?1000:1;
+  var sd=(a||price*0.004)*1.5, riskPLN=eq*(CFG.risk/100), unitRisk=sd*rate, reason='';
+  var q=Math.floor(riskPLN/unitRisk/step)*step;
+  if(q<step){ q=step; if(q*unitRisk>riskPLN*2.5) reason='minimalna pozycja ('+q+' szt.) ryzykuje '+f2(q*unitRisk)+' PLN, limit '+f2(riskPLN*2.5)+' PLN'; }
+  var maxQ=Math.floor(cash*lev/(price*rate)/step)*step; if(q>maxQ) q=maxQ;
+  if(q<step&&!reason) reason='za mało wolnych środków';
+  var notional=q*price*rate, margin=notional/lev;
+  var feeIn=notional*(f.comm+f.conv), feeOut=notional*(f.comm+f.conv);
+  var costPU=price*(2*(f.comm+f.conv)+f.spr+2*(f.slip||0)), netRR=(3*sd-costPU)/(sd+costPU);
+  if(!reason&&netRR<1.8) reason='koszty zjadają przewagę — R:R netto '+f2(netRR,2)+' &lt; 1,8';
+  return {ok:!reason,reason:reason,qty:q,sd:sd,rate:rate,lev:lev,notional:notional,margin:margin,feeIn:feeIn,feeOut:feeOut,costPU:costPU,netRR:netRR,riskReal:q*unitRisk,f:{comm:f.comm,conv:f.conv}};
+};
+// zlecenie składane na zamknięciu świecy sygnału, realizowane na otwarciu następnej (opóźnienie ręcznego wejścia)
+openPos=function(g){
+  if((g.age||1)<(CFG.confirm||2)){ ST.skip=ST.skip||{}; var k0=g.sym+g.side+'age'; if(ST.skip[k0]!==ST.n-1){ log('SYGNAŁ '+g.side+' '+g.sym+' czeka na potwierdzenie (utrzymanie przez '+(CFG.confirm||2)+' świece)','i'); } ST.skip[k0]=ST.n; return; }
+  if(ST.blocked) return;
+  var m=symM(g.sym); if(!m||!scanOn(m)) return;
+  ST.pend=ST.pend||{}; if(ST.pend[g.sym]) return;
+  if(!sessionOpen(mktOf(m))){ log('Poza sesją '+mktOf(m)+' lub ostatnie 45 min — pomijam '+g.sym,'i'); return; }
+  var sp=sizePlan(m,g.price,g.atr,ST.equity,ST.cash);
+  ST.skip=ST.skip||{}; var key=g.sym+g.side;
+  if(!sp.ok){ if(ST.skip[key]!==sp.reason){ ST.skip[key]=sp.reason; log('POMINIĘTO '+g.side+' '+g.sym+' — '+sp.reason.replace('&lt;','<'),'i'); } return; }
+  ST.skip[key]=null;
+  var long=g.side==='LONG', sd=sp.sd;
+  ST.pend[g.sym]={sym:g.sym,side:g.side,why:g.why,price:g.price,sd:sd,qty:sp.qty,stop:long?g.price-sd:g.price+sd,target:long?g.price+3*sd:g.price-3*sd,placed:ST.n};
+  log('ZLECENIE '+g.side+' '+g.sym+' x'+sp.qty+' — realizacja po otwarciu następnej świecy (SL '+pf(ST.pend[g.sym].stop,m)+', TP '+pf(ST.pend[g.sym].target,m)+')','i');
+};
+function fillPending(){
+  var pend=ST.pend||{}; ST.pend={};
+  for(var k in pend){ var o=pend[k], m=symM(k), bar=last(k); if(!m||!bar) continue;
+    if(!sessionOpenAt(mktOf(m),bar.t)){ log('ANULOWANO zlecenie '+k+' — sesja zamknięta w chwili realizacji','i'); continue; }
+    var r=buildPos(o,m,bar,ST.cash);
+    if(!r.ok){ log('ANULOWANO zlecenie '+o.side+' '+k+' — '+r.reason,'i'); continue; }
+    var p=r.p; ST.pos[k]=p;
+    ST.cash-=p.margin+p.feeIn; ST.equity-=p.feeIn; ST.feesTot=(ST.feesTot||0)+p.feeIn; ST.execTot=(ST.execTot||0)+p.exec; ST.dayTrades=(ST.dayTrades||0)+1;
+    log('OTWARCIE '+p.side+' '+k+' x'+p.qty+' @ '+pf(p.entry,m)+' (sygnał '+pf(o.price,m)+') | SL '+pf(p.stop,m)+' | TP '+pf(p.target,m)+' | koszt wykonania '+f2(p.exec)+' PLN, opłata '+f2(p.feeIn)+' PLN — '+p.why,'g');
+  }
+}
+closePos=function(sym,why,px){
+  var p=ST.pos[sym]; if(!p) return;
+  var c=px||(last(sym)?last(sym).c:p.entry), r=calcClose(p,c), net=r.gross-r.feeOut-(p.feeIn||0), ex2=p.exitExec||0;
+  ST.cash+=(p.margin||0)+r.gross-r.feeOut; ST.equity+=r.gross-r.feeOut; ST.feesTot=(ST.feesTot||0)+r.feeOut; ST.execTot=(ST.execTot||0)+ex2;
+  if(net<0){ ST.consecLoss=(ST.consecLoss||0)+1; } else { ST.consecLoss=0; }
+  var fees=(p.feeIn||0)+r.feeOut+(p.exec||0)+ex2;
+  ST.closed.unshift({sym:sym,side:p.side,qty:p.qty,entry:p.entry,exit:c,pnl:net,fees:fees,be:!!p.be,why:why,entryWhy:p.why,bars:p.bars});
+  delete ST.pos[sym]; ST.cool[sym]=3;
+  log('ZAMKNIĘCIE '+sym+' @ '+f2(c,5)+' P&L netto '+f2(net)+' PLN (koszty łącznie '+f2(fees)+') po '+p.bars+' świecach — '+why,net>=0?'g':'r');
+};
+openPnl=function(p){
+  var b=last(p.sym), m=symM(p.sym); if(!b||!m) return -(p.feeIn||0);
+  var ep=execParams(m,p.sym,b), r=calcClose(p,marketExitPx(p,b,ep,false));
+  return r.gross-r.feeOut-(p.feeIn||0);
+};
+cycle=function(){
+  ST.n++; checkLimits();
+  for(var i=0;i<SYMBOLS.length;i++){ var m0=SYMBOLS[i], a=ST.series[m0.s];
+    if(!a||!a.length){ ST.series[m0.s]=initSeries(m0,150); }
+    else { var nb=nextBar(m0,a[a.length-1]); nb.t=Math.max(a[a.length-1].t+1,Date.now()); a.push(nb); if(a.length>400) a.shift(); }
+    if(ST.cool[m0.s]>0) ST.cool[m0.s]--; }
+  fillPending();
+  for(var k in ST.pos){ var p=ST.pos[k], m=symM(k), b=last(k); if(!b||!m) continue;
+    var r=manageExit(p,m,b,true);
+    if(r){ p.exitExec=Math.abs(r.px-r.ref)*p.qty*p.rate; closePos(k,r.why,r.px); } }
+  var sg=signals(); ST.sig=sg; var opened=0;
+  var ranked=sg.filter(function(x){return x.side!=='WAIT';}).sort(function(a,b){return b.strength-a.strength;});
+  for(var q=0;q<ranked.length;q++){ var g=ranked[q]; if(ST.pos[g.sym]||(ST.pend&&ST.pend[g.sym])) continue; if(ST.cool[g.sym]>0) continue;
+    if(Object.keys(ST.pos).length+Object.keys(ST.pend||{}).length>=CFG.maxPos) break;
+    var n0=Object.keys(ST.pend||{}).length; openPos(g); if(Object.keys(ST.pend||{}).length>n0) opened++; }
+  ST.eq.push(ST.equity); if(ST.eq.length>400) ST.eq.shift();
+  log('Świeca #'+ST.n+' (5 min): sygnały '+ranked.length+', zlecenia '+opened,'i');
+  render(); save();
+};
+backtest=function(){
+  var saved=JSON.stringify(ST), eq=CFG.capital, peak=eq, mdd=0, trades=0, wins=0, fees=0, exec=0, skipped=0, cancelled=0, held=[], pos={}, pend={};
+  for(var d=1;d<=250;d++){
+    for(var i=0;i<SYMBOLS.length;i++){ var m0=SYMBOLS[i], a=ST.series[m0.s]||initSeries(m0,150); a.push(nextBar(m0,a[a.length-1])); if(a.length>600) a.shift(); ST.series[m0.s]=a; }
+    var used=0, z; for(z in pos) used+=pos[z].margin;
+    for(var kk in pend){ var o=pend[kk], mm=symM(kk), bb=last(kk), rr=buildPos(o,mm,bb,eq-used);
+      if(!rr.ok){ cancelled++; continue; } pos[kk]=rr.p; eq-=rr.p.feeIn; fees+=rr.p.feeIn; exec+=rr.p.exec; used+=rr.p.margin; }
+    pend={};
+    for(var k in pos){ var p=pos[k], m=symM(k), b=last(k), r=manageExit(p,m,b,false);
+      if(r){ exec+=Math.abs(r.px-r.ref)*p.qty*p.rate; var c=calcClose(p,r.px); eq+=c.gross-c.feeOut; fees+=c.feeOut; trades++; if(c.gross-c.feeOut-p.feeIn>0) wins++; held.push(p.bars); delete pos[k]; } }
+    used=0; for(z in pos) used+=pos[z].margin;
+    var sg=signals();
+    for(var q=0;q<sg.length;q++){ var g=sg[q]; if(g.side==='WAIT'||pos[g.sym]||pend[g.sym]||(g.age||1)<(CFG.confirm||2)) continue;
+      if(Object.keys(pos).length+Object.keys(pend).length>=CFG.maxPos) break;
+      var sm=symM(g.sym), sp=sizePlan(sm,g.price,g.atr,eq,eq-used); if(!sp.ok){ skipped++; continue; }
+      var lg=g.side==='LONG'; pend[g.sym]={sym:g.sym,side:g.side,why:g.why,price:g.price,sd:sp.sd,qty:sp.qty,stop:lg?g.price-sp.sd:g.price+sp.sd,target:lg?g.price+3*sp.sd:g.price-3*sp.sd}; }
+    if(eq>peak) peak=eq; var dd=(eq-peak)/peak; if(dd<mdd) mdd=dd;
+  }
+  ST=JSON.parse(saved);
+  var ret=eq/CFG.capital-1, wr=trades?Math.round(wins/trades*100):0, avgB=held.length?held.reduce(function(s,x){return s+x;},0)/held.length:0;
+  document.getElementById('bt-out').innerHTML='<div class="row" style="gap:18px"><div>Transakcji <b>'+trades+'</b></div><div>Win rate <b>'+wr+'%</b></div><div>Kapitał <b>'+money(eq)+' PLN</b></div><div>Zwrot <b class="'+(ret>=0?'pos':'neg')+'">'+fp(ret)+'</b></div><div>Max DD <b class="neg">'+fp(mdd)+'</b></div><div>Prowizje i przewalutowanie <b>'+money(fees)+' PLN</b></div><div>Spread i poślizg <b>'+money(exec)+' PLN</b></div><div>Odrzucone przez koszty <b>'+skipped+'</b></div><div>Anulowane przy realizacji <b>'+cancelled+'</b></div><div>Średnio <b>'+avgB.toFixed(0)+'</b> świec</div></div><div class="mut" style="margin-top:8px">Dane demo (losowe) — wynik nie dowodzi skuteczności. Model wykonania: wejście na otwarciu następnej świecy, dynamiczny spread, poślizg na stopach, luki, wyjścia po bid/ask. Backtest nie uwzględnia godzin sesji.</div>';
+};
+// ---- KPI: koszty łączne i podział ----
+var _render6=render;
+render=function(){
+  _render6();
+  var f=document.getElementById('s-fees');
+  if(f){ f.textContent=money((ST.feesTot||0)+(ST.execTot||0))+' PLN'; var d=f.nextElementSibling; if(d) d.textContent='prowizje '+f2(ST.feesTot||0)+' · spread i poślizg '+f2(ST.execTot||0); }
+};
+var _rp6=renderPos;
+renderPos=function(){
+  _rp6();
+  var keys=Object.keys(ST.pend||{}); if(!keys.length) return;
+  var h=keys.map(function(k){ var o=ST.pend[k], m=symM(k)||{s:k,mkt:'US'}, long=o.side==='LONG';
+    return '<div class="pcard" style="border-style:dashed"><div class="ph"><div><b class="sym">'+k+'</b> <span class="mut">zlecenie oczekujące</span></div><span class="pill '+(long?'buy':'sell')+'">'+(long?'BUY':'SELL')+'</span></div><div class="xtb">⏳ Realizacja po otwarciu następnej świecy (do 5 min). Na XTB: <b>'+(long?'KUP':'SPRZEDAJ')+' '+xtbSym(m)+'</b> · '+(m.mkt==='FX'?f2(o.qty/100000,2)+' lot':o.qty+' szt.')+' · SL '+pf(o.stop,m)+' · TP '+pf(o.target,m)+'</div><div class="why">'+o.why+'</div></div>'; }).join('');
+  document.getElementById('tbl-pos').insertAdjacentHTML('afterbegin',h);
+};
+(function(){
+  if(CFG.fees&&CFG.fees.US&&CFG.fees.US.slip===undefined){ CFG.fees.US.slip=0.02; CFG.fees.PL.slip=0.05; CFG.fees.FX.slip=0.003; if(typeof syncSettings==='function') syncSettings(); }
+  GLOSS.push(
+   {t:'Zlecenie i realizacja (opóźnienie)',s:'Sygnał powstaje na zamknięciu świecy, a zlecenie realizuje się dopiero na otwarciu następnej.',d:'W symulacji wejście następuje po cenie otwarcia kolejnej świecy, a nie po cenie z sygnału — tak jak przy ręcznym składaniu zlecenia na XTB. Jeśli cena uciekła o więcej niż 0,5R od sygnału albo otworzyła się za stop-lossem, zlecenie jest anulowane. To chroni przed gonieniem ceny.',x:'Sygnał 100,00, otwarcie następnej świecy 100,20 przy R = 0,30 → wejście z gorszą ceną o 0,2R.'},
+   {t:'Spread dynamiczny i poślizg (slippage)',s:'Spread zmienia się w ciągu sesji, a zlecenia stop realizują się gorzej niż ich cena.',d:'Na otwarciu i zamknięciu sesji spread jest szerszy, a przy dużym ruchu świecy rośnie dodatkowo. Zlecenie stop to zlecenie rynkowe po przebiciu poziomu: w szybkim ruchu lub przy luce wypełni się gorzej. Zlecenie z limitem (take-profit) nie ma poślizgu, ale wymaga, by cena rzeczywiście dotarła do poziomu z uwzględnieniem spreadu.',x:'Stop 99,00, luka na otwarciu 98,70 → strata większa niż planowana.'},
+   {t:'Koniec sesji i ostatnie 45 minut',s:'Akcje zamykamy przed końcem sesji; w ostatnich 45 minutach nie otwieramy nowych pozycji.',d:'Day trading oznacza brak pozycji na noc: nocne luki i zmiany kursu nie są chronione stopem. Dlatego bot nie otwiera pozycji w ostatnich 45 minutach sesji (GPW do 17:00, USA do 22:00) i zamyka otwarte na 5 minut przed końcem. Dla FX dotyczy to piątku przed 23:00.',x:'Sygnał o 16:30 na GPW → bot go pominie.'}
+  );
+})();
+
+// ===== Claude (model językowy): opinie o instrumentach i przegląd dziennika =====
+var LLM={}, LLM_REVIEW=null;
+var LLM_PRICE={'claude-opus-5-5':[4,20],'claude-sonnet-5-5':[2,10],'claude-haiku-5-5':[0.1,0.5]};
+var LLM_SCHEMA={type:'object',additionalProperties:false,
+  required:['verdict','confidence','agrees_with_rules','summary','reasoning','risks','improve_entry','what_would_change','lesson'],
+  properties:{
+   verdict:{type:'string',enum:['KUP','SPRZEDAJ','OBSERWUJ','NIE_WCHODZ']},
+   confidence:{type:'integer'},
+   agrees_with_rules:{type:'boolean'},
+   summary:{type:'string'},
+   reasoning:{type:'array',items:{type:'string'}},
+   risks:{type:'array',items:{type:'string'}},
+   improve_entry:{type:'string'},
+   what_would_change:{type:'array',items:{type:'string'}},
+   lesson:{type:'string'}}};
+var REVIEW_SCHEMA={type:'object',additionalProperties:false,
+  required:['summary','strengths','mistakes','patterns','next_steps','study_topics'],
+  properties:{summary:{type:'string'},strengths:{type:'array',items:{type:'string'}},mistakes:{type:'array',items:{type:'string'}},patterns:{type:'array',items:{type:'string'}},next_steps:{type:'array',items:{type:'string'}},study_topics:{type:'array',items:{type:'string'}}}};
+var LLM_SYS=[
+ 'Jesteś doświadczonym, sceptycznym analitykiem intraday i mentorem dla początkującego inwestora z Polski, który z konta o wartości ok. 500 PLN w XTB zamierza ręcznie składać zlecenia na podstawie sygnałów bota.',
+ 'Dostajesz JSON z kontekstem jednego instrumentu: wskaźniki, punktacja czynników, sygnał silnika regułowego, proponowany plan (wejście, SL, TP), koszty, stan konta i ostatnie transakcje.',
+ 'Twoje zadanie: niezależnie oceń, czy to dobry moment na wejście. Silnik regułowy może się mylić — szukaj sprzeczności, słabych punktów i ryzyka, których reguły nie widzą (np. konflikt interwałów, cena blisko oporu lub wsparcia, koszty zjadające przewagę, zbyt duże ryzyko względem konta, korelacja z otwartymi pozycjami, słaba płynność lub ryzyko luki).',
+ 'Zasady: odpowiadaj po polsku, prostym językiem, a każdy fachowy termin krótko wyjaśnij. Nie obiecuj zysków. Gdy pole dane_demo ma wartość true, zaznacz w podsumowaniu, że dane są symulowane i ocena ma wartość edukacyjną. Jeśli dane są niewystarczające, wybierz OBSERWUJ i napisz, czego brakuje.',
+ 'Werdykt: KUP lub SPRZEDAJ tylko gdy argumenty wyraźnie przeważają i plan ma sensowny stosunek zysku do ryzyka po kosztach; OBSERWUJ gdy setup się dopiero tworzy; NIE_WCHODZ gdy widzisz konkretny powód, by nie wchodzić. confidence to liczba 0-100 oznaczająca, jak bardzo jesteś pewny własnego werdyktu (nie szansę zysku).',
+ 'Pola: summary (2-3 zdania), reasoning (3-5 konkretnych punktów z liczbami z danych), risks (2-4 punkty), improve_entry (jak poprawić wejście, SL lub TP albo na co poczekać), what_would_change (2-3 warunki zmieniające ocenę), lesson (jedna lekcja edukacyjna związana z tym przypadkiem, 2-3 zdania).',
+ 'Odpowiedz wyłącznie obiektem JSON zgodnym ze schematem.'].join(' ');
+var REVIEW_SYS=[
+ 'Jesteś mentorem tradingu intraday. Dostajesz JSON z historią transakcji paper tradingu bota (konto ok. 500 PLN, handel ręczny na XTB), statystykami i ustawieniami.',
+ 'Przeanalizuj wyniki szczerze i konkretnie: co działa, jakie powtarzalne błędy lub wzorce widać (powody wyjść, rynki, pora, koszty, czas w pozycji), co zmienić w następnych krokach i czego warto się nauczyć.',
+ 'Uwaga na małą próbę: jeśli transakcji jest mniej niż ok. 30, wyraźnie zaznacz, że wnioski są wstępne. Gdy dane_demo ma wartość true, przypomnij, że dane są losowe i wynik nie mówi nic o skuteczności strategii.',
+ 'Odpowiadaj po polsku, prostym językiem, bez obiecywania zysków. Odpowiedz wyłącznie obiektem JSON zgodnym ze schematem.'].join(' ');
+function llmKey(){ return String(CFG.aiKey||'').trim(); }
+function r2(x,d){ return (x===null||x===undefined||isNaN(x))?null:+Number(x).toFixed(d===undefined?2:d); }
+function llmCtx(A){
+  var m=A.m, b=ST.series[m.s];
+  var dd=ST.dayStart?(ST.equity-ST.dayStart)/ST.dayStart*100:0;
+  return {
+   dane_demo:true,
+   instrument:{symbol:m.s,nazwa:m.n,rynek:mktOf(m),cena:r2(A.c,5)},
+   wskazniki:{trend_1h:A.htf,strefa:A.pd.zone,zmiennosc_atr_proc:r2(A.atrp,3),rezim:A.regime,maks_78_swiec:r2(A.hi78,5),min_78_swiec:r2(A.lo78,5)},
+   czynniki:A.F.map(function(x){return {nazwa:x.n,punkty:x.s,opis:x.note};}),
+   bilans_punktow:A.total,
+   silnik_regulowy:{kierunek:A.g.side,sila_0_3:A.g.strength||0,powod:A.g.why||null},
+   ocena_regulowa:{werdykt:A.verdict,pewnosc:A.conf,kierunek:A.side},
+   plan:A.plan?{kierunek:A.plan.side,wejscie:r2(A.plan.entry,5),stop_loss:r2(A.plan.stop,5),take_profit:r2(A.plan.tp,5),stop_strukturalny:r2(A.plan.struct,5),rr_netto:r2(A.plan.sp.netRR),wolumen:A.plan.qty,wartosc_pln:r2(A.plan.notional),ryzyko_pln:r2(A.plan.risk),oplaty_rundy_pln:r2(A.plan.sp.feeIn+A.plan.sp.feeOut),uwaga_o_oporze:A.plan.rrNote||null}:null,
+   lista_kontrolna:A.checks.map(function(x){return {ok:x.ok,opis:x.t.replace('&lt;','<')};}),
+   konto:{kapital_pln:r2(ST.equity),wolne_srodki_pln:r2(ST.cash),zmiana_dnia_proc:r2(dd),blokada_dnia:!!ST.blocked,max_pozycji:CFG.maxPos,ryzyko_proc:CFG.risk,otwarte:Object.keys(ST.pos).map(function(k){return {symbol:k,strona:ST.pos[k].side,pnl_pln:r2(openPnl(ST.pos[k])),swiec:ST.pos[k].bars};})},
+   historia_instrumentu:A.hist,
+   ostatnie_transakcje:ST.closed.slice(0,8).map(function(x){return {symbol:x.sym,strona:x.side,pnl_netto_pln:r2(x.pnl),wyjscie:x.why,swiec:x.bars};}),
+   ostatnie_swiece_ohlc:b.slice(-12).map(function(x){return [r2(x.o,5),r2(x.h,5),r2(x.l,5),r2(x.c,5)];})
+  };
+}
+async function llmCall(system,userText,schema){
+  var key=llmKey(); if(!key) throw new Error('Brak klucza Anthropic w Ustawieniach');
+  var model=CFG.aiModel||'claude-opus-5-5';
+  async function go(withFmt){
+    var body={model:model,max_tokens:8000,system:system,messages:[{role:'user',content:userText}]};
+    if(withFmt) body.output_config={format:{type:'json_schema',schema:schema}};
+    var r;
+    try{ r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'content-type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify(body)}); }
+    catch(e){ throw new Error('Brak połączenia z api.anthropic.com ('+e.message+') — sprawdź sieć, proxy lub blokadę przeglądarki'); }
+    var j=null; try{ j=await r.json(); }catch(e){}
+    return {r:r,j:j};
+  }
+  var x=await go(true);
+  if(x.r.status===400&&x.j&&/output_config|format|schema/i.test(JSON.stringify(x.j))) x=await go(false);
+  if(!x.r.ok){
+    var msg=(x.j&&x.j.error&&x.j.error.message)||('HTTP '+x.r.status);
+    if(x.r.status===401) msg='Nieprawidłowy klucz API (401)'; else if(x.r.status===429) msg='Limit zapytań (429) — spróbuj za chwilę'; else if(x.r.status===529) msg='API przeciążone (529) — spróbuj ponownie';
+    throw new Error(msg);
+  }
+  var j=x.j;
+  if(j.stop_reason==='refusal') throw new Error('Model odmówił odpowiedzi (refusal)');
+  if(j.stop_reason==='max_tokens') throw new Error('Odpowiedź ucięta (max_tokens)');
+  var txt=(j.content||[]).filter(function(t){return t.type==='text';}).map(function(t){return t.text;}).join('');
+  var obj; try{ obj=JSON.parse(txt); }catch(e){ var a=txt.indexOf('{'), z=txt.lastIndexOf('}'); try{ obj=JSON.parse(txt.slice(a,z+1)); }catch(e2){ throw new Error('Nie udało się odczytać odpowiedzi modelu'); } }
+  return {json:obj,usage:j.usage||{},model:j.model||model};
+}
+async function llmAsk(sym,silent){
+  var m=symM(sym), A=m?aiAnalyze(m):null; if(!A){ toast('Za mało danych do analizy'); return null; }
+  LLM[sym]={busy:true}; if(!silent) renderAI();
+  try{
+    var out=await llmCall(LLM_SYS,'Oceń ten setup. Dane (JSON):\n'+JSON.stringify(llmCtx(A)),LLM_SCHEMA);
+    LLM[sym]={res:out.json,usage:out.usage,model:out.model,ts:new Date().toLocaleTimeString('pl-PL'),n:ST.n};
+    log('AI (Claude) '+sym+': '+out.json.verdict+' '+out.json.confidence+'/100 — '+String(out.json.summary).slice(0,160),'i');
+  }catch(e){ LLM[sym]={err:e.message}; log('AI (Claude) błąd: '+e.message,'r'); }
+  renderAI(); return LLM[sym];
+}
+function llmAuto(g){
+  if(!CFG.aiAuto||!llmKey()) return;
+  var today=new Date().toDateString(); ST.llmDay=ST.llmDay&&ST.llmDay.d===today?ST.llmDay:{d:today,n:0};
+  if(ST.llmDay.n>=(CFG.aiMax||20)) return; ST.llmDay.n++;
+  llmAsk(g.sym,true).then(function(r){ if(r&&r.res) toast('Claude: '+r.res.verdict+' '+g.sym+' ('+r.res.confidence+'/100)'); });
+}
+function llmCost(s){
+  var p=LLM_PRICE[s.model]||LLM_PRICE[CFG.aiModel||'claude-opus-5-5']||[4,20], u=s.usage||{};
+  var usd=((u.input_tokens||0)*p[0]+(u.output_tokens||0)*p[1])/1e6; return {usd:usd,pln:usd*((CFG.rates&&CFG.rates.USD)||3.7)};
+}
+function llmList(t,a){ return (a&&a.length)?'<div class="lt">'+t+'</div><ul>'+a.map(function(x){return '<li>'+x+'</li>';}).join('')+'</ul>':''; }
+function llmCard(sym){
+  var head='<div class="llm"><div class="lh">🤖 Opinia Claude <span class="mut">(model językowy)</span></div>';
+  if(!llmKey()) return head+'<div class="mut">Dodaj klucz API Anthropic w Ustawieniach → „Claude AI”, aby uzyskać niezależną ocenę tego setupu od modelu językowego.</div></div>';
+  var s=LLM[sym], busy=s&&s.busy;
+  var btn='<button class="btn ghost" '+(busy?'disabled ':'')+'onclick="llmAsk(\''+sym+'\')">'+(busy?'Claude analizuje…':'🤖 Zapytaj Claude o '+sym)+'</button>';
+  if(s&&s.err) return head+btn+'<div class="neg" style="margin-top:8px">Błąd: '+s.err+'</div></div>';
+  if(!s||!s.res) return head+btn+'<div class="mut" style="margin-top:8px">Kliknij, aby model niezależnie ocenił wskaźniki, plan i koszty. Jedno zapytanie kosztuje zwykle kilka groszy.</div></div>';
+  var r=s.res, cls=r.verdict==='KUP'?'buy':(r.verdict==='SPRZEDAJ'?'sell':'wait'), c=llmCost(s);
+  var stale=(s.n!==ST.n)?'<span class="mut"> · dane sprzed '+((ST.n-s.n)*5)+' min</span>':'';
+  return head+btn+'<div style="margin-top:10px"><span class="pill '+cls+'">'+String(r.verdict).replace('_',' ')+'</span> <b>'+r.confidence+'/100</b> '+(r.agrees_with_rules?'<span class="pos">✔ zgodne z regułami</span>':'<span class="gold">⚠ inaczej niż reguły</span>')+stale+'</div>'+
+   '<p style="margin:8px 0">'+r.summary+'</p>'+llmList('Uzasadnienie',r.reasoning)+llmList('Ryzyka',r.risks)+
+   (r.improve_entry?'<div class="lt">Jak poprawić wejście</div><p>'+r.improve_entry+'</p>':'')+llmList('Co zmieniłoby ocenę',r.what_would_change)+
+   (r.lesson?'<div class="lesson">💡 '+r.lesson+'</div>':'')+
+   '<div class="mut" style="font-size:10.5px;margin-top:8px">'+s.model+' · '+s.ts+' · tokeny '+(s.usage.input_tokens||0)+'/'+(s.usage.output_tokens||0)+' · koszt ok. '+f2(c.pln,3)+' PLN. Opinia modelu językowego na danych symulowanych — nie jest rekomendacją inwestycyjną.</div></div>';
+}
+async function llmReview(){
+  var out=document.getElementById('llm-review'); if(!out) return;
+  if(!llmKey()){ out.innerHTML='<div class="mut">Dodaj klucz API Anthropic w Ustawieniach → „Claude AI”.</div>'; return; }
+  if(ST.closed.length<3){ out.innerHTML='<div class="mut">Za mało zamkniętych transakcji (min. 3).</div>'; return; }
+  out.innerHTML='<div class="mut">Claude analizuje dziennik…</div>';
+  var cl=ST.closed, w=cl.filter(function(x){return x.pnl>0;}), by={}, bm={};
+  cl.forEach(function(x){ by[x.why]=(by[x.why]||0)+1; var m=symM(x.sym), k=m?mktOf(m):'?'; bm[k]=bm[k]||{n:0,pnl:0}; bm[k].n++; bm[k].pnl+=x.pnl; });
+  var ctx={dane_demo:true,liczba_transakcji:cl.length,win_rate_proc:Math.round(w.length/cl.length*100),pnl_netto_pln:r2(cl.reduce(function(s,x){return s+x.pnl;},0)),koszty_lacznie_pln:r2(cl.reduce(function(s,x){return s+(x.fees||0);},0)),sredni_czas_swiec:r2(cl.reduce(function(s,x){return s+x.bars;},0)/cl.length,1),powody_wyjsc:by,wynik_wg_rynku:bm,
+    ustawienia:{ryzyko_proc:CFG.risk,max_pozycji:CFG.maxPos,min_trzymanie_swiec:minBars(),potwierdzenie_swiec:CFG.confirm||2,rynki:CFG.scan},
+    ostatnie_transakcje:cl.slice(0,30).map(function(x){return {symbol:x.sym,strona:x.side,pnl_netto_pln:r2(x.pnl),koszty_pln:r2(x.fees),wyjscie:x.why,powod_wejscia:x.entryWhy||null,swiec:x.bars};})};
+  try{
+    var o=await llmCall(REVIEW_SYS,'Przeanalizuj historię transakcji (JSON):\n'+JSON.stringify(ctx),REVIEW_SCHEMA);
+    LLM_REVIEW={res:o.json,usage:o.usage,model:o.model,ts:new Date().toLocaleTimeString('pl-PL')};
+  }catch(e){ LLM_REVIEW={err:e.message}; }
+  drawReview();
+}
+function drawReview(){
+  var out=document.getElementById('llm-review'); if(!out||!LLM_REVIEW) return;
+  if(LLM_REVIEW.err){ out.innerHTML='<div class="neg">Błąd: '+LLM_REVIEW.err+'</div>'; return; }
+  var r=LLM_REVIEW.res, c=llmCost(LLM_REVIEW);
+  out.innerHTML='<p>'+r.summary+'</p>'+llmList('Mocne strony',r.strengths)+llmList('Błędy i słabości',r.mistakes)+llmList('Wzorce',r.patterns)+llmList('Następne kroki',r.next_steps)+llmList('Czego się uczyć',r.study_topics)+
+   '<div class="mut" style="font-size:10.5px;margin-top:8px">'+LLM_REVIEW.model+' · '+LLM_REVIEW.ts+' · koszt ok. '+f2(c.pln,3)+' PLN</div>';
+}
+(function(){
+  var lp=document.getElementById('pane-log');
+  if(lp) lp.insertAdjacentHTML('afterbegin','<div class="card" style="margin-bottom:14px"><h2><span class="dot"></span>Przegląd dziennika przez Claude</h2><button class="btn ghost" id="btn-review">🤖 Przeanalizuj moje transakcje</button><div id="llm-review" style="margin-top:12px"></div></div>');
+  var rb=document.getElementById('btn-review'); if(rb) rb.addEventListener('click',llmReview);
+  var sv=document.getElementById('btn-save'); if(!sv) return;
+  sv.parentNode.insertAdjacentHTML('beforebegin',
+   '<div id="ai-box" style="margin-top:14px;padding-top:12px;border-top:1px solid var(--line)">'+
+   '<div class="mut" style="font-size:10px;letter-spacing:.12em;text-transform:uppercase;margin-bottom:8px">Claude AI (model językowy)</div>'+
+   '<div class="row"><label class="mut" style="width:200px">Klucz API Anthropic</label><input id="set-aikey" type="password" placeholder="sk-ant-..." style="width:240px"></div>'+
+   '<div class="row" style="margin-top:9px"><label class="mut" style="width:200px">Model</label><select id="set-aimodel"><option value="claude-opus-5-5">Claude Opus 5.5 (najlepszy, ok. 0,5 zł/zapytanie)</option><option value="claude-sonnet-5-5">Claude Sonnet 5.5 (ok. 0,25 zł)</option><option value="claude-haiku-5-5">Claude Haiku 5.5 (najtańszy)</option></select></div>'+
+   '<div class="row" style="margin-top:9px"><label class="mut" style="width:200px">Stop w pierwszych 30 min</label><select id="set-holdstop"><option value="normal">normalny (zalecane)</option><option value="wide">awaryjny 2× (bez wcześniejszych wyjść)</option></select></div>'+
+   '<div class="row" style="margin-top:9px"><label class="mut" style="width:200px">Auto-opinia o nowym sygnale</label><select id="set-aiauto"><option value="0">wyłączona</option><option value="1">włączona</option></select><input id="set-aimax" type="number" min="1" max="200" style="width:70px" title="maks. zapytań dziennie"><span class="mut" style="font-size:11px">maks./dzień</span></div>'+
+   '<div class="mut" style="font-size:10.5px;margin-top:6px;line-height:1.6">Klucz zapisuje się tylko w tej przeglądarce (localStorage) i trafia wyłącznie do api.anthropic.com. Nie używaj go na cudzym komputerze i ustaw limit wydatków w konsoli Anthropic.</div></div>');
+  function sync(){ document.getElementById('set-aikey').value=CFG.aiKey||''; document.getElementById('set-aimodel').value=CFG.aiModel||'claude-opus-5-5'; document.getElementById('set-aiauto').value=CFG.aiAuto?'1':'0'; document.getElementById('set-aimax').value=CFG.aiMax||20; document.getElementById('set-holdstop').value=CFG.holdStop||'normal'; }
+  sync();
+  document.getElementById('ai-box').addEventListener('change',function(){
+    CFG.aiKey=document.getElementById('set-aikey').value.trim(); CFG.aiModel=document.getElementById('set-aimodel').value;
+    CFG.aiAuto=document.getElementById('set-aiauto').value==='1'; CFG.aiMax=Number(document.getElementById('set-aimax').value)||20; CFG.holdStop=document.getElementById('set-holdstop').value; save(); renderAI();
+  });
 })();
 
 // ===== v3: SYGNAŁY DŹWIĘKOWE (WebAudio, bez plików) =====
@@ -1067,7 +1420,7 @@ function signalAlerts(){
   var top=fresh[0];
   if((top.strength||0)>=3) sfx('strong');
   sfx(top.side==='LONG'?'long':'short');
-  toast('Nowy sygnał: '+top.side+' '+top.sym+(fresh.length>1?' (+'+(fresh.length-1)+')':''));
+  toast('Nowy sygnał: '+top.side+' '+top.sym+(fresh.length>1?' (+'+(fresh.length-1)+')':'')); if(typeof llmAuto==='function') llmAuto(top);
 }
 var _cycle1=cycle;
 cycle=function(){ _cycle1(); signalAlerts(); };
@@ -1139,7 +1492,7 @@ function aiAnalyze(m){
   var openN=Object.keys(ST.pos).length;
   var checks=[
     {ok:!ST.blocked,t:'Limity dnia (strata / liczba transakcji / seria strat)'},
-    {ok:open,t:'Sesja '+(m.mkt||'US')+' otwarta'},
+    {ok:open,t:'Sesja '+(m.mkt||'US')+' otwarta, min. 45 min do zamknięcia'},
     {ok:openN<CFG.maxPos,t:'Wolne miejsce w portfelu ('+openN+'/'+CFG.maxPos+')'},
     {ok:same<2,t:'Korelacja — grupa „'+grp+'”: '+same+'/2'},
     {ok:!ST.pos[m.s]&&!(ST.cool[m.s]>0),t:ST.pos[m.s]?'Pozycja już otwarta':(ST.cool[m.s]>0?'Cooldown po ostatniej transakcji ('+ST.cool[m.s]+' św.)':'Brak otwartej pozycji / cooldownu')},
@@ -1201,7 +1554,7 @@ renderAI=function(){
     if(A.plan) h+=aiHowTo(A); h+='<h2 style="margin-top:14px">Lista kontrolna</h2><div style="line-height:1.9">'+A.checks.map(function(x){ return '<div class="'+(x.ok?'pos':'neg')+'">'+(x.ok?'✔':'✖')+' <span style="color:var(--tx2)">'+x.t+'</span></div>'; }).join('')+'</div>';
     if(A.trig.length) h+='<h2 style="margin-top:14px">Co by zmieniło ocenę</h2><div class="narr">'+A.trig.map(function(t){return '<p>• '+t+'</p>';}).join('')+'</div>';
     h+='<div class="mut" style="margin-top:10px;font-size:11px">Historia '+A.m.s+' w tej sesji: '+(A.hist.n?(A.hist.n+' transakcji, '+A.hist.w+' wygranych, P&amp;L '+f2(A.hist.pnl)):'brak transakcji')+'. Dane demo — to nie jest rekomendacja inwestycyjna.</div>';
-    if(body) body.innerHTML=h;
+    if(body) body.innerHTML=llmCard(A.m.s)+h;
   }
   // ranking okazji
   var rk=document.getElementById('ai-rank');
