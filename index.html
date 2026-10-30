@@ -58,12 +58,49 @@ input:focus,select:focus{outline:none;border-color:var(--red)}
 .toast.on{opacity:1;transform:none}
 .pane{display:none}.pane.on{display:block}
 @media(max-width:900px){.app{grid-template-columns:1fr}aside{position:static;height:auto;flex-direction:row;overflow-x:auto;align-items:center;padding:10px}aside .brand{padding:0 10px 0 4px}.nav{flex-direction:row}.sidefoot{display:none}main{padding:14px}}
-.r{text-align:right}.card h2{border-bottom:1px solid var(--line);padding-bottom:10px}.narr{font-size:12.5px;line-height:1.65}.narr p{margin:0 0 8px}</style></head><body><div class="app">
+.r{text-align:right}.card h2{border-bottom:1px solid var(--line);padding-bottom:10px}.narr{font-size:12.5px;line-height:1.65}.narr p{margin:0 0 8px}</style><link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+<style id="xtb-theme">
+/* motyw inspirowany xStation: ciemny, płaski, czerwony akcent, gęste tabele */
+:root{--bg:#101318;--bg2:#171B21;--bg3:#1E232B;--bg4:#262C36;--line:#262C36;--line2:#343C49;--tx:#E9ECF1;--tx2:#A0A9B7;--tx3:#6F7988;--red:#E8212C;--red2:#C71A24;--green:#2EBD85;--loss:#F0455A;--gold:#F2B01E;--blue:#2F7DE1;--r:3px}
+body{font-family:Roboto,Inter,system-ui,sans-serif;font-size:12.5px}
+.num,.kpi .v,td,.log{font-family:Roboto,"JetBrains Mono",monospace;font-variant-numeric:tabular-nums}
+aside{width:200px;background:#0C0F13;border-right:1px solid var(--line)}
+.app{grid-template-columns:200px 1fr}
+.brand .m{border-radius:3px;background:var(--red);box-shadow:none;width:30px;height:30px}
+.nav button{border-radius:0;padding:10px 12px;font-weight:500;color:var(--tx2)}
+.nav button.on{background:var(--bg3);color:#fff;box-shadow:inset 3px 0 0 var(--red)}
+.nav button:hover{background:var(--bg2)}
+main{padding:0 0 40px;max-width:none}
+.topbar{margin:0;padding:10px 20px;background:var(--bg2);border-bottom:1px solid var(--line)}
+.topbar h1{font-size:15px}
+.kpis{display:flex;flex-wrap:wrap;gap:0;margin:0 0 14px;background:var(--bg3);border-bottom:1px solid var(--line)}
+.kpi{flex:1 1 150px;background:none;border:0;border-right:1px solid var(--line);border-radius:0;padding:10px 16px}
+.kpi .l{font-size:10px;letter-spacing:.08em}
+.kpi .v{font-size:17px;font-weight:500}
+section.pane,.foot{margin-left:20px;margin-right:20px}
+.card{border-radius:var(--r);background:var(--bg2);padding:0 0 4px}
+.card>h2{margin:0;padding:9px 14px;background:var(--bg3);border-bottom:1px solid var(--line);border-left:3px solid var(--red);color:var(--tx2);letter-spacing:.1em}
+.card>h2 .dot{display:none}
+.card>*:not(h2){margin-left:14px;margin-right:14px}
+.card>h2+*{margin-top:12px}
+.btn{border-radius:3px;font-weight:500;text-transform:none}
+.btn.ghost{background:var(--bg4)}
+th{background:var(--bg3);padding:7px 8px}
+td{padding:6px 8px}
+tbody tr:nth-child(even) td{background:rgba(255,255,255,.015)}
+tbody tr:hover td{background:rgba(47,125,225,.10)}
+.pill{border-radius:2px;padding:2px 8px}
+.buy{background:var(--blue);color:#fff}.sell{background:var(--red);color:#fff}
+.badge{border-radius:3px}
+input,select{border-radius:3px;background:var(--bg3)}
+canvas{border-radius:0;background:var(--bg2)}
+.toast{border-radius:3px}
+</style></head><body><div class="app">
 <aside><div class="brand"><div class="m">B</div><div><b>BTX</b> <span style="color:var(--red)">DayTrader</span><sub>Akcje · ETF · FX</sub></div></div>
 <div class="nav">
 <button class="on" data-tab="desk"><span class="ic">▦</span>Pulpit</button>
 <button data-tab="chart"><span class="ic">◫</span>Wykres</button>
-<button data-tab="ai"><span class="ic">✦</span>Analiza AI</button>
+<button data-tab="ai"><span class="ic">✦</span>Analiza</button>
 <button data-tab="pos"><span class="ic">◉</span>Pozycje</button>
 <button data-tab="sig"><span class="ic">◇</span>Sygnały</button>
 <button data-tab="mkt"><span class="ic">≡</span>Rynek</button>
@@ -88,7 +125,7 @@ input:focus,select:focus{outline:none;border-color:var(--red)}
 <div class="row" style="margin-bottom:12px"><select id="chart-sym"></select><span class="mut" id="chart-info" style="font-size:11px"></span></div>
 <canvas id="candles" height="340"></canvas></div></section>
 <section class="pane" id="pane-ai"><div class="grid g2">
-  <div class="card"><h2><span class="dot"></span>Agent AI — analiza instrumentu</h2>
+  <div class="card"><h2><span class="dot"></span>Analiza instrumentu · silnik regułowy (bez modelu AI)</h2>
     <div class="row" style="margin-bottom:12px"><select id="ai-sym"></select><span class="badge" id="ai-verdict">—</span></div>
     <div id="ai-body"></div>
   </div>
@@ -248,10 +285,10 @@ async function fetchReal(sym){
 document.addEventListener('click',function(e){var t=e.target.closest?e.target.closest('.nav button'):null;if(!t)return;var tab=t.getAttribute('data-tab');var bs=document.querySelectorAll('.nav button');for(var i=0;i<bs.length;i++)bs[i].className=(bs[i].getAttribute('data-tab')===tab?'on':'');var ps=document.querySelectorAll('.pane');for(var k=0;k<ps.length;k++)ps[k].className='pane'+(ps[k].id==='pane-'+tab?' on':'');if(tab==='chart')drawCandles();if(tab==='ai'){initAI();renderAI();}});
 document.getElementById('btn-cycle').addEventListener('click',function(){cycle();toast('Świeca 5-min wykonana');});
 document.getElementById('btn-auto').addEventListener('click',autoToggle);
-document.getElementById('btn-reset').addEventListener('click',reset);
-document.getElementById('btn-bt').addEventListener('click',backtest);document.getElementById('btn-real').addEventListener('click',function(){var q=document.getElementById('chart-sym');fetchReal(q?q.value:'SPY');});document.getElementById('btn-worker').addEventListener('click',workerPing);document.getElementById('btn-prov').addEventListener('click',providerTest);
+document.getElementById('btn-reset').addEventListener('click',function(){reset();});
+document.getElementById('btn-bt').addEventListener('click',function(){backtest();});document.getElementById('btn-real').addEventListener('click',function(){var q=document.getElementById('chart-sym');fetchReal(q?q.value:'SPY');});document.getElementById('btn-worker').addEventListener('click',workerPing);document.getElementById('btn-prov').addEventListener('click',providerTest);
 document.getElementById('btn-save').addEventListener('click',function(){CFG.risk=Number(document.getElementById('set-risk').value)||1;CFG.maxPos=Number(document.getElementById('set-max').value)||4;CFG.capital=Number(document.getElementById('set-cap').value)||100000;CFG.allowShort=document.getElementById('set-short').value==='1';CFG.dailyLoss=Number(document.getElementById('set-dloss').value)||3;CFG.maxTrades=Number(document.getElementById('set-dtrades').value)||10;CFG.maxConsec=Number(document.getElementById('set-dconsec').value)||3;CFG.tdKey=document.getElementById('set-tdkey').value.trim();CFG.workerUrl=document.getElementById('set-worker').value.trim();CFG.provider=document.getElementById('set-prov').value;CFG.minHold=Number(document.getElementById('set-minhold').value)||6;CFG.autoSec=Number(document.getElementById('set-autosec').value)||60;CFG.timeStop=Number(document.getElementById('set-tstop').value)||60;CFG.alpKey=document.getElementById('set-alpkey').value.trim();CFG.alpSec=document.getElementById('set-alpsec').value.trim();if(!ST.eq.length){ST.equity=CFG.capital;ST.cash=CFG.capital;}log('Zapisano ustawienia','i');render();save();toast('Zapisano');});
-document.getElementById('chart-sym').addEventListener('change',drawCandles);
+document.getElementById('chart-sym').addEventListener('change',function(){drawCandles();});
 var sel=document.getElementById('chart-sym');sel.innerHTML=SYMBOLS.map(function(m){return '<option value="'+m.s+'">'+m.s+' — '+m.n+'</option>';}).join('');
 document.getElementById('uni').innerHTML=SYMBOLS.map(function(m){return '<span class="tag">'+m.s+'</span> '+m.n;}).join('<br>');
 if(!load()){reset();}else{render();}initAI();
@@ -506,6 +543,158 @@ async function fetchStooq(sym){
     ST.series[sym]=bars; log('Stooq: '+sym+' — '+bars.length+' sesji (EOD)','g'); render(); save(); toast('Pobrano Stooq: '+sym);
   }catch(e){ log('Stooq: '+e.message+' — możliwe CORS (użyj Workera)','r'); toast('Stooq: błąd (CORS?)'); }
 }
+// ===== v4: KONTO MAŁE (PLN), OPŁATY XTB, WYBÓR RYNKÓW =====
+// Opłaty to ustawienia — zweryfikuj w aktualnej tabeli opłat XTB (domyślnie: 0% prowizji akcje/ETF real do limitu obrotu,
+// 0,5% przewalutowania dla instrumentów w USD, spread jako szacunek kosztu wejścia).
+function defaultFees(){ return {US:{comm:0,conv:0.5,spread:0.03},PL:{comm:0,conv:0,spread:0.08},FX:{comm:0,conv:0,spread:0.01}}; }
+function feeOf(m){ var f=(CFG.fees||defaultFees())[m.mkt||'US']||{comm:0,conv:0,spread:0}; return {comm:(+f.comm||0)/100,conv:(+f.conv||0)/100,spr:(+f.spread||0)/100}; }
+function rateOf(m){
+  var r=CFG.rates||{USD:3.7,JPY:0.0245};
+  if(m.mkt==='PL') return 1;
+  if(m.mkt==='US') return +r.USD||3.7;
+  var q=m.s.slice(3); return q==='USD'?(+r.USD||3.7):(q==='JPY'?(+r.JPY||0.0245):1);
+}
+function scanOn(m){ var s=CFG.scan; return !s||s[m.mkt||'US']!==false; }
+function symM(sym){ for(var i=0;i<SYMBOLS.length;i++){ if(SYMBOLS[i].s===sym) return SYMBOLS[i]; } return null; }
+function sizePlan(m,price,a,eq,cash){
+  var rate=rateOf(m), fx=m.mkt==='FX', lev=fx?(CFG.fxLev||30):1, f=feeOf(m), step=fx?1000:1;
+  var sd=(a||price*0.004)*1.5, riskPLN=eq*(CFG.risk/100), unitRisk=sd*rate, reason='';
+  var q=Math.floor(riskPLN/unitRisk/step)*step;
+  if(q<step){ q=step; if(q*unitRisk>riskPLN*2.5) reason='minimalna pozycja ('+q+' szt.) ryzykuje '+f2(q*unitRisk)+' PLN, limit '+f2(riskPLN*2.5)+' PLN'; }
+  var maxQ=Math.floor(cash*lev/(price*rate)/step)*step; if(q>maxQ) q=maxQ;
+  if(q<step&&!reason) reason='za mało wolnych środków';
+  var notional=q*price*rate, margin=notional/lev;
+  var feeIn=notional*(f.comm+f.conv+f.spr), feeOut=notional*(f.comm+f.conv);
+  var costPU=price*(2*(f.comm+f.conv)+f.spr), netRR=(3*sd-costPU)/(sd+costPU);
+  if(!reason&&netRR<1.8) reason='koszty zjadają przewagę — R:R netto '+f2(netRR,2)+' &lt; 1,8';
+  return {ok:!reason,reason:reason,qty:q,sd:sd,rate:rate,lev:lev,notional:notional,margin:margin,feeIn:feeIn,feeOut:feeOut,costPU:costPU,netRR:netRR,riskReal:q*unitRisk,f:{comm:f.comm,conv:f.conv}};
+}
+function calcClose(p,c){
+  var d=p.side==='LONG'?(c-p.entry):(p.entry-c), rate=p.rate||1;
+  return {gross:d*p.qty*rate,feeOut:p.qty*c*rate*(p.f?(p.f.comm+p.f.conv):0)};
+}
+function openPnl(p){ var c=last(p.sym)?last(p.sym).c:p.entry, r=calcClose(p,c); return r.gross-r.feeOut-(p.feeIn||0); }
+signals=function(){
+  var out=[];
+  for(var i=0;i<SYMBOLS.length;i++){ var m=SYMBOLS[i]; if(!ST.series[m.s]) ST.series[m.s]=initSeries(m,150); if(!scanOn(m)) continue; var g=evaluate(m); if(g) out.push(g); }
+  return out;
+};
+openPos=function(g){
+  if(ST.blocked) return;
+  var m=symM(g.sym); if(!m||!scanOn(m)) return;
+  if(!sessionOpen(mktOf(m))){ log('Poza sesją '+mktOf(m)+' — pomijam '+g.sym,'i'); return; }
+  var sp=sizePlan(m,g.price,g.atr,ST.equity,ST.cash);
+  ST.skip=ST.skip||{}; var key=g.sym+g.side;
+  if(!sp.ok){ if(ST.skip[key]!==sp.reason){ ST.skip[key]=sp.reason; log('POMINIĘTO '+g.side+' '+g.sym+' — '+sp.reason.replace('&lt;','<'),'i'); } return; }
+  ST.skip[key]=null;
+  var long=g.side==='LONG', sd=sp.sd;
+  var stop=long?g.price-sd:g.price+sd, tgt=long?g.price+3*sd:g.price-3*sd;
+  ST.dayTrades=(ST.dayTrades||0)+1;
+  ST.pos[g.sym]={sym:g.sym,side:g.side,qty:sp.qty,entry:g.price,stop:stop,target:tgt,why:g.why,bars:0,risk0:sd,be:false,at:new Date().toLocaleTimeString('pl-PL'),rate:sp.rate,lev:sp.lev,margin:sp.margin,feeIn:sp.feeIn,f:sp.f};
+  ST.cash-=sp.margin+sp.feeIn; ST.equity-=sp.feeIn; ST.feesTot=(ST.feesTot||0)+sp.feeIn;
+  log('OTWARCIE '+g.side+' '+g.sym+' x'+sp.qty+' @ '+f2(g.price)+' | SL '+f2(stop)+' | TP '+f2(tgt)+' | opłata wejścia '+f2(sp.feeIn)+' PLN — '+g.why,'g');
+};
+closePos=function(sym,why,px){
+  var p=ST.pos[sym]; if(!p) return;
+  var c=px||(last(sym)?last(sym).c:p.entry), r=calcClose(p,c), net=r.gross-r.feeOut-(p.feeIn||0);
+  ST.cash+=(p.margin||0)+r.gross-r.feeOut; ST.equity+=r.gross-r.feeOut; ST.feesTot=(ST.feesTot||0)+r.feeOut;
+  if(net<0){ ST.consecLoss=(ST.consecLoss||0)+1; } else { ST.consecLoss=0; }
+  ST.closed.unshift({sym:sym,side:p.side,qty:p.qty,entry:p.entry,exit:c,pnl:net,fees:(p.feeIn||0)+r.feeOut,be:!!p.be,why:why,bars:p.bars});
+  delete ST.pos[sym]; ST.cool[sym]=3;
+  log('ZAMKNIĘCIE '+sym+' @ '+f2(c)+' P&L netto '+f2(net)+' PLN (opłaty '+f2((p.feeIn||0)+r.feeOut)+') po '+p.bars+' świecach — '+why,net>=0?'g':'r');
+};
+renderPos=function(){
+  var rows=[];
+  for(var k in ST.pos){ var p=ST.pos[k], c=last(k)?last(k).c:p.entry, pnl=openPnl(p);
+    rows.push([p.sym,'<span class="pill '+(p.side==='LONG'?'buy':'sell')+'">'+(p.side==='LONG'?'BUY':'SELL')+'</span>',p.qty,f2(p.entry),f2(c),f2(p.stop),f2(p.target),p.bars+' świec','<span class="'+(pnl>=0?'pos':'neg')+'">'+f2(pnl)+' PLN</span>']); }
+  document.getElementById('tbl-pos').innerHTML=rows.length?tbl(['Symbol','Strona','Wolumen','Wejście','Cena','Stop','Target','Wiek','P&amp;L netto'],rows):'<div class="mut">Brak pozycji — kliknij „Wykonaj cykl”.</div>';
+};
+renderClosed=function(){
+  var rows=ST.closed.slice(0,20).map(function(x){return [x.sym,'<span class="pill '+(x.side==='LONG'?'buy':'sell')+'">'+(x.side==='LONG'?'BUY':'SELL')+'</span>',x.qty,f2(x.entry),f2(x.exit),x.bars+' świec','<span class="num mut">'+f2(x.fees||0)+'</span>','<span class="'+(x.pnl>=0?'pos':'neg')+'">'+f2(x.pnl)+' PLN</span>',x.why];});
+  document.getElementById('tbl-closed').innerHTML=rows.length?tbl(['Symbol','Strona','Wolumen','Wejście','Wyjście','Czas','Opłaty','P&amp;L netto','Powód'],rows):'<div class="mut">Brak zamkniętych transakcji.</div>';
+};
+// wyjścia po high/low (kolejność: stop przed targetem) — cycle już to robi; tu: backtest z opłatami
+backtest=function(){
+  var saved=JSON.stringify(ST), eq=CFG.capital, peak=eq, mdd=0, trades=0, wins=0, fees=0, skipped=0, held=[], pos={};
+  for(var d=1;d<=250;d++){
+    for(var i=0;i<SYMBOLS.length;i++){ var m0=SYMBOLS[i], a=ST.series[m0.s]||initSeries(m0,150); a.push(nextBar(m0,a[a.length-1])); if(a.length>600)a.shift(); ST.series[m0.s]=a; }
+    for(var k in pos){ var p=pos[k], bar=ST.series[k][ST.series[k].length-1]; p.bars++;
+      var stp0=p.stop;
+      if(!p.be&&((p.side==='LONG'?bar.c-p.entry:p.entry-bar.c)>=p.risk0)){ p.stop=p.entry; p.be=true; }
+      var hs=p.side==='LONG'?bar.l<=stp0:bar.h>=stp0, ht=p.side==='LONG'?bar.h>=p.target:bar.l<=p.target;
+      if(hs||ht){ var px=hs?stp0:p.target, r=calcClose(p,px); eq+=r.gross-r.feeOut; fees+=r.feeOut; trades++; if(r.gross-r.feeOut-p.feeIn>0)wins++; held.push(p.bars); delete pos[k]; } }
+    var sg=signals(), used=0; for(var z in pos) used+=pos[z].margin;
+    for(var q=0;q<sg.length;q++){ var g=sg[q]; if(g.side==='WAIT'||pos[g.sym]) continue; if(Object.keys(pos).length>=CFG.maxPos) break;
+      var m=symM(g.sym), sp=sizePlan(m,g.price,g.atr,eq,eq-used); if(!sp.ok){ skipped++; continue; }
+      var lg=g.side==='LONG';
+      pos[g.sym]={sym:g.sym,side:g.side,qty:sp.qty,entry:g.price,stop:lg?g.price-sp.sd:g.price+sp.sd,target:lg?g.price+3*sp.sd:g.price-3*sp.sd,risk0:sp.sd,rate:sp.rate,margin:sp.margin,feeIn:sp.feeIn,f:sp.f,bars:0,be:false};
+      eq-=sp.feeIn; fees+=sp.feeIn; used+=sp.margin; }
+    if(eq>peak)peak=eq; var dd=(eq-peak)/peak; if(dd<mdd)mdd=dd;
+  }
+  ST=JSON.parse(saved);
+  var ret=eq/CFG.capital-1, wr=trades?Math.round(wins/trades*100):0, avgB=held.length?held.reduce(function(s,x){return s+x;},0)/held.length:0;
+  document.getElementById('bt-out').innerHTML='<div class="row" style="gap:18px"><div>Transakcji <b>'+trades+'</b></div><div>Win rate <b>'+wr+'%</b></div><div>Kapitał <b>'+money(eq)+' PLN</b></div><div>Zwrot <b class="'+(ret>=0?'pos':'neg')+'">'+fp(ret)+'</b></div><div>Max DD <b class="neg">'+fp(mdd)+'</b></div><div>Opłaty <b>'+money(fees)+' PLN</b></div><div>Odrzucone przez koszty <b>'+skipped+'</b></div><div>Średnio <b>'+avgB.toFixed(0)+'</b> świec</div></div><div class="mut" style="margin-top:8px">Dane demo (losowe) — wynik nie dowodzi skuteczności strategii. Uwzględnia opłaty XTB z ustawień i wybrane rynki.</div>';
+};
+var _reset4=reset;
+reset=function(){ _reset4(); ST.feesTot=0; ST.skip={}; ST.day=new Date().toDateString(); ST.dayStart=ST.equity; save(); render(); };
+// ---- UI: rynki, opłaty, kursy, profil 500 PLN ----
+(function(){
+  var sv=document.getElementById('btn-save'); if(!sv) return;
+  function fr(mk,lab){ var f=(CFG.fees||defaultFees())[mk];
+    return '<tr><td>'+lab+'</td>'+['comm','conv','spread'].map(function(k){ return '<td><input type="number" step="0.01" min="0" id="fee-'+mk+'-'+k+'" style="width:70px"></td>'; }).join('')+'</tr>'; }
+  sv.parentNode.insertAdjacentHTML('beforebegin',
+   '<div id="xtb-box" style="margin-top:14px;padding-top:12px;border-top:1px solid var(--line)">'+
+   '<div class="mut" style="font-size:10px;letter-spacing:.12em;text-transform:uppercase;margin-bottom:8px">Konto XTB (PLN) i koszty</div>'+
+   '<div class="row"><label class="mut" style="width:200px">Skanowane rynki</label>'+
+   '<label><input type="checkbox" id="scan-US"> US akcje/ETF</label><label><input type="checkbox" id="scan-PL"> GPW</label><label><input type="checkbox" id="scan-FX"> FX</label></div>'+
+   '<table style="margin-top:10px;width:auto"><thead><tr><th>Rynek</th><th>Prowizja %</th><th>Przewalut. %</th><th>Spread %</th></tr></thead><tbody>'+fr('US','US akcje/ETF')+fr('PL','GPW')+fr('FX','FX (CFD)')+'</tbody></table>'+
+   '<div class="row" style="margin-top:9px"><label class="mut" style="width:200px">Kurs USD/PLN</label><input type="number" step="0.01" id="rate-usd" style="width:90px"></div>'+
+   '<div class="row" style="margin-top:9px"><label class="mut" style="width:200px">Kurs JPY/PLN</label><input type="number" step="0.0001" id="rate-jpy" style="width:90px"></div>'+
+   '<div class="row" style="margin-top:9px"><label class="mut" style="width:200px">Dźwignia FX (1:x)</label><input type="number" id="set-fxlev" style="width:90px"></div>'+
+   '<div class="row" style="margin-top:12px"><button class="btn ghost" id="btn-profile">Profil: konto 500 PLN (reset)</button></div>'+
+   '<div class="mut" style="font-size:10.5px;margin-top:6px">Opłaty to szacunki — sprawdź aktualną tabelę opłat XTB i popraw wartości.</div></div>');
+  document.getElementById('xtb-box').addEventListener('change',readExtra);
+  document.getElementById('btn-profile').addEventListener('click',function(){ applySmallProfile(); toast('Profil 500 PLN zastosowany'); });
+})();
+function readExtra(){
+  CFG.scan={US:document.getElementById('scan-US').checked,PL:document.getElementById('scan-PL').checked,FX:document.getElementById('scan-FX').checked};
+  CFG.fees=CFG.fees||defaultFees();
+  ['US','PL','FX'].forEach(function(mk){ ['comm','conv','spread'].forEach(function(k){ CFG.fees[mk][k]=Number(document.getElementById('fee-'+mk+'-'+k).value)||0; }); });
+  CFG.rates={USD:Number(document.getElementById('rate-usd').value)||3.7,JPY:Number(document.getElementById('rate-jpy').value)||0.0245};
+  CFG.fxLev=Number(document.getElementById('set-fxlev').value)||30;
+  save(); render();
+}
+function syncSettings(){
+  function sv(id,v){ var e=document.getElementById(id); if(e) e.value=v; }
+  sv('set-risk',CFG.risk); sv('set-max',CFG.maxPos); sv('set-cap',CFG.capital); sv('set-short',CFG.allowShort?'1':'0'); sv('set-dtrades',CFG.maxTrades||10); sv('set-dloss',CFG.dailyLoss||3);
+  var s=CFG.scan||{US:true,PL:true,FX:true}; ['US','PL','FX'].forEach(function(mk){ var e=document.getElementById('scan-'+mk); if(e) e.checked=s[mk]!==false; });
+  var f=CFG.fees||defaultFees(); ['US','PL','FX'].forEach(function(mk){ ['comm','conv','spread'].forEach(function(k){ sv('fee-'+mk+'-'+k,f[mk][k]); }); });
+  var r=CFG.rates||{USD:3.7,JPY:0.0245}; sv('rate-usd',r.USD); sv('rate-jpy',r.JPY); sv('set-fxlev',CFG.fxLev||30);
+}
+function applySmallProfile(){
+  CFG.capital=500; CFG.risk=1; CFG.maxPos=2; CFG.allowShort=false; CFG.dailyLoss=3; CFG.maxTrades=6; CFG.maxConsec=3;
+  CFG.scan={US:false,PL:true,FX:true}; CFG.fees=defaultFees(); CFG.rates={USD:3.7,JPY:0.0245}; CFG.fxLev=30;
+  syncSettings(); reset();
+}
+syncSettings();
+if(!CFG.fees){ applySmallProfile(); }
+var _render4=render;
+render=function(){
+  _render4();
+  var set=function(id,t){ var e=document.getElementById(id); if(e) e.textContent=t; };
+  set('s-equity',money(ST.equity)+' PLN');
+  var pnl=ST.equity-CFG.capital; set('s-pnl',(pnl>=0?'+':'')+money(pnl)+' PLN');
+  var op=0; for(var k in ST.pos){ op+=openPnl(ST.pos[k]); }
+  set('s-eq-d','start '+money(CFG.capital)+' PLN · otwarte '+(op>=0?'+':'')+f2(op)+' PLN');
+  set('s-cash',money(ST.cash)+' PLN'); set('s-fees',money(ST.feesTot||0)+' PLN');
+  set('s-pos-d','max '+CFG.maxPos+' pozycje');
+};
+(function(){
+  var k=document.querySelector('.kpis'); if(!k||document.getElementById('s-cash')) return;
+  k.insertAdjacentHTML('beforeend','<div class="kpi"><div class="l">Wolne środki</div><div class="v" id="s-cash">—</div><div class="d">po odjęciu depozytu</div></div><div class="kpi"><div class="l">Opłaty łącznie</div><div class="v" id="s-fees">—</div><div class="d">prowizje · przewalutowanie · spread</div></div>');
+  var d=k.children[2].querySelector('.d'); if(d) d.id='s-pos-d';
+})();
+
 // ===== v3: SYGNAŁY DŹWIĘKOWE (WebAudio, bez plików) =====
 var AUDIO={ctx:null,end:0};
 function actx(){
@@ -568,7 +757,7 @@ var _closePos1=closePos;
 closePos=function(sym,why,px){
   var n0=ST.closed.length; _closePos1(sym,why,px);
   if(ST.closed.length>n0){ var t=ST.closed[0];
-    if(t.why==='target') sfx('tp'); else if(t.why==='time-stop') sfx(t.pnl>0?'tp':'time'); else sfx(t.pnl>0.0001?'tp':(Math.abs(t.pnl)<=0.0001?'be':'stop')); }
+    if(t.why==='target') sfx('tp'); else if(t.why==='time-stop') sfx(t.pnl>0?'tp':'time'); else sfx(t.be?'be':(t.pnl>0.0001?'tp':'stop')); }
 };
 // blokada dnia + poprawny reset dzienny (wcześniej limity nigdy się nie zerowały)
 var _checkLimits1=checkLimits;
@@ -652,8 +841,8 @@ function aiAnalyze(m){
     if(lvl!==null&&Math.abs(lvl-c)<3*sd){ rr=Math.abs(lvl-c)/sd; rrNote='najbliższy '+(long?'opór':'poziom wsparcia')+' '+f2(lvl)+' leży przed celem 3R — realny R:R ≈ '+f2(rr,1); }
     var sw=swingPts(b,3), struct=null;
     if(long&&sw.lo&&sw.lo.p<c) struct=sw.lo.p-0.25*a; if(!long&&sw.hi&&sw.hi.p>c) struct=sw.hi.p+0.25*a;
-    var risk=ST.equity*(CFG.risk/100), qty=Math.max(1,Math.floor(risk/sd));
-    plan={side:side,entry:c,stop:stop,tp:tp,sd:sd,rr:rr,rrNote:rrNote,struct:struct,qty:qty,risk:risk,notional:qty*c,be:long?c+sd:c-sd};
+    var sp=sizePlan(m,c,a,ST.equity,ST.cash);
+    plan={side:side,entry:c,stop:stop,tp:tp,sd:sd,rr:rr,rrNote:rrNote,struct:struct,qty:sp.qty,risk:sp.riskReal,notional:sp.notional,sp:sp,be:long?c+sd:c-sd};
   }
   // lista kontrolna
   var grp=aiGroup(m), same=0; for(var pk in ST.pos){ var pm=null; for(var q=0;q<SYMBOLS.length;q++){ if(SYMBOLS[q].s===pk){pm=SYMBOLS[q];break;} } if(pm&&aiGroup(pm)===grp) same++; }
@@ -666,7 +855,7 @@ function aiAnalyze(m){
     {ok:!ST.pos[m.s]&&!(ST.cool[m.s]>0),t:ST.pos[m.s]?'Pozycja już otwarta':(ST.cool[m.s]>0?'Cooldown po ostatniej transakcji ('+ST.cool[m.s]+' św.)':'Brak otwartej pozycji / cooldownu')},
     {ok:volRatio<1.6,t:'Zmienność nie ekstremalna (ATR ×'+f2(volRatio,2)+' średniej)'}
   ];
-  if(plan){ checks.push({ok:plan.rr>=1.8,t:'R:R po uwzględnieniu poziomów ≥ 1,8 (jest '+f2(plan.rr,1)+')'}); checks.push({ok:plan.notional<=ST.cash,t:'Wystarczająca gotówka ('+money(plan.notional)+' z '+money(ST.cash)+')'}); }
+  if(plan){ checks.push({ok:plan.rr>=1.8,t:'R:R po uwzględnieniu poziomów ≥ 1,8 (jest '+f2(plan.rr,1)+')'}); checks.push({ok:plan.sp.ok,t:plan.sp.ok?('Opłaty XTB: R:R netto '+f2(plan.sp.netRR,2)+', koszty rundy '+f2(plan.sp.feeIn+plan.sp.feeOut)+' PLN'):('Opłaty / wielkość: '+plan.sp.reason)}); }
   var fails=checks.filter(function(x){return !x.ok;}).length;
   // werdykt
   var verdict, vcls;
@@ -718,7 +907,7 @@ renderAI=function(){
       '<tr><td>Stop-loss</td><td class="num neg">'+f2(P.stop)+'</td><td class="mut">1,5×ATR = '+f2(P.sd)+(P.struct?' · strukturalny: '+f2(P.struct):'')+'</td></tr>'+
       '<tr><td>Break-even</td><td class="num">'+f2(P.be)+'</td><td class="mut">po +1R przesuń stop na wejście</td></tr>'+
       '<tr><td>Take-profit</td><td class="num pos">'+f2(P.tp)+'</td><td class="mut">3R'+(P.rrNote?' · ⚠ '+P.rrNote:'')+'</td></tr>'+
-      '<tr><td>Wielkość</td><td class="num">'+P.qty+' szt.</td><td class="mut">ryzyko '+money(P.risk)+' ('+CFG.risk+'%) · wartość '+money(P.notional)+'</td></tr></tbody></table>'; }
+      '<tr><td>Wielkość</td><td class="num">'+P.qty+(P.sp.lev>1?' (lot '+f2(P.qty/100000,2)+')':' szt.')+'</td><td class="mut">ryzyko ok. '+f2(P.risk)+' PLN · wartość '+money(P.notional)+' PLN'+(P.sp.lev>1?' · depozyt '+money(P.sp.margin)+' PLN':'')+' · opłaty '+f2(P.sp.feeIn+P.sp.feeOut)+' PLN</td></tr></tbody></table>'; }
     h+='<h2 style="margin-top:14px">Lista kontrolna</h2><div style="line-height:1.9">'+A.checks.map(function(x){ return '<div class="'+(x.ok?'pos':'neg')+'">'+(x.ok?'✔':'✖')+' <span style="color:var(--tx2)">'+x.t+'</span></div>'; }).join('')+'</div>';
     if(A.trig.length) h+='<h2 style="margin-top:14px">Co by zmieniło ocenę</h2><div class="narr">'+A.trig.map(function(t){return '<p>• '+t+'</p>';}).join('')+'</div>';
     h+='<div class="mut" style="margin-top:10px;font-size:11px">Historia '+A.m.s+' w tej sesji: '+(A.hist.n?(A.hist.n+' transakcji, '+A.hist.w+' wygranych, P&amp;L '+f2(A.hist.pnl)):'brak transakcji')+'. Dane demo — to nie jest rekomendacja inwestycyjna.</div>';
@@ -727,14 +916,14 @@ renderAI=function(){
   // ranking okazji
   var rk=document.getElementById('ai-rank');
   if(rk){
-    var all=SYMBOLS.map(aiAnalyze).filter(Boolean).sort(function(x,y){ var ax=x.side!=='WAIT'?1:0, ay=y.side!=='WAIT'?1:0; return (ay-ax)||(y.conf-x.conf); }).slice(0,6);
+    var all=SYMBOLS.filter(scanOn).map(aiAnalyze).filter(Boolean).sort(function(x,y){ var ax=x.side!=='WAIT'?1:0, ay=y.side!=='WAIT'?1:0; return (ay-ax)||(y.conf-x.conf); }).slice(0,6);
     rk.innerHTML=all.length?tbl(['Instrument','Werdykt','Pewność','Bilans','1H','Silnik'],all.map(function(x){
       return ['<a href="#" onclick="aiPick(\''+x.m.s+'\');return false" style="color:var(--tx);font-weight:700;text-decoration:none">'+x.m.s+'</a>','<span style="color:'+aiColor(x.vcls)+';font-weight:700">'+x.verdict+'</span>','<span class="num">'+x.conf+'</span>','<span class="num">'+(x.total>0?'+':'')+x.total+'</span>',x.htf,x.g.side==='WAIT'?'<span class="mut">—</span>':x.g.side];
     })):'<div class="mut">Wykonaj kilka cykli, by zebrać dane.</div>';
   }
   // zamknięte pozycje
   var rows=ST.closed.slice(0,12).map(function(x){
-    var why=x.why==='stop'?(x.pnl>=-0.0001?'Stop na wejściu (break-even) — kapitał ochroniony po osiągnięciu +1R.':'Stop-loss: cena poszła wbrew pozycji, zadziałał limit ryzyka.'):(x.why==='target'?'Take-profit: osiągnięto 3R.':(x.why==='time-stop'?'Time-stop: po '+x.bars+' świecach pozycja nie dała 3R — zamknięcie rynkowe.':x.why));
+    var why=x.why==='stop'?(x.be?'Stop na wejściu (break-even) — kapitał ochroniony po osiągnięciu +1R.':'Stop-loss: cena poszła wbrew pozycji, zadziałał limit ryzyka.'):(x.why==='target'?'Take-profit: osiągnięto 3R.':(x.why==='time-stop'?'Time-stop: po '+x.bars+' świecach pozycja nie dała 3R — zamknięcie rynkowe.':x.why));
     return [x.sym,'<span class="pill '+(x.side==='LONG'?'buy':'sell')+'">'+x.side+'</span>',x.bars+' świec','<span class="'+(x.pnl>=0?'pos':'neg')+'">'+f2(x.pnl)+'</span>',why];
   });
   var box=document.getElementById('ai-closed'); if(box){ box.innerHTML=rows.length?tbl(['Symbol','Strona','Czas','P&L','Uzasadnienie zamknięcia'],rows):'<div class="mut">Brak zamkniętych transakcji.</div>'; }
