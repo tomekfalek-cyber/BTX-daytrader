@@ -19,23 +19,23 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Inject client modules (AI ensemble + CSV export) before publish
-      - name: Wire ai-ensemble.js and export-csv.js into index.html
+      - name: Wire PRO strategy + AI ensemble + CSV export into index.html
         run: |
           set -e
           inject() {
             local f="$1"
             if [ ! -f "$f" ]; then return 0; fi
-            if grep -q 'ai-ensemble.js' "$f"; then
-              echo "$f already wired"
-              return 0
-            fi
-            if grep -q '</body>' "$f"; then
-              sed -i 's|</body>|\n<script src="ai-ensemble.js"></script>\n<script src="export-csv.js"></script>\n</body>|' "$f"
-              echo "Injected scripts into $f"
-            else
-              echo "No </body> in $f — skip"
-            fi
+            # Always ensure all three modules are present (idempotent)
+            for s in strategy-pro.js ai-ensemble.js export-csv.js; do
+              if ! grep -q "$s" "$f"; then
+                if grep -q '</body>' "$f"; then
+                  sed -i "s|</body>|\\n<script src=\"$s\"></script>\\n</body>|" "$f"
+                  echo "Injected $s into $f"
+                fi
+              else
+                echo "$f already has $s"
+              fi
+            done
           }
           inject index.html
           inject dashboard/index.html
