@@ -207,26 +207,7 @@ details.gl p{margin-top:10px;line-height:1.75;color:var(--tx2);font-size:12.8px}
 <div class="card"><h2><span class="dot"></span>Instrumenty</h2><div id="uni" class="mut" style="line-height:2"></div></div></div></section>
 <div class="foot">BTX DayTrader · paper trading · dane demo · to nie jest rekomendacja inwestycyjna</div>
 </main></div><div class="toast" id="toast"></div>
-<script src="ai-ensemble.js">(function(){
-  function bootAI(){
-    if(!window.BTX_AI){ setTimeout(bootAI,500); return; }
-    var pane=document.getElementById('pane-ai'); if(!pane) return;
-    var card=pane.querySelector('.card'); if(!card) return;
-    var box=document.createElement('div'); box.id='ai-state';
-    box.style.marginTop='10px'; box.style.fontSize='11.5px'; box.style.color='var(--tx3)';
-    card.appendChild(box);
-    setInterval(function(){
-      try{
-        var st=BTX_AI.state();
-        var w=(st.stats&&st.stats.wins)||0, l=(st.stats&&st.stats.losses)||0;
-        var t=st.thresh||{};
-        var parts=Object.keys(t).map(function(k){ return k+':'+Number(t[k]).toFixed(2); }).join(' · ');
-        box.textContent='AI ensemble online · decyzje '+w+'W/'+l+'L · progi '+(parts||'—');
-      }catch(e){}
-    },2000);
-  }
-  bootAI();
-})();
+<script src="ai-ensemble.js">
 </script>
 <script>
 var SYMBOLS=[
@@ -1599,5 +1580,25 @@ function btCsvRun(file){
   var lab=document.createElement('span'); lab.className='mut'; lab.style.fontSize='11px'; lab.textContent='CSV: Date,Open,High,Low,Close[,Volume]';
   row.appendChild(inp); row.appendChild(lab); card.insertBefore(row, card.firstChild);
   inp.addEventListener('change', function(e){ if(e.target.files && e.target.files[0]) btCsvRun(e.target.files[0]); });
+})();
+(function(){
+  function bootAI(){
+    if(!window.BTX_AI){ setTimeout(bootAI,500); return; }
+    var pane=document.getElementById('pane-ai'); if(!pane) return;
+    var card=pane.querySelector('.card'); if(!card) return;
+    var box=document.createElement('div'); box.id='ai-state';
+    box.style.marginTop='10px'; box.style.fontSize='11.5px'; box.style.color='var(--tx3)';
+    card.appendChild(box);
+    setInterval(function(){
+      try{
+        var st=BTX_AI.state();
+        var w=(st.stats&&st.stats.wins)||0, l=(st.stats&&st.stats.losses)||0;
+        var t=st.thresh||{};
+        var parts=Object.keys(t).map(function(k){ return k+':'+Number(t[k]).toFixed(2); }).join(' · ');
+        box.textContent='AI ensemble online · decyzje '+w+'W/'+l+'L · progi '+(parts||'—');
+      }catch(e){}
+    },2000);
+  }
+  bootAI();
 })();
 </script></body></html>
