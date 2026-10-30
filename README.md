@@ -1,7 +1,6 @@
 # BTX DayTrader
 https://tomekfalek-cyber.github.io/BTX-daytrader/
 
-
 **Professional paper day-trading agent** for stocks, ETFs and FX.  
 Signals only — you execute manually on XTB (xStation).
 
@@ -22,6 +21,21 @@ A complete intraday desk agent (not a toy skeleton):
 - **Dashboard**: live signals, open paper positions, risk gauges, session clock, trade journal
 
 You watch the dashboard and place real orders yourself on xStation.
+
+---
+
+## Important: worker.js status (Oct 2026)
+
+The **dashboard on GitHub Pages works without Cloudflare Worker** (demo / client-side engine in `index.html`).
+
+Current `worker.js` on `main` is a **minimal valid** Worker (health endpoint).  
+To restore the **full** previous Worker (SMC + paper engine on the edge):
+
+1. Open: https://github.com/tomekfalek-cyber/BTX-daytrader/blob/0e5ae31a330f6d65b52eb938f476af36defdedc3/worker.js  
+2. Click **Raw** → Select all → Copy  
+3. Edit `worker.js` on `main` → paste → Commit  
+
+Planned next (AI ensemble + journal CSV export) will be applied to the client dashboard and/or full worker once restored.
 
 ---
 
@@ -59,19 +73,20 @@ Sessions: US RTH for US names, GPW hours for Polish, London+NY overlap preferred
 
 ## How to run
 
-### Option A — Static dashboard (GitHub Pages / local)
+### Option A — Static dashboard (GitHub Pages / local) — recommended now
 
-1. Open `index.html` in a browser.
+1. Open https://tomekfalek-cyber.github.io/BTX-daytrader/ or open `index.html` in a browser.
 2. Paper state is stored in `localStorage`.
-3. Without a Worker / API key the engine runs in **demo mode** (synthetic but realistic OHLC + full signal pipeline) so you can evaluate the UI and logic immediately.
+3. Without a Worker / API key the engine runs in **demo mode** (synthetic but realistic OHLC + full signal pipeline).
 
-### Option B — Cloudflare Worker (recommended for live data)
+### Option B — Cloudflare Worker (live data)
 
-1. Create a Worker, paste `worker.js`.
-2. Bind a KV namespace as `BTX_KV`.
-3. Set secrets: `AUTH_SECRET` (optional), `TWELVE_DATA_KEY` or `FINNHUB_KEY`.
-4. Point the dashboard `WORKER_URL` to your worker endpoint.
-5. Cron trigger every 1–5 minutes during market hours.
+1. Restore full `worker.js` from commit `0e5ae31` (see above).
+2. Create a Worker, paste `worker.js`.
+3. Bind a KV namespace as `BTX_KV`.
+4. Set secrets: `AUTH_SECRET` (optional), `TWELVE_DATA_KEY` or `FINNHUB_KEY`.
+5. Point the dashboard `WORKER_URL` to your worker endpoint.
+6. Cron trigger every 1–5 minutes during market hours.
 
 ---
 
@@ -80,8 +95,8 @@ Sessions: US RTH for US names, GPW hours for Polish, London+NY overlap preferred
 ```
 BTX-daytrader/
 ├── README.md
-├── worker.js          # analysis + paper portfolio + risk + SMC
-├── index.html         # professional trading desk UI
+├── worker.js          # optional edge engine (minimal restore on main; full = commit 0e5ae31)
+├── index.html         # main trading desk UI + paper engine
 └── dashboard/
     └── index.html     # same dashboard (GitHub Pages path)
 ```
