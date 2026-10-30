@@ -18,6 +18,28 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      # Inject client modules (AI ensemble + CSV export) before publish
+      - name: Wire ai-ensemble.js and export-csv.js into index.html
+        run: |
+          set -e
+          inject() {
+            local f="$1"
+            if [ ! -f "$f" ]; then return 0; fi
+            if grep -q 'ai-ensemble.js' "$f"; then
+              echo "$f already wired"
+              return 0
+            fi
+            if grep -q '</body>' "$f"; then
+              sed -i 's|</body>|\n<script src="ai-ensemble.js"></script>\n<script src="export-csv.js"></script>\n</body>|' "$f"
+              echo "Injected scripts into $f"
+            else
+              echo "No </body> in $f — skip"
+            fi
+          }
+          inject index.html
+          inject dashboard/index.html
+
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
