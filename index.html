@@ -2,63 +2,7 @@
 <title>BTX DayTrader — Akcje · ETF · FX</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
-<style>
-:root{--bg:#080B10;--bg2:#0E131A;--bg3:#141A23;--bg4:#1A222D;--line:#1E2836;--line2:#2A3646;--tx:#E8EEF5;--tx2:#98A6B5;--tx3:#64748B;--red:#E4002B;--red2:#C0001F;--green:#12C48B;--loss:#F04452;--gold:#F5B301;--blue:#3B82F6;--r:14px}
-*{margin:0;padding:0;box-sizing:border-box}
-html,body{height:100%}
-body{background:var(--bg);color:var(--tx);font-family:Inter,system-ui,sans-serif;font-size:13px;line-height:1.5;-webkit-font-smoothing:antialiased}
-.app{display:grid;grid-template-columns:228px 1fr;min-height:100vh}
-aside{background:var(--bg2);border-right:1px solid var(--line);padding:18px 12px;position:sticky;top:0;height:100vh;display:flex;flex-direction:column}
-.brand{display:flex;align-items:center;gap:10px;padding:2px 8px 18px}
-.brand .m{width:34px;height:34px;border-radius:10px;background:linear-gradient(140deg,var(--red),#6E0014);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;color:#fff;box-shadow:0 6px 18px rgba(228,0,43,.35)}
-.brand b{font-size:15px;letter-spacing:-.01em}.brand sub{display:block;font-size:9.5px;color:var(--tx3);letter-spacing:.08em;text-transform:uppercase;margin-top:1px}
-.nav{display:flex;flex-direction:column;gap:2px;margin-top:6px}
-.nav button{display:flex;align-items:center;gap:10px;background:none;border:0;color:var(--tx2);padding:9px 10px;border-radius:9px;font:inherit;font-weight:500;cursor:pointer;text-align:left;width:100%;transition:.15s}
-.nav button:hover{background:var(--bg3);color:var(--tx)}
-.nav button.on{background:rgba(228,0,43,.12);color:#fff;box-shadow:inset 2px 0 0 var(--red)}
-.nav .ic{width:18px;text-align:center;opacity:.9}
-.sidefoot{margin-top:auto;padding:12px 10px 0;border-top:1px solid var(--line);font-size:10.5px;color:var(--tx3)}
-.badge{display:inline-flex;align-items:center;gap:5px;background:rgba(18,196,139,.12);color:var(--green);border-radius:99px;padding:3px 9px;font-size:10px;font-weight:700;letter-spacing:.04em}
-main{padding:18px 22px 40px;max-width:1600px}
-.topbar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:16px}
-.topbar h1{font-size:17px;font-weight:700;letter-spacing:-.01em}
-.topbar .sub{font-size:11px;color:var(--tx3);margin-top:1px}
-.controls{display:flex;gap:8px;margin-left:auto;flex-wrap:wrap}
-.btn{display:inline-flex;align-items:center;gap:7px;background:var(--red);color:#fff;border:0;border-radius:9px;padding:8px 14px;font:inherit;font-weight:600;cursor:pointer;transition:.15s}
-.btn:hover{background:var(--red2);transform:translateY(-1px)}
-.btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
-.btn.ghost{background:var(--bg3);color:var(--tx);border:1px solid var(--line2)}
-.btn.ghost:hover{border-color:var(--red);background:var(--bg4)}
-.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-bottom:16px}
-.kpi{background:linear-gradient(180deg,var(--bg3),var(--bg2));border:1px solid var(--line);border-radius:var(--r);padding:13px 14px}
-.kpi .l{font-size:9.5px;text-transform:uppercase;letter-spacing:.13em;color:var(--tx3);font-weight:600}
-.kpi .v{font-family:"JetBrains Mono",monospace;font-size:21px;font-weight:600;margin-top:5px;letter-spacing:-.02em}
-.kpi .d{font-size:10.5px;margin-top:3px;color:var(--tx3)}
-.card{background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);padding:16px}
-.card h2{font-size:10px;text-transform:uppercase;letter-spacing:.14em;color:var(--tx3);font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:8px}
-.card h2 .dot{width:5px;height:5px;border-radius:50%;background:var(--red)}
-.grid{display:grid;gap:12px}.g2{grid-template-columns:repeat(auto-fit,minmax(360px,1fr))}
-table{width:100%;border-collapse:collapse;font-size:12px}
-th{text-align:left;color:var(--tx3);font-size:9.5px;text-transform:uppercase;letter-spacing:.09em;font-weight:600;padding:8px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--bg2)}
-td{padding:9px 8px;border-bottom:1px solid rgba(255,255,255,.035);vertical-align:middle}
-tbody tr:hover td{background:rgba(228,0,43,.045)}
-.num{font-family:"JetBrains Mono",monospace;font-size:12px}
-.pos{color:var(--green)}.neg{color:var(--loss)}.mut{color:var(--tx3)}
-.pill{display:inline-block;padding:2px 9px;border-radius:99px;font-size:10px;font-weight:700;letter-spacing:.03em}
-.buy{background:rgba(18,196,139,.13);color:var(--green)}.sell{background:rgba(240,68,82,.13);color:var(--loss)}.wait{background:rgba(255,255,255,.05);color:var(--tx3)}
-.tag{background:var(--bg4);color:var(--tx2);border-radius:6px;padding:2px 7px;font-size:10px;font-weight:600}
-canvas{display:block;width:100%;border-radius:10px;background:var(--bg3)}
-.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-input,select{background:var(--bg3);border:1px solid var(--line2);color:var(--tx);border-radius:8px;padding:8px 10px;font:inherit}
-input:focus,select:focus{outline:none;border-color:var(--red)}
-.log{font-family:"JetBrains Mono",monospace;font-size:11px;max-height:460px;overflow:auto}
-.log div{padding:4px 0;border-bottom:1px solid rgba(255,255,255,.03)}
-.foot{color:var(--tx3);font-size:10.5px;margin-top:22px}
-.toast{position:fixed;bottom:20px;right:20px;background:var(--bg3);border:1px solid var(--line2);border-left:3px solid var(--red);padding:11px 15px;border-radius:9px;opacity:0;transform:translateY(6px);transition:.2s;z-index:99;font-size:12px}
-.toast.on{opacity:1;transform:none}
-.pane{display:none}.pane.on{display:block}
-@media(max-width:900px){.app{grid-template-columns:1fr}aside{position:static;height:auto;flex-direction:row;overflow-x:auto;align-items:center;padding:10px}aside .brand{padding:0 10px 0 4px}.nav{flex-direction:row}.sidefoot{display:none}main{padding:14px}}
-.r{text-align:right}.card h2{border-bottom:1px solid var(--line);padding-bottom:10px}.narr{font-size:12.5px;line-height:1.65}.narr p{margin:0 0 8px}</style><link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css"><link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
 <style id="xtb-theme">
 /* motyw inspirowany xStation: ciemny, płaski, czerwony akcent, gęste tabele */
 :root{--bg:#101318;--bg2:#171B21;--bg3:#1E232B;--bg4:#262C36;--line:#262C36;--line2:#343C49;--tx:#E9ECF1;--tx2:#A0A9B7;--tx3:#6F7988;--red:#E8212C;--red2:#C71A24;--green:#2EBD85;--loss:#F0455A;--gold:#F2B01E;--blue:#2F7DE1;--r:3px}
@@ -1581,4 +1525,58 @@ var _render2=render;
 render=function(){ _render2(); var p=document.getElementById('pane-ai'); if(p&&p.className.indexOf('on')>=0) renderAI(); };
 render();
 
+function btCsvRun(file){
+  var rd=new FileReader();
+  rd.onload=function(){
+    var out=document.getElementById('bt-out');
+    var lines=String(rd.result).trim().split(/\r?\n/);
+    var bars=[];
+    for(var i=1;i<lines.length;i++){
+      var c=lines[i].split(',');
+      if(c.length<5) continue;
+      var o=+c[1],h=+c[2],l=+c[3],cl=+c[4],v=+(c[5]||0);
+      if(!isFinite(cl)||!isFinite(o)) continue;
+      bars.push({t:new Date(c[0]).getTime(),o:o,h:h,l:l,c:cl,v:v});
+    }
+    if(bars.length<80){ if(out) out.textContent='Za mało danych: '+bars.length+' świec (min. 80).'; return; }
+    var m={s:'__CSV',n:'CSV',t:'CSV',mkt:'US'};
+    var saved=ST.series.__CSV;
+    var eq=CFG.capital, peak=eq, mdd=0, trades=0, wins=0, pos=null, held=[];
+    for(var k=60;k<bars.length;k++){
+      ST.series.__CSV=bars.slice(0,k+1);
+      var g=evaluate(m); var bar=bars[k];
+      if(pos){
+        pos.bars++;
+        if(!pos.be){ var mv=(pos.side==='LONG'?(bar.c-pos.entry):(pos.entry-bar.c)); if(mv>=pos.risk0){ pos.stop=pos.entry; pos.be=true; } }
+        var hit=(pos.side==='LONG'?(bar.c<=pos.stop):(bar.c>=pos.stop));
+        var tgt=(pos.side==='LONG'?(bar.c>=pos.target):(bar.c<=pos.target));
+        if(hit||tgt||pos.bars>=60){
+          var px=hit?pos.stop:(tgt?pos.target:bar.c);
+          var pnl=(pos.side==='LONG'?(px-pos.entry):(pos.entry-px))*pos.qty;
+          eq+=pnl; trades++; if(pnl>0) wins++; held.push(pos.bars); pos=null;
+        }
+      }
+      if(!pos && g && g.side!=='WAIT'){
+        var sd=(g.atr||g.price*0.004)*1.5;
+        var qty=Math.max(1,Math.floor((eq*(CFG.risk/100))/sd));
+        pos={side:g.side,entry:bar.c,qty:qty,stop:(g.side==='LONG'?bar.c-sd:bar.c+sd),target:(g.side==='LONG'?bar.c+3*sd:bar.c-3*sd),risk0:sd,be:false,bars:0};
+      }
+      if(eq>peak) peak=eq; var dd=(eq-peak)/peak; if(dd<mdd) mdd=dd;
+    }
+    ST.series.__CSV=saved;
+    var ret=eq/CFG.capital-1, wr=trades?Math.round(wins/trades*100):0;
+    var avgB=held.length?held.reduce(function(a,b){return a+b;},0)/held.length:0;
+    if(out){ out.innerHTML='<div class="row" style="gap:18px"><div>Świec <b>'+bars.length+'</b></div><div>Transakcji <b>'+trades+'</b></div><div>Win rate <b>'+wr+'%</b></div><div>Zwrot <b class="'+(ret>=0?'pos':'neg')+'">'+fp(ret)+'</b></div><div>Max DD <b class="neg">'+fp(mdd)+'</b></div><div>Średnio <b>'+avgB.toFixed(0)+'</b> świec</div></div>'; }
+  };
+  rd.readAsText(file);
+}
+(function(){
+  var pane=document.getElementById('pane-bt'); if(!pane) return;
+  var card=pane.querySelector('.card')||pane;
+  var row=document.createElement('div'); row.className='row'; row.style.marginBottom='12px';
+  var inp=document.createElement('input'); inp.type='file'; inp.id='bt-csv'; inp.accept='.csv';
+  var lab=document.createElement('span'); lab.className='mut'; lab.style.fontSize='11px'; lab.textContent='CSV: Date,Open,High,Low,Close[,Volume]';
+  row.appendChild(inp); row.appendChild(lab); card.insertBefore(row, card.firstChild);
+  inp.addEventListener('change', function(e){ if(e.target.files && e.target.files[0]) btCsvRun(e.target.files[0]); });
+})();
 </script></body></html>
