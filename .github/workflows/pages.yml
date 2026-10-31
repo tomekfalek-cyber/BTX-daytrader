@@ -43,7 +43,6 @@ jobs:
                   lambda m: m.group(1) + UNI,
                   h,
               )
-              # default auto 180s
               h2 = h2.replace('CFG.autoSec||60', 'CFG.autoSec||180')
               h2 = h2.replace('autoSec||60', 'autoSec||180')
               h2 = h2.replace('CFG.autoSec=300', 'CFG.autoSec=180')
@@ -58,7 +57,7 @@ jobs:
           inject() {
             local f="$1"
             if [ ! -f "$f" ]; then return 0; fi
-            for s in universe-pro.js auto-180.js strategy-pro.js ai-ensemble.js export-csv.js scan-countdown.js ai-panel.js coach-ui.js pro-desk.js settings-fix.js; do
+            for s in universe-pro.js auto-180.js strategy-pro.js ai-ensemble.js export-csv.js scan-countdown.js ai-panel.js coach-ui.js pro-desk.js settings-fix.js vpvr-session.js; do
               if [ ! -f "$s" ]; then continue; fi
               if ! grep -q "$s" "$f"; then
                 if grep -q '</body>' "$f"; then
