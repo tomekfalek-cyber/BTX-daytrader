@@ -19,14 +19,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Wire PRO strategy + AI ensemble + CSV export into index.html
+      - name: Wire client modules into index.html
         run: |
           set -e
           inject() {
             local f="$1"
             if [ ! -f "$f" ]; then return 0; fi
-            # Always ensure all three modules are present (idempotent)
-            for s in strategy-pro.js ai-ensemble.js export-csv.js; do
+            for s in strategy-pro.js ai-ensemble.js export-csv.js scan-countdown.js ai-panel.js; do
+              if [ ! -f "$s" ]; then continue; fi
               if ! grep -q "$s" "$f"; then
                 if grep -q '</body>' "$f"; then
                   sed -i "s|</body>|\\n<script src=\"$s\"></script>\\n</body>|" "$f"
