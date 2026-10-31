@@ -19,6 +19,39 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Force 8-symbol universe into index.html
+        run: |
+          python3 << 'PY'
+          import re, pathlib
+          UNI = """[
+          {s:'NVDA',n:'NVIDIA',t:'Akcja',b:140,v:0.0022,mkt:'US'},
+          {s:'TSLA',n:'Tesla',t:'Akcja',b:250,v:0.0024,mkt:'US'},
+          {s:'META',n:'Meta Platforms',t:'Akcja',b:580,v:0.0018,mkt:'US'},
+          {s:'AAPL',n:'Apple',t:'Akcja',b:230,v:0.0014,mkt:'US'},
+          {s:'QQQ',n:'Nasdaq 100 ETF',t:'ETF',b:480,v:0.0012,mkt:'US'},
+          {s:'SPY',n:'S&P 500 ETF',t:'ETF',b:560,v:0.0009,mkt:'US'},
+          {s:'EURUSD',n:'EUR/USD',t:'FX',b:1.08,v:0.00035,mkt:'FX'},
+          {s:'XAU/USD',n:'Zloto (Gold)',t:'FX',b:2650,v:0.0008,mkt:'FX'}
+          ]"""
+          for path in ['index.html', 'dashboard/index.html']:
+              p = pathlib.Path(path)
+              if not p.exists():
+                  continue
+              h = p.read_text(encoding='utf-8', errors='replace')
+              h2, n = re.subn(
+                  r'((?:var\s+)?SYMBOLS\s*=\s*)\[(?:[^\[\]]|\[[^\]]*\])*\]',
+                  lambda m: m.group(1) + UNI,
+                  h,
+              )
+              # default auto 180s
+              h2 = h2.replace('CFG.autoSec||60', 'CFG.autoSec||180')
+              h2 = h2.replace('autoSec||60', 'autoSec||180')
+              h2 = h2.replace('CFG.autoSec=300', 'CFG.autoSec=180')
+              h2 = h2.replace('CFG.autoSec||300', 'CFG.autoSec||180')
+              p.write_text(h2, encoding='utf-8')
+              print(path, 'SYMBOLS replacements', n)
+          PY
+
       - name: Wire client modules into index.html
         run: |
           set -e
