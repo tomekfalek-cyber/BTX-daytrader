@@ -1,8 +1,12 @@
 /**
- * BTX settings fix — zielony toast + nie kasuj klucza Twelve przy zapisie
+ * BTX settings fix v3
+ * - osobny localStorage na klucz Twelve (nie ginie przy zapisie)
+ * - wymiana przycisku Zapisz (usuwa stare handlery kasujące klucz)
+ * - prawdziwy test Twelve API
  */
 (function (global) {
   var STYLE = 'btx-settings-fix-css';
+  var KEY_LS = 'btx_twelve_key';
 
   function injectCss() {
     if (document.getElementById(STYLE)) return;
@@ -28,32 +32,61 @@
     if (!t) {
       t = document.createElement('div');
       t.id = 'toast';
-      t.className = 'toast';
       document.body.appendChild(t);
     }
     t.textContent = msg;
     t.className = 'toast on ' + (kind || 'ok');
     clearTimeout(t._btxTimer);
-    t._btxTimer = setTimeout(function () { t.className = 'toast'; }, 2800);
+    t._btxTimer = setTimeout(function () { t.className = 'toast'; }, 3000);
   }
 
   function val(id) {
     var el = document.getElementById(id);
-    return el ? el.value : '';
+    return el ? String(el.value || '') : '';
   }
   function num(id, def) {
     var n = Number(val(id));
     return isFinite(n) ? n : def;
   }
 
-  function readTwelveKey() {
-    var fromInput = String(val('set-tdkey') || '').trim();
-    var fromCfg = '';
+  function loadStoredKey() {
+    try {
+      var k = localStorage.getItem(KEY_LS);
+      if (k && k.trim()) return k.trim();
+    } catch (e) {}
+    try {
+      var raw = localStorage.getItem('btx_v4');
+      if (raw) {
+        var o = JSON.parse(raw);
+        var ck = o && o.CFG && (o.CFG.tdKey || o.CFG.twelveKey || o.CFG.apiKey);
+        if (ck && String(ck).trim()) return String(ck).trim();
+      }
+    } catch (e2) {}
     if (global.CFG) {
-      fromCfg = String(global.CFG.tdKey || global.CFG.twelveKey || global.CFG.apiKey || '').trim();
+      var c = global.CFG.tdKey || global.CFG.twelveKey || global.CFG.apiKey;
+      if (c && String(c).trim()) return String(c).trim();
     }
-    // pole password bywa "puste" w DOM mimo zapisanego klucza — nie kasuj
-    return fromInput || fromCfg;
+    return '';
+  }
+
+  function persistKey(key) {
+    key = String(key || '').trim();
+    if (!key) return;
+    try { localStorage.setItem(KEY_LS, key); } catch (e) {}
+    if (global.CFG) {
+      global.CFG.tdKey = key;
+      global.CFG.twelveKey = key;
+    }
+    var el = document.getElementById('set-tdkey');
+    if (el) {
+      try { el.value = key; } catch (e2) {}
+    }
+  }
+
+  function readKeyFromUi() {
+    var fromInput = val('set-tdkey').trim();
+    if (fromInput) return fromInput;
+    return loadStoredKey();
   }
 
   function applySettings() {
@@ -67,31 +100,28 @@
     CFG.dailyLoss = num('set-dloss', CFG.dailyLoss || 3);
     CFG.maxTrades = num('set-dtrades', CFG.maxTrades || 10);
     CFG.maxConsec = num('set-dconsec', CFG.maxConsec || 3);
-
-    var key = readTwelveKey();
-    CFG.tdKey = key;
-    CFG.twelveKey = key;
-
-    CFG.workerUrl = String(val('set-worker') || CFG.workerUrl || '').trim();
+    CFG.workerUrl = val('set-worker').trim() || CFG.workerUrl || '';
     CFG.provider = val('set-prov') || CFG.provider || 'twelve';
     CFG.minHold = num('set-minhold', CFG.minHold || 6);
     CFG.autoSec = num('set-autosec', CFG.autoSec || 180);
     CFG.timeStop = num('set-tstop', CFG.timeStop || 60);
 
-    var alpIn = String(val('set-alpkey') || '').trim();
-    var alpSecIn = String(val('set-alpsec') || '').trim();
+    var alpIn = val('set-alpkey').trim();
+    var alpSecIn = val('set-alpsec').trim();
     if (alpIn) CFG.alpKey = alpIn;
     if (alpSecIn) CFG.alpSec = alpSecIn;
+
+    var key = readKeyFromUi();
+    if (key) persistKey(key);
+    else {
+      // nie kasuj istniejącego
+      key = loadStoredKey();
+      if (key) persistKey(key);
+    }
 
     if (global.ST && global.ST.eq && !global.ST.eq.length) {
       global.ST.equity = CFG.capital;
       global.ST.cash = CFG.capital;
-    }
-
-    // przywróć widok pola (jeśli przeglądarka wyczyściła password)
-    var keyEl = document.getElementById('set-tdkey');
-    if (keyEl && key && !String(keyEl.value || '').trim()) {
-      keyEl.value = key;
     }
 
     if (typeof global.save === 'function') global.save();
@@ -103,50 +133,146 @@
     return CFG;
   }
 
-  function bindSave() {
+  function replaceSaveButton() {
     var btn = document.getElementById('btn-save');
-    if (!btn || btn.__btxSaveFix) return;
-    btn.addEventListener('click', function (e) {
-      if (e) { e.preventDefault(); e.stopPropagation(); }
+    if (!btn || btn.__btxReplaced) return btn;
+    var neu = btn.cloneNode(true);
+    neu.__btxReplaced = true;
+    btn.parentNode.replaceChild(neu, btn);
+    neu.addEventListener('click', function (e) {
+      if (e) { e.preventDefault(); e.stopImmediatePropagation(); }
       try {
         var CFG = applySettings();
-        var prov = CFG.provider || 'twelve';
-        var key = String(CFG.tdKey || '').trim();
-        if (prov === 'twelve' && key) {
-          toast('Zapisano · Twelve Data OK · klucz aktywny · Auto ' + (CFG.autoSec || 180) + 's', 'ok');
-        } else if (prov === 'twelve' && !key) {
-          toast('Zapisano ustawienia — brak klucza Twelve Data w polu i pamięci', 'info');
-        } else if (prov === 'alpaca') {
-          toast(CFG.alpKey && CFG.alpSec ? 'Zapisano · Alpaca OK' : 'Zapisano — uzupełnij klucz/sekret Alpaca', CFG.alpKey && CFG.alpSec ? 'ok' : 'info');
+        var key = readKeyFromUi() || loadStoredKey();
+        var prov = (CFG.provider || 'twelve');
+        if (prov === 'twelve') {
+          if (key) toast('Zapisano · Twelve Data · klucz zapisany (' + key.slice(0, 4) + '…) · Auto ' + (CFG.autoSec || 180) + 's', 'ok');
+          else toast('Zapisano — wklej klucz Twelve Data do pola i zapisz ponownie', 'info');
         } else {
           toast('Zapisano ustawienia', 'ok');
         }
       } catch (err) {
-        try { console.warn('save settings', err); } catch (e2) {}
         toast('Błąd zapisu: ' + (err && err.message ? err.message : 'nieznany'), 'err');
       }
-    }, true);
-    btn.__btxSaveFix = true;
+    });
+    return neu;
   }
 
-  function patchToast() {
-    global.toast = function (m, kind) {
-      if (kind) return toast(m, kind);
-      var msg = String(m || '');
-      if (/zapisano|ok|udało|saved|aktywny/i.test(msg)) return toast(msg, 'ok');
-      if (/błąd|error|nie udało/i.test(msg)) return toast(msg, 'err');
-      return toast(msg, 'info');
+  function patchProviderTest() {
+    global.providerTest = async function () {
+      var el = document.getElementById('prov-status');
+      var prov = val('set-prov') || (global.CFG && global.CFG.provider) || 'twelve';
+      if (global.CFG) global.CFG.provider = prov;
+
+      if (prov === 'alpaca') {
+        var key = val('set-alpkey').trim() || (global.CFG && global.CFG.alpKey) || '';
+        var sec = val('set-alpsec').trim() || (global.CFG && global.CFG.alpSec) || '';
+        if (!key || !sec) {
+          if (el) { el.textContent = 'Alpaca: brak kluczy'; el.style.color = 'var(--tx3)'; }
+          toast('Brak kluczy Alpaca', 'info');
+          return;
+        }
+        try {
+          var r = await fetch('https://data.alpaca.markets/v2/stocks/SPY/bars?timeframe=1Day&limit=1&feed=iex', {
+            headers: { 'APCA-API-KEY-ID': key, 'APCA-API-SECRET-KEY': sec }
+          });
+          if (el) {
+            el.textContent = r.ok ? 'Alpaca: OK' : ('Alpaca: HTTP ' + r.status);
+            el.style.color = r.ok ? 'var(--green)' : 'var(--loss)';
+          }
+          toast(r.ok ? 'Alpaca działa' : ('Alpaca HTTP ' + r.status), r.ok ? 'ok' : 'err');
+        } catch (e) {
+          if (el) { el.textContent = 'Alpaca: błąd'; el.style.color = 'var(--loss)'; }
+          toast('Alpaca: ' + e.message, 'err');
+        }
+        return;
+      }
+
+      if (prov === 'stooq') {
+        if (el) { el.textContent = 'Stooq: EOD (bez klucza)'; el.style.color = 'var(--green)'; }
+        toast('Stooq aktywny (EOD)', 'ok');
+        return;
+      }
+
+      // Twelve — prawdziwy test API
+      var td = readKeyFromUi() || loadStoredKey();
+      if (!td) {
+        if (el) { el.textContent = 'Twelve Data: brak klucza'; el.style.color = 'var(--loss)'; }
+        toast('Brak klucza Twelve Data — wklej do pola i Zapisz', 'info');
+        return;
+      }
+      persistKey(td);
+      if (el) { el.textContent = 'Twelve Data: testuję…'; el.style.color = 'var(--tx2)'; }
+      try {
+        var url = 'https://api.twelvedata.com/time_series?symbol=SPY&interval=1day&outputsize=1&apikey=' + encodeURIComponent(td);
+        var resp = await fetch(url);
+        var j = await resp.json();
+        if (j && j.values && j.values.length) {
+          if (el) { el.textContent = 'Twelve Data: OK (klucz działa)'; el.style.color = 'var(--green)'; }
+          toast('Twelve Data: klucz działa', 'ok');
+        } else if (j && (j.code === 401 || /api key/i.test(String(j.message || '')))) {
+          if (el) { el.textContent = 'Twelve Data: zły klucz'; el.style.color = 'var(--loss)'; }
+          toast('Twelve Data: nieprawidłowy klucz', 'err');
+        } else if (j && /limit|credits/i.test(String(j.message || ''))) {
+          if (el) { el.textContent = 'Twelve Data: limit API'; el.style.color = 'var(--gold,#f5b301)'; }
+          toast('Twelve Data: klucz OK, ale limit kredytów', 'info');
+        } else {
+          var msg = (j && j.message) || ('HTTP ' + resp.status);
+          if (el) { el.textContent = 'Twelve Data: ' + msg; el.style.color = 'var(--loss)'; }
+          toast('Twelve Data: ' + msg, 'err');
+        }
+      } catch (e) {
+        if (el) { el.textContent = 'Twelve Data: błąd sieci'; el.style.color = 'var(--loss)'; }
+        toast('Twelve Data: ' + e.message, 'err');
+      }
     };
+
+    var pb = document.getElementById('btn-prov');
+    if (pb && !pb.__btxProv) {
+      var np = pb.cloneNode(true);
+      np.__btxProv = true;
+      pb.parentNode.replaceChild(np, pb);
+      np.addEventListener('click', function (e) {
+        if (e) e.preventDefault();
+        global.providerTest();
+      });
+    }
+  }
+
+  function hydrateKeyField() {
+    var key = loadStoredKey();
+    if (!key) return;
+    if (global.CFG) {
+      global.CFG.tdKey = key;
+      global.CFG.twelveKey = key;
+    }
+    var el = document.getElementById('set-tdkey');
+    if (el && !String(el.value || '').trim()) {
+      try { el.value = key; } catch (e) {}
+    }
   }
 
   function boot() {
     injectCss();
-    patchToast();
-    bindSave();
-    setInterval(bindSave, 2000);
+    hydrateKeyField();
+    replaceSaveButton();
+    patchProviderTest();
+    // global toast
+    global.toast = function (m, kind) {
+      if (kind) return toast(m, kind);
+      var msg = String(m || '');
+      if (/zapisano|ok|działa|aktywny|saved/i.test(msg) && !/brak/i.test(msg)) return toast(msg, 'ok');
+      if (/błąd|error|zły|nieprawid/i.test(msg)) return toast(msg, 'err');
+      return toast(msg, 'info');
+    };
+    setInterval(function () {
+      hydrateKeyField();
+      replaceSaveButton();
+      patchProviderTest();
+    }, 3000);
   }
 
-  global.BTX_SETTINGS_FIX = { toast: toast, applySettings: applySettings, readTwelveKey: readTwelveKey };
+  global.BTX_SETTINGS_FIX = { toast: toast, applySettings: applySettings, loadStoredKey: loadStoredKey };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();
 })(typeof window !== 'undefined' ? window : globalThis);
