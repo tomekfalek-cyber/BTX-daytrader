@@ -25,7 +25,7 @@ jobs:
           inject() {
             local f="$1"
             if [ ! -f "$f" ]; then return 0; fi
-            for s in strategy-pro.js ai-ensemble.js export-csv.js scan-countdown.js ai-panel.js coach-ui.js pro-desk.js; do
+            for s in strategy-pro.js ai-ensemble.js export-csv.js scan-countdown.js ai-panel.js coach-ui.js pro-desk.js settings-fix.js; do
               if [ ! -f "$s" ]; then continue; fi
               if ! grep -q "$s" "$f"; then
                 if grep -q '</body>' "$f"; then
