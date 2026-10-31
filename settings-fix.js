@@ -1,5 +1,5 @@
 /**
- * BTX settings fix — zielony toast "Zapisano" + odporny handler Zapisz
+ * BTX settings fix — zielony toast + nie kasuj klucza Twelve przy zapisie
  */
 (function (global) {
   var STYLE = 'btx-settings-fix-css';
@@ -34,7 +34,7 @@
     t.textContent = msg;
     t.className = 'toast on ' + (kind || 'ok');
     clearTimeout(t._btxTimer);
-    t._btxTimer = setTimeout(function () { t.className = 'toast'; }, 2600);
+    t._btxTimer = setTimeout(function () { t.className = 'toast'; }, 2800);
   }
 
   function val(id) {
@@ -46,9 +46,20 @@
     return isFinite(n) ? n : def;
   }
 
+  function readTwelveKey() {
+    var fromInput = String(val('set-tdkey') || '').trim();
+    var fromCfg = '';
+    if (global.CFG) {
+      fromCfg = String(global.CFG.tdKey || global.CFG.twelveKey || global.CFG.apiKey || '').trim();
+    }
+    // pole password bywa "puste" w DOM mimo zapisanego klucza — nie kasuj
+    return fromInput || fromCfg;
+  }
+
   function applySettings() {
     var CFG = global.CFG;
     if (!CFG) throw new Error('CFG niedostępne');
+
     CFG.risk = num('set-risk', CFG.risk || 0.5);
     CFG.maxPos = num('set-max', CFG.maxPos || 2);
     CFG.capital = num('set-cap', CFG.capital || 100000);
@@ -56,18 +67,33 @@
     CFG.dailyLoss = num('set-dloss', CFG.dailyLoss || 3);
     CFG.maxTrades = num('set-dtrades', CFG.maxTrades || 10);
     CFG.maxConsec = num('set-dconsec', CFG.maxConsec || 3);
-    CFG.tdKey = String(val('set-tdkey') || '').trim();
-    CFG.workerUrl = String(val('set-worker') || '').trim();
+
+    var key = readTwelveKey();
+    CFG.tdKey = key;
+    CFG.twelveKey = key;
+
+    CFG.workerUrl = String(val('set-worker') || CFG.workerUrl || '').trim();
     CFG.provider = val('set-prov') || CFG.provider || 'twelve';
     CFG.minHold = num('set-minhold', CFG.minHold || 6);
-    CFG.autoSec = num('set-autosec', CFG.autoSec || 60);
+    CFG.autoSec = num('set-autosec', CFG.autoSec || 180);
     CFG.timeStop = num('set-tstop', CFG.timeStop || 60);
-    CFG.alpKey = String(val('set-alpkey') || '').trim();
-    CFG.alpSec = String(val('set-alpsec') || '').trim();
+
+    var alpIn = String(val('set-alpkey') || '').trim();
+    var alpSecIn = String(val('set-alpsec') || '').trim();
+    if (alpIn) CFG.alpKey = alpIn;
+    if (alpSecIn) CFG.alpSec = alpSecIn;
+
     if (global.ST && global.ST.eq && !global.ST.eq.length) {
       global.ST.equity = CFG.capital;
       global.ST.cash = CFG.capital;
     }
+
+    // przywróć widok pola (jeśli przeglądarka wyczyściła password)
+    var keyEl = document.getElementById('set-tdkey');
+    if (keyEl && key && !String(keyEl.value || '').trim()) {
+      keyEl.value = key;
+    }
+
     if (typeof global.save === 'function') global.save();
     else {
       try { localStorage.setItem('btx_v4', JSON.stringify({ ST: global.ST, CFG: CFG })); } catch (e) {}
@@ -84,10 +110,14 @@
       if (e) { e.preventDefault(); e.stopPropagation(); }
       try {
         var CFG = applySettings();
-        if ((CFG.provider || 'twelve') === 'twelve' && CFG.tdKey) {
-          toast('Zapisano · Twelve Data OK · Auto ' + (CFG.autoSec || 60) + 's', 'ok');
-        } else if ((CFG.provider || '') === 'twelve' && !CFG.tdKey) {
-          toast('Zapisano ustawienia — brak klucza Twelve Data', 'info');
+        var prov = CFG.provider || 'twelve';
+        var key = String(CFG.tdKey || '').trim();
+        if (prov === 'twelve' && key) {
+          toast('Zapisano · Twelve Data OK · klucz aktywny · Auto ' + (CFG.autoSec || 180) + 's', 'ok');
+        } else if (prov === 'twelve' && !key) {
+          toast('Zapisano ustawienia — brak klucza Twelve Data w polu i pamięci', 'info');
+        } else if (prov === 'alpaca') {
+          toast(CFG.alpKey && CFG.alpSec ? 'Zapisano · Alpaca OK' : 'Zapisano — uzupełnij klucz/sekret Alpaca', CFG.alpKey && CFG.alpSec ? 'ok' : 'info');
         } else {
           toast('Zapisano ustawienia', 'ok');
         }
@@ -103,8 +133,8 @@
     global.toast = function (m, kind) {
       if (kind) return toast(m, kind);
       var msg = String(m || '');
-      if (/zapisano|ok|udało|saved/i.test(msg)) return toast(msg, 'ok');
-      if (/błąd|error|nie udało|brak/i.test(msg)) return toast(msg, 'err');
+      if (/zapisano|ok|udało|saved|aktywny/i.test(msg)) return toast(msg, 'ok');
+      if (/błąd|error|nie udało/i.test(msg)) return toast(msg, 'err');
       return toast(msg, 'info');
     };
   }
@@ -116,7 +146,7 @@
     setInterval(bindSave, 2000);
   }
 
-  global.BTX_SETTINGS_FIX = { toast: toast, applySettings: applySettings };
+  global.BTX_SETTINGS_FIX = { toast: toast, applySettings: applySettings, readTwelveKey: readTwelveKey };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();
 })(typeof window !== 'undefined' ? window : globalThis);
