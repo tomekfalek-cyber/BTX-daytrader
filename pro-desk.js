@@ -1,25 +1,59 @@
 /**
- * BTX Pro Desk — warstwa daytradera (checklist, XTB plan, stats, alerty, journal, reżim, news, dane)
+ * BTX Pro Desk — FIX menu tabs: mount only in #pane-desk, rebind nav clicks
  */
 (function (global) {
   var JK = 'BTX_JOURNAL_V2';
   var AK = 'BTX_ALERTS_ON';
   var STYLE = 'btx-pro-desk-css';
+  var lastAlertKey = '';
+  var lastHtml = '';
 
   function loadJournal() { try { return JSON.parse(localStorage.getItem(JK) || '{}'); } catch (e) { return {}; } }
-  function saveJournal(j) { try { localStorage.setItem(JK, JSON.stringify(j)); } catch (e) {} }
+  function saveJournal(j)) { try { localStorage.setItem(JK, JSON.stringify(j)); } catch (e) {} }
 
   function injectCss() {
     if (document.getElementById(STYLE)) return;
     var s = document.createElement('style');
     s.id = STYLE;
-    s.textContent = '.pro-wrap{display:grid;gap:12px;margin-bottom:14px}.pro-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px}.pro-card{background:linear-gradient(180deg,var(--bg3),var(--bg2));border:1px solid var(--line);border-radius:14px;padding:12px 14px}.pro-card h3{font-size:10px;text-transform:uppercase;letter-spacing:.12em;color:var(--tx3);margin-bottom:8px;font-weight:700}.pro-card .big{font-family:"JetBrains Mono",monospace;font-size:20px;font-weight:700}.pro-card .sub{font-size:11px;color:var(--tx3);margin-top:4px;line-height:1.4}.pro-check{list-style:none;padding:0;margin:0}.pro-check li{display:flex;gap:8px;align-items:flex-start;font-size:12.5px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.04);line-height:1.4}.pro-check .box{width:16px;height:16px;border-radius:4px;border:1px solid var(--line2);flex:0 0 16px;margin-top:1px;text-align:center;font-size:11px;line-height:15px}.pro-check .box.ok{background:rgba(18,196,139,.2);border-color:var(--green);color:var(--green)}.pro-check .box.no{background:rgba(240,68,82,.15);border-color:#f87171;color:#f87171}.pro-plan{font-family:"JetBrains Mono",monospace;font-size:12px;line-height:1.7}.pro-plan b{color:#fff;font-weight:600}.data-pill{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:99px;font-size:10px;font-weight:700;letter-spacing:.04em}.data-pill.demo{background:rgba(245,179,1,.12);color:var(--gold)}.data-pill.live{background:rgba(18,196,139,.14);color:var(--green)}.data-pill.cfg{background:rgba(59,130,246,.14);color:#93c5fd}.pro-alert-bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:8px}.pro-mini{font-size:11px;color:var(--tx2);line-height:1.45}.jr-note{width:100%;background:var(--bg4);border:1px solid var(--line);color:var(--tx);border-radius:8px;padding:6px 8px;font:inherit;font-size:12px;margin-top:4px}.tag{display:inline-block;padding:2px 7px;border-radius:99px;background:var(--bg4);border:1px solid var(--line);font-size:10px;margin:2px 3px 2px 0;color:var(--tx2);cursor:pointer}.tag.on{border-color:var(--red);color:#fff;background:rgba(228,0,43,.2)}.btn.tiny{padding:5px 10px;font-size:11px;border-radius:8px}';
+    s.textContent = '.pro-wrap{display:grid;gap:12px;margin:12px 0 14px;box-sizing:border-box}.pro-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px}.pro-card{background:linear-gradient(180deg,var(--bg3),var(--bg2));border:1px solid var(--line);border-radius:14px;padding:12px 14px}.pro-card h3{font-size:10px;text-transform:uppercase;letter-spacing:.12em;color:var(--tx3);margin-bottom:8px;font-weight:700}.pro-card .big{font-family:"JetBrains Mono",monospace;font-size:20px;font-weight:700}.pro-card .sub{font-size:11px;color:var(--tx3);margin-top:4px;line-height:1.4}.pro-check{list-style:none;padding:0;margin:0}.pro-check li{display:flex;gap:8px;align-items:flex-start;font-size:12.5px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.04);line-height:1.4}.pro-check .box{width:16px;height:16px;border-radius:4px;border:1px solid var(--line2);flex:0 0 16px;margin-top:1px;text-align:center;font-size:11px;line-height:15px}.pro-check .box.ok{background:rgba(18,196,139,.2);border-color:var(--green);color:var(--green)}.pro-check .box.no{background:rgba(240,68,82,.15);border-color:#f87171;color:#f87171}.pro-plan{font-family:"JetBrains Mono",monospace;font-size:12px;line-height:1.7}.pro-plan b{color:#fff;font-weight:600}.data-pill{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:99px;font-size:10px;font-weight:700}.data-pill.demo{background:rgba(245,179,1,.12);color:var(--gold)}.data-pill.live{background:rgba(18,196,139,.14);color:var(--green)}.data-pill.cfg{background:rgba(59,130,246,.14);color:#93c5fd}.pro-alert-bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:8px}.pro-mini{font-size:11px;color:var(--tx2);line-height:1.45}.jr-note{width:100%;background:var(--bg4);border:1px solid var(--line);color:var(--tx);border-radius:8px;padding:6px 8px;font:inherit;font-size:12px;margin-top:4px}.tag{display:inline-block;padding:2px 7px;border-radius:99px;background:var(--bg4);border:1px solid var(--line);font-size:10px;margin:2px 3px 2px 0;color:var(--tx2);cursor:pointer}.tag.on{border-color:var(--red);color:#fff;background:rgba(228,0,43,.2)}.btn.tiny{padding:5px 10px;font-size:11px;border-radius:8px}#pro-desk-root{position:relative;z-index:1}aside,.nav{position:relative;z-index:20}';
     document.head.appendChild(s);
+  }
+
+  function bindTabs() {
+    var nav = document.querySelector('.nav');
+    if (!nav || nav.__proTabsBound) return;
+    nav.addEventListener('click', function (e) {
+      var t = e.target && e.target.closest ? e.target.closest('.nav button') : null;
+      if (!t) return;
+      var tab = t.getAttribute('data-tab');
+      if (!tab) return;
+      e.preventDefault();
+      var bs = document.querySelectorAll('.nav button');
+      for (var i = 0; i < bs.length; i++) {
+        bs[i].className = (bs[i].getAttribute('data-tab') === tab) ? 'on' : '';
+      }
+      var ps = document.querySelectorAll('.pane');
+      for (var k = 0; k < ps.length; k++) {
+        var on = ps[k].id === ('pane-' + tab);
+        var base = (ps[k].className || 'pane').replace(/\bon\b/g, '').replace(/\s+/g, ' ').trim();
+        if (base.indexOf('pane') < 0) base = 'pane ' + base;
+        ps[k].className = on ? (base + ' on') : base;
+      }
+      try {
+        if (tab === 'chart' && typeof global.drawCandles === 'function') global.drawCandles();
+        if (tab === 'ai') {
+          if (typeof global.initAI === 'function') global.initAI();
+          if (typeof global.renderAI === 'function') global.renderAI();
+        }
+      } catch (err) {}
+    });
+    nav.__proTabsBound = true;
   }
 
   function dataStatus() {
     var cfg = global.CFG || {};
-    var prov = cfg.prov || cfg.provider || (document.getElementById('set-prov') && document.getElementById('set-prov').value) || 'demo';
+    var provEl = document.getElementById('set-prov');
+    var prov = cfg.prov || cfg.provider || (provEl && provEl.value) || 'demo';
     var hasTwelve = !!(cfg.twelveKey || cfg.apiKey);
     var hasAlp = !!(cfg.alpKey && cfg.alpSec);
     var hasFinn = !!(cfg.finnhubKey);
@@ -41,12 +75,12 @@
     for (k = Math.max(0, n - 50); k < n; k++) sma50 += cl[k]; sma50 /= Math.min(50, n);
     var range40 = Math.max.apply(null, b.slice(-40).map(function (x) { return x.h; })) - Math.min.apply(null, b.slice(-40).map(function (x) { return x.l; }));
     if (range40 / c > 0.025 && Math.abs(c - sma20) / c < 0.003)
-      return { label: 'RANGE / chop', tip: 'SPY w konsolidacji \u2014 wi\u0119cej fa\u0142szywych wybi\u0107', score: -1 };
+      return { label: 'RANGE / chop', tip: 'SPY w konsolidacji', score: -1 };
     if (c > sma20 && sma20 >= sma50 * 0.998)
-      return { label: 'TREND \u2191', tip: 'SPY powy\u017cej \u015brednich \u2014 longi US maj\u0105 wiatr w \u017cagle', score: 1 };
+      return { label: 'TREND \u2191', tip: 'SPY powy\u017cej \u015brednich', score: 1 };
     if (c < sma20 && sma20 <= sma50 * 1.002)
-      return { label: 'TREND \u2193', tip: 'SPY poni\u017cej \u015brednich \u2014 ostro\u017cnie z longami', score: -2 };
-    return { label: 'MIXED', tip: 'Wymagaj wy\u017cszej si\u0142y sygna\u0142u (5/5)', score: 0 };
+      return { label: 'TREND \u2193', tip: 'SPY poni\u017cej \u015brednich', score: -2 };
+    return { label: 'MIXED', tip: 'Wymagaj si\u0142y 5/5', score: 0 };
   }
 
   function newsToday() {
@@ -92,15 +126,15 @@
   function checklistFor(g) {
     var items = [], regime = dayRegime(), newsActive = newsToday().some(function (x) { return x.active; });
     var ds = dataStatus(), str = g.strength || 0, side = g.side;
-    items.push({ ok: side === 'LONG' || side === 'SHORT', text: 'Jest kierunek (LONG/SHORT), nie WAIT' });
-    items.push({ ok: str >= 4, text: 'Si\u0142a sygna\u0142u \u2265 4 (teraz ' + str + '/5)' });
-    items.push({ ok: !newsActive, text: newsActive ? 'News blackout aktywny \u2014 nie wchod\u017a' : 'Poza oknem news\u00f3w (\u00b130 min)' });
-    items.push({ ok: regime.score !== -1 || str >= 5, text: 'Re\u017cim dnia OK (teraz: ' + regime.label + ')' });
-    if (side === 'LONG') items.push({ ok: String(g.trend || '').indexOf('UP') >= 0 || /up/i.test(String(g.why || '')), text: 'Zgodno\u015b\u0107 z trendem wzrostowym' });
-    if (side === 'SHORT') items.push({ ok: String(g.trend || '').indexOf('DN') >= 0 || /down/i.test(String(g.why || '')), text: 'Zgodno\u015b\u0107 z trendem spadkowym' });
-    items.push({ ok: !g.ai || g.ai.ok !== false || (g.ai.conf || 0) >= 0.55, text: g.ai ? ('AI: ' + (g.ai.ok ? 'potwierdza' : 's\u0142abo') + (g.ai.conf != null ? ' (' + Math.round(g.ai.conf * 100) + '%)' : '')) : 'AI: regu\u0142y PRO' });
-    items.push({ ok: ds.mode !== 'demo', text: ds.mode === 'demo' ? 'Uwaga: dane DEMO \u2014 tylko nauka' : '\u0179r\u00f3d\u0142o: ' + ds.label });
-    items.push({ ok: true, text: 'Mam plan SL / TP / size zanim klikn\u0119 na XTB' });
+    items.push({ ok: side === 'LONG' || side === 'SHORT', text: 'Jest kierunek (LONG/SHORT)' });
+    items.push({ ok: str >= 4, text: 'Si\u0142a \u2265 4 (teraz ' + str + '/5)' });
+    items.push({ ok: !newsActive, text: newsActive ? 'News blackout \u2014 nie wchod\u017a' : 'Poza oknem news\u00f3w' });
+    items.push({ ok: regime.score !== -1 || str >= 5, text: 'Re\u017cim: ' + regime.label });
+    if (side === 'LONG') items.push({ ok: String(g.trend || '').indexOf('UP') >= 0 || /up/i.test(String(g.why || '')), text: 'Z trendem wzrostowym' });
+    if (side === 'SHORT') items.push({ ok: String(g.trend || '').indexOf('DN') >= 0 || /down/i.test(String(g.why || '')), text: 'Z trendem spadkowym' });
+    items.push({ ok: !g.ai || g.ai.ok !== false || (g.ai.conf || 0) >= 0.55, text: g.ai ? ('AI: ' + (g.ai.ok ? 'OK' : 's\u0142abo')) : 'AI: regu\u0142y PRO' });
+    items.push({ ok: ds.mode !== 'demo', text: ds.mode === 'demo' ? 'Dane DEMO' : ds.label });
+    items.push({ ok: true, text: 'Plan SL/TP/size przed XTB' });
     var pass = items.filter(function (x) { return x.ok; }).length;
     return { items: items, pass: pass, total: items.length, ready: pass >= items.length - 1 && str >= 4 && !newsActive };
   }
@@ -116,7 +150,7 @@
     var riskCash = eq * (riskPct / 100);
     var qty = sd > 0 ? Math.max(1, Math.floor(riskCash / sd)) : 1;
     return {
-      riskPct: riskPct, riskCash: riskCash, qty: qty, sd: sd, entry: price,
+      riskPct: riskPct, riskCash: riskCash, qty: qty, entry: price,
       sl: g.side === 'SHORT' ? price + sd : price - sd,
       tp: g.side === 'SHORT' ? price - tpR * sd : price + tpR * sd,
       partial: g.side === 'SHORT' ? price - partialR * sd : price + partialR * sd,
@@ -128,21 +162,18 @@
     if (x == null || !isFinite(x)) return '\u2014';
     return global.f2 ? global.f2(x) : Number(x).toFixed(2);
   }
-  function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+  function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&').replace(/</g, '<').replace(/>/g, '>'); }
 
   function ensureRootDesk() {
     var el = document.getElementById('pro-desk-root');
-    if (el) return el;
+    if (el && el.parentNode) return el;
+    var pane = document.getElementById('pane-desk');
+    if (!pane) return null;
     el = document.createElement('div');
     el.id = 'pro-desk-root';
     el.className = 'pro-wrap';
-    var kpis = document.querySelector('.kpis');
-    if (kpis && kpis.parentNode) kpis.parentNode.insertBefore(el, kpis.nextSibling);
-    else {
-      var pane = document.getElementById('pane-desk');
-      if (pane) pane.insertBefore(el, pane.firstChild);
-      else return null;
-    }
+    if (pane.firstChild) pane.insertBefore(el, pane.firstChild);
+    else pane.appendChild(el);
     return el;
   }
 
@@ -152,7 +183,6 @@
       .sort(function (a, b) { return (b.strength || 0) - (a.strength || 0); });
   }
 
-  var lastAlertKey = '';
   function beep() {
     try {
       var ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -162,6 +192,7 @@
       setTimeout(function () { o.stop(); ctx.close(); }, 180);
     } catch (e) {}
   }
+
   function maybeAlert() {
     if (localStorage.getItem(AK) === '0') return;
     var best = bestSetups().filter(function (x) { return (x.strength || 0) >= 4; })[0];
@@ -189,8 +220,8 @@
     tags.forEach(function (tg) {
       h += '<span class="tag' + (rec.tags && rec.tags.indexOf(tg) >= 0 ? ' on' : '') + '" data-tag="' + tg + '">' + tg + '</span>';
     });
-    h += '</div><textarea class="jr-note" id="pro-jr-note" rows="2" placeholder="Notatka: XTB? emocje? co zobaczy\u0142e\u015b...">' + esc(rec.note || '') + '</textarea>';
-    h += '<div style="margin-top:6px"><button class="btn ghost tiny" id="pro-jr-save">Zapisz journal</button></div>';
+    h += '</div><textarea class="jr-note" id="pro-jr-note" rows="2" placeholder="Notatka...">' + esc(rec.note || '') + '</textarea>';
+    h += '<div style="margin-top:6px"><button type="button" class="btn ghost tiny" id="pro-jr-save">Zapisz journal</button></div>';
     box.innerHTML = h;
     box.querySelectorAll('.tag').forEach(function (el) {
       el.addEventListener('click', function () {
@@ -202,7 +233,8 @@
       });
     });
     var btn = document.getElementById('pro-jr-save');
-    if (btn) btn.onclick = function () {
+    if (btn) btn.onclick = function (ev) {
+      if (ev) ev.preventDefault();
       rec.note = (document.getElementById('pro-jr-note') || {}).value || '';
       j[id] = rec; saveJournal(j);
       if (global.toast) global.toast('Journal zapisany');
@@ -211,69 +243,81 @@
 
   function bindAlertButtons() {
     var t = document.getElementById('pro-toggle-alert');
-    if (t) t.onclick = function () {
+    if (t) t.onclick = function (ev) {
+      if (ev) ev.preventDefault();
       var on = localStorage.getItem(AK) !== '0';
       localStorage.setItem(AK, on ? '0' : '1');
       if (!on && typeof Notification !== 'undefined' && Notification.permission === 'default') Notification.requestPermission();
+      lastHtml = '';
       renderPro();
     };
     var b = document.getElementById('pro-test-alert');
-    if (b) b.onclick = function () { beep(); };
+    if (b) b.onclick = function (ev) { if (ev) ev.preventDefault(); beep(); };
   }
 
   function renderPro() {
-    injectCss();
-    var root = document.getElementById('pro-desk-root') || ensureRootDesk();
-    if (!root) return;
-    var ds = dataStatus(), regime = dayRegime(), news = newsToday(), st = computeStats();
-    var best = bestSetups()[0];
-    var alertsOn = localStorage.getItem(AK) !== '0';
-    var nAct = news.filter(function (x) { return x.active; })[0];
-    var html = '<div class="pro-row">';
-    html += '<div class="pro-card"><h3>Dane rynkowe</h3><div><span class="data-pill ' + ds.cls + '">' + ds.label + '</span></div><div class="sub">' + ds.tip + '</div></div>';
-    html += '<div class="pro-card"><h3>Re\u017cim dnia (SPY)</h3><div class="big" style="font-size:16px">' + regime.label + '</div><div class="sub">' + regime.tip + '</div></div>';
-    html += '<div class="pro-card"><h3>Strategia</h3><div class="big" style="font-size:15px">PRO desk</div><div class="sub">0.5% risk \u00b7 max 2 pos \u00b7 SL 2\u00d7ATR \u00b7 TP 2.5R \u00b7 partial 1.5R \u00b7 min si\u0142a 4</div></div>';
-    html += '<div class="pro-card"><h3>News (UTC)</h3><div class="big" style="font-size:14px">' + (nAct ? '\u26a0 ' + nAct.label : 'OK') + '</div><div class="sub">';
-    news.slice(0, 3).forEach(function (w) {
-      var when = w.dist >= 0 ? ('za ' + w.dist + ' min') : (Math.abs(w.dist) + ' min temu');
-      html += (w.active ? '<b style="color:#f87171">' : '') + w.label + ' (' + when + ')' + (w.active ? '</b>' : '') + '<br>';
-    });
-    html += '</div></div></div><div class="pro-row">';
-    html += '<div class="pro-card"><h3>Win rate</h3><div class="big">' + (st.n ? Math.round(st.wr * 100) + '%' : '\u2014') + '</div><div class="sub">' + st.wins + 'W / ' + st.losses + 'L \u00b7 n=' + st.n + '</div></div>';
-    html += '<div class="pro-card"><h3>Avg R</h3><div class="big">' + (st.avgR != null ? ((st.avgR >= 0 ? '+' : '') + st.avgR.toFixed(2) + 'R') : '\u2014') + '</div><div class="sub">' + (st.nR ? ('z ' + st.nR + ' trade\'\u00f3w') : 'R gdy znamy SL/ryzyko') + '</div></div>';
-    html += '<div class="pro-card"><h3>\u015ar. P&L / trade</h3><div class="big" style="color:' + (st.avgPnl >= 0 ? 'var(--green)' : '#f87171') + '">' + fmt(st.avgPnl) + '</div><div class="sub">Suma: ' + fmt(st.sumPnl) + '</div></div>';
-    html += '<div class="pro-card"><h3>Max drawdown</h3><div class="big">' + fmt(st.maxDD) + '</div><div class="sub">Z equity / historii paper</div></div></div>';
-    html += '<div class="pro-row" style="grid-template-columns:1fr 1fr">';
-    html += '<div class="pro-card"><h3>Checklist wej\u015bcia' + (best ? ' \u00b7 ' + best.sym + ' ' + best.side : '') + '</h3>';
-    if (!best) html += '<div class="pro-mini">Brak LONG/SHORT. Uruchom cykl. Czekanie = pro.</div>';
-    else {
-      var ck = checklistFor(best);
-      html += '<ul class="pro-check">';
-      ck.items.forEach(function (it) {
-        html += '<li><span class="box ' + (it.ok ? 'ok' : 'no') + '">' + (it.ok ? '\u2713' : '!') + '</span><span>' + esc(it.text) + '</span></li>';
+    try {
+      injectCss();
+      bindTabs();
+      var root = document.getElementById('pro-desk-root') || ensureRootDesk();
+      if (!root) return;
+      var desk = document.getElementById('pane-desk');
+      if (desk && desk.className.indexOf('on') < 0) return;
+
+      var ds = dataStatus(), regime = dayRegime(), news = newsToday(), st = computeStats();
+      var best = bestSetups()[0];
+      var alertsOn = localStorage.getItem(AK) !== '0';
+      var nAct = news.filter(function (x) { return x.active; })[0];
+
+      var html = '<div class="pro-row">';
+      html += '<div class="pro-card"><h3>Dane rynkowe</h3><div><span class="data-pill ' + ds.cls + '">' + ds.label + '</span></div><div class="sub">' + ds.tip + '</div></div>';
+      html += '<div class="pro-card"><h3>Re\u017cim dnia (SPY)</h3><div class="big" style="font-size:16px">' + regime.label + '</div><div class="sub">' + regime.tip + '</div></div>';
+      html += '<div class="pro-card"><h3>Strategia</h3><div class="big" style="font-size:15px">PRO desk</div><div class="sub">0.5% risk \u00b7 max 2 pos \u00b7 SL 2\u00d7ATR \u00b7 TP 2.5R</div></div>';
+      html += '<div class="pro-card"><h3>News (UTC)</h3><div class="big" style="font-size:14px">' + (nAct ? '\u26a0 ' + nAct.label : 'OK') + '</div><div class="sub">';
+      news.slice(0, 3).forEach(function (w) {
+        var when = w.dist >= 0 ? ('za ' + w.dist + ' min') : (Math.abs(w.dist) + ' min temu');
+        html += (w.active ? '<b style="color:#f87171">' : '') + w.label + ' (' + when + ')' + (w.active ? '</b>' : '') + '<br>';
       });
-      html += '</ul><div class="sub" style="margin-top:8px">' + (ck.ready ? '<b style="color:var(--green)">CHECKLIST OK</b> \u2014 rozwa\u017c XTB.' : '<b style="color:#f87171">Nie gotowe</b> \u2014 popraw "!".') + '</div>';
+      html += '</div></div></div><div class="pro-row">';
+      html += '<div class="pro-card"><h3>Win rate</h3><div class="big">' + (st.n ? Math.round(st.wr * 100) + '%' : '\u2014') + '</div><div class="sub">' + st.wins + 'W / ' + st.losses + 'L</div></div>';
+      html += '<div class="pro-card"><h3>Avg R</h3><div class="big">' + (st.avgR != null ? ((st.avgR >= 0 ? '+' : '') + st.avgR.toFixed(2) + 'R') : '\u2014') + '</div><div class="sub">' + (st.nR ? (st.nR + ' trade\'s') : 'gdy znamy SL') + '</div></div>';
+      html += '<div class="pro-card"><h3>\u015ar. P&L</h3><div class="big" style="color:' + (st.avgPnl >= 0 ? 'var(--green)' : '#f87171') + '">' + fmt(st.avgPnl) + '</div><div class="sub">Suma ' + fmt(st.sumPnl) + '</div></div>';
+      html += '<div class="pro-card"><h3>Max DD</h3><div class="big">' + fmt(st.maxDD) + '</div></div></div>';
+      html += '<div class="pro-row" style="grid-template-columns:1fr 1fr">';
+      html += '<div class="pro-card"><h3>Checklist' + (best ? ' \u00b7 ' + best.sym + ' ' + best.side : '') + '</h3>';
+      if (!best) html += '<div class="pro-mini">Brak LONG/SHORT. Uruchom cykl.</div>';
+      else {
+        var ck = checklistFor(best);
+        html += '<ul class="pro-check">';
+        ck.items.forEach(function (it) {
+          html += '<li><span class="box ' + (it.ok ? 'ok' : 'no') + '">' + (it.ok ? '\u2713' : '!') + '</span><span>' + esc(it.text) + '</span></li>';
+        });
+        html += '</ul><div class="sub" style="margin-top:8px">' + (ck.ready ? '<b style="color:var(--green)">CHECKLIST OK</b>' : '<b style="color:#f87171">Nie gotowe</b>') + '</div>';
+      }
+      html += '</div><div class="pro-card"><h3>Plan XTB</h3>';
+      if (!best) html += '<div class="pro-mini">Przy sile 4\u20135: size, SL, TP.</div>';
+      else {
+        var p = xtbPlan(best);
+        html += '<div class="pro-plan">' + best.side + ' <b>' + esc(best.sym) + '</b> @ <b>' + fmt(p.entry) + '</b><br>';
+        html += 'Qty <b>' + p.qty + '</b> \u00b7 risk <b>' + p.riskPct + '%</b> \u2248 ' + fmt(p.riskCash) + '<br>';
+        html += 'SL <b>' + fmt(p.sl) + '</b><br>Partial <b>' + fmt(p.partial) + '</b> (+' + p.partialR + 'R)<br>';
+        html += 'TP <b>' + fmt(p.tp) + '</b> (+' + p.tpR + 'R)<br>BE po +1R</div>';
+      }
+      html += '</div></div>';
+      html += '<div class="pro-card"><h3>Alerty & journal</h3><div class="pro-alert-bar">';
+      html += '<button type="button" class="btn ghost tiny" id="pro-toggle-alert">' + (alertsOn ? 'Alerty ON' : 'Alerty OFF') + '</button> ';
+      html += '<button type="button" class="btn ghost tiny" id="pro-test-alert">Test d\u017awi\u0119ku</button></div>';
+      html += '<div id="pro-journal-box" style="margin-top:8px"></div></div>';
+
+      if (html !== lastHtml) {
+        root.innerHTML = html;
+        lastHtml = html;
+        renderJournalBox();
+        bindAlertButtons();
+      }
+    } catch (e) {
+      try { console.warn('pro-desk', e); } catch (e2) {}
     }
-    html += '</div><div class="pro-card"><h3>Plan na XTB (r\u0119cznie)</h3>';
-    if (!best) html += '<div class="pro-mini">Przy sile 4\u20135: size, SL, partial TP, TP.</div>';
-    else {
-      var p = xtbPlan(best);
-      html += '<div class="pro-plan">' + best.side + ' <b>' + esc(best.sym) + '</b> @ <b>' + fmt(p.entry) + '</b><br>';
-      html += 'Qty: <b>' + p.qty + '</b> \u00b7 ryzyko <b>' + p.riskPct + '%</b> \u2248 ' + fmt(p.riskCash) + '<br>';
-      html += 'SL: <b>' + fmt(p.sl) + '</b><br>Partial TP: <b>' + fmt(p.partial) + '</b> (+' + p.partialR + 'R, ~50%)<br>';
-      html += 'TP: <b>' + fmt(p.tp) + '</b> (+' + p.tpR + 'R)<br>BE: SL\u2192entry po <b>+1R</b></div>';
-      html += '<div class="sub">Bot nie sk\u0142ada zlece\u0144 u brokera.</div>';
-    }
-    html += '</div></div>';
-    html += '<div class="pro-card"><h3>Alerty & journal</h3><div class="pro-alert-bar">';
-    html += '<button class="btn ghost tiny" id="pro-toggle-alert">' + (alertsOn ? '\ud83d\udd14 Alerty ON' : '\ud83d\udd15 Alerty OFF') + '</button>';
-    html += '<button class="btn ghost tiny" id="pro-test-alert">Test d\u017awi\u0119ku</button>';
-    html += '<span class="pro-mini">Alert przy nowym sygnale si\u0142y \u2265 4.</span></div>';
-    html += '<div class="pro-mini" style="margin-top:10px"><b>Journal 2.0</b> \u2014 tagi + notatka (localStorage).</div><div id="pro-journal-box" style="margin-top:8px"></div></div>';
-    html += '<div class="pro-card"><h3>Backtest & sp\u00f3jno\u015b\u0107</h3><div class="pro-mini">Regu\u0142y = <b>strategy-pro.js</b>. Backtest na demo \u2260 live. Cel: ma\u0142o trade\'\u00f3w, dodatni avg R, niski max DD, checklista przed XTB.</div></div>';
-    root.innerHTML = html;
-    renderJournalBox();
-    bindAlertButtons();
   }
 
   function patchOpen() {
@@ -283,10 +327,7 @@
       orig(g);
       try {
         var p = global.ST && global.ST.pos && global.ST.pos[g.sym];
-        if (p) {
-          if (p.risk0 == null && p.entry != null && p.stop != null) p.risk0 = Math.abs(p.entry - p.stop);
-          p.setup = (g.why || '').slice(0, 80);
-        }
+        if (p && p.risk0 == null && p.entry != null && p.stop != null) p.risk0 = Math.abs(p.entry - p.stop);
       } catch (e) {}
     };
     global.openPos.__proDesk = true;
@@ -296,11 +337,11 @@
     var orig = global.closePos;
     global.closePos = function (sym, why, px) {
       var p = global.ST && global.ST.pos && global.ST.pos[sym];
-      var risk0 = p && p.risk0, setup = p && p.setup;
+      var risk0 = p && p.risk0;
       orig(sym, why, px);
       try {
         var c = global.ST && global.ST.closed && global.ST.closed[0];
-        if (c && c.sym === sym) { if (risk0 != null) c.risk0 = risk0; if (setup) c.setup = setup; }
+        if (c && c.sym === sym && risk0 != null) c.risk0 = risk0;
       } catch (e) {}
     };
     global.closePos.__proDesk = true;
@@ -317,11 +358,21 @@
   }
 
   function boot() {
-    injectCss(); ensureRootDesk(); patchOpen(); patchClose(); patchRender(); renderPro();
-    setInterval(function () { patchOpen(); patchClose(); patchRender(); renderPro(); maybeAlert(); }, 2000);
+    try {
+      injectCss();
+      bindTabs();
+      ensureRootDesk();
+      patchOpen();
+      patchClose();
+      patchRender();
+      renderPro();
+    } catch (e) { try { console.warn('pro-desk boot', e); } catch (e2) {} }
+    setInterval(function () {
+      try { bindTabs(); patchOpen(); patchClose(); patchRender(); renderPro(); maybeAlert(); } catch (e) {}
+    }, 3000);
   }
 
-  global.BTX_PRO_DESK = { render: renderPro, checklistFor: checklistFor, xtbPlan: xtbPlan, stats: computeStats, dataStatus: dataStatus, dayRegime: dayRegime };
+  global.BTX_PRO_DESK = { render: renderPro, bindTabs: bindTabs, checklistFor: checklistFor, xtbPlan: xtbPlan, stats: computeStats };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();
 })(typeof window !== 'undefined' ? window : globalThis);
