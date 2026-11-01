@@ -45,8 +45,6 @@ jobs:
               )
               h2 = h2.replace('CFG.autoSec||60', 'CFG.autoSec||180')
               h2 = h2.replace('autoSec||60', 'autoSec||180')
-              h2 = h2.replace('CFG.autoSec=300', 'CFG.autoSec=180')
-              h2 = h2.replace('CFG.autoSec||300', 'CFG.autoSec||180')
               p.write_text(h2, encoding='utf-8')
               print(path, 'SYMBOLS replacements', n)
           PY
@@ -57,7 +55,7 @@ jobs:
           inject() {
             local f="$1"
             if [ ! -f "$f" ]; then return 0; fi
-            for s in universe-pro.js auto-180.js strategy-pro.js ai-ensemble.js export-csv.js scan-countdown.js ai-panel.js coach-ui.js pro-desk.js settings-fix.js vpvr-session.js pro-upgrade-6.js; do
+            for s in universe-pro.js auto-180.js strategy-pro.js ai-ensemble.js export-csv.js scan-countdown.js ai-panel.js coach-ui.js pro-desk.js settings-fix.js vpvr-session.js pro-upgrade-6.js learner-pack.js; do
               if [ ! -f "$s" ]; then continue; fi
               if ! grep -q "$s" "$f"; then
                 if grep -q '</body>' "$f"; then
