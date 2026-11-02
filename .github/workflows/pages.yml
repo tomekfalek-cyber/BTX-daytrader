@@ -35,18 +35,16 @@ jobs:
           ap.write_text(t, encoding='utf-8')
           pe = Path('pro-edge.js')
           p = pe.read_text(encoding='utf-8')
-          p = p.replace('base.score < 70', 'base.score < 63').replace('pro < 70', 'pro < 63 (Active DT)')
-          p = p.replace('pos > 0.92', 'pos > 0.95').replace('pos < 0.08', 'pos < 0.05')
+          p = p.replace('base.score < 70', 'base.score < 63')
           lines, out = p.splitlines(), []
           for line in lines:
               if "phase: 'OPEN'" in line and 'usOpen' in line:
-                  out.append("    if (min < usOpen + 30) return { phase: 'OPEN', sizeMult: 0.5, newEntries: true, onlyAPlus: false, minStrength: 4, label: 'Otwarcie US — Active DT siła ≥4, half size' };")
+                  out.append("    if (min < usOpen + 30) return { phase: 'OPEN', sizeMult: 0.5, newEntries: true, onlyAPlus: false, minStrength: 4, label: 'Otwarcie US Active DT' };")
               elif "phase: 'CLOSE'" in line and 'usClose' in line:
-                  out.append("    if (min >= usClose - 45) return { phase: 'CLOSE', sizeMult: 0.5, newEntries: true, onlyAPlus: false, minStrength: 4, timeStopBars: 20, label: 'Końcówka — Active DT siła ≥4' };")
+                  out.append("    if (min >= usClose - 45) return { phase: 'CLOSE', sizeMult: 0.5, newEntries: true, onlyAPlus: false, minStrength: 4, timeStopBars: 20, label: 'Close Active DT' };")
               else:
                   out.append(line)
           pe.write_text('\n'.join(out)+'\n', encoding='utf-8')
-          print('ok')
           PY
 
       - name: Force 8-symbol universe into index.html
@@ -63,14 +61,13 @@ jobs:
           {s:'EURUSD',n:'EUR/USD',t:'FX',b:1.08,v:0.00035,mkt:'FX'},
           {s:'XAU/USD',n:'Zloto (Gold)',t:'FX',b:2650,v:0.0008,mkt:'FX'}
           ]"""
-          for path in ['index.html', 'dashboard/index.html']:
-              p = pathlib.Path(path)
-              if not p.exists():
-                  continue
-              h = p.read_text(encoding='utf-8', errors='replace')
-              h2, n = re.subn(r'((?:var\s+)?SYMBOLS\s*=\s*)\[(?:[^\[\]]|\[[^\]]*\])*\]', lambda m: m.group(1)+UNI, h)
-              h2 = h2.replace('CFG.autoSec||60','CFG.autoSec||180').replace('autoSec||60','autoSec||180')
-              p.write_text(h2, encoding='utf-8')
+          for path in ['index.html','dashboard/index.html']:
+              p=pathlib.Path(path)
+              if not p.exists(): continue
+              h=p.read_text(encoding='utf-8',errors='replace')
+              h2,n=re.subn(r'((?:var\s+)?SYMBOLS\s*=\s*)\[(?:[^\[\]]|\[[^\]]*\])*\]',lambda m:m.group(1)+UNI,h)
+              h2=h2.replace('CFG.autoSec||60','CFG.autoSec||180').replace('autoSec||60','autoSec||180')
+              p.write_text(h2,encoding='utf-8')
           PY
 
       - name: Wire client modules into index.html
@@ -79,7 +76,7 @@ jobs:
           inject() {
             local f="$1"
             if [ ! -f "$f" ]; then return 0; fi
-            for s in universe-pro.js auto-180.js strategy-pro.js ai-ensemble.js export-csv.js scan-countdown.js ai-panel.js coach-ui.js pro-desk.js settings-fix.js vpvr-session.js pro-upgrade-6.js learner-pack.js guide-7days.js macro-calendar.js xtb-bridge.js chart-ta-lesson.js autonomy-pro.js xtb-api-connect.js pro-assistant.js quality-cap.js ui-plain-polish.js pro-edge.js active-dt-mode.js dt-final-pack.js; do
+            for s in universe-pro.js auto-180.js strategy-pro.js ai-ensemble.js export-csv.js scan-countdown.js ai-panel.js coach-ui.js pro-desk.js settings-fix.js vpvr-session.js pro-upgrade-6.js learner-pack.js guide-7days.js macro-calendar.js xtb-bridge.js chart-ta-lesson.js autonomy-pro.js xtb-api-connect.js pro-assistant.js quality-cap.js ui-plain-polish.js pro-edge.js active-dt-mode.js dt-final-pack.js trade-hero.js; do
               if [ ! -f "$s" ]; then continue; fi
               if ! grep -q "$s" "$f"; then
                 if grep -q '</body>' "$f"; then
