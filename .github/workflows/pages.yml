@@ -19,32 +19,31 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Restore broken modules and apply Active DT
+      - name: Fix trade-hero syntax and restore modules
         run: |
           set -e
+          if [ -f trade-hero.js ]; then
+            python3 - <<'PY'
+          from pathlib import Path
+          p = Path('trade-hero.js')
+          t = p.read_text(encoding='utf-8')
+          t = t.replace("html += '< '<div", "html += '<div")
+          p.write_text(t, encoding='utf-8')
+          print('trade-hero patched')
+          PY
+          fi
           if grep -q PLACEHOLDER pro-edge.js 2>/dev/null || [ ! -s pro-edge.js ]; then
             curl -sL "https://raw.githubusercontent.com/tomekfalek-cyber/BTX-daytrader/91cae43a82045c562cb4d1ceb2f8cd6a0c88d3b5/pro-edge.js" -o pro-edge.js
           fi
           if grep -q PLACEHOLDER autonomy-pro.js 2>/dev/null || [ ! -s autonomy-pro.js ]; then
             curl -sL "https://raw.githubusercontent.com/tomekfalek-cyber/BTX-daytrader/da57a27fea51194738a7c49034b964623d3a4d98/autonomy-pro.js" -o autonomy-pro.js
           fi
-          python3 << 'PY'
+          python3 - <<'PY'
           from pathlib import Path
           ap = Path('autonomy-pro.js')
-          t = ap.read_text(encoding='utf-8').replace('score >= 70', 'score >= 63')
-          ap.write_text(t, encoding='utf-8')
-          pe = Path('pro-edge.js')
-          p = pe.read_text(encoding='utf-8')
-          p = p.replace('base.score < 70', 'base.score < 63')
-          lines, out = p.splitlines(), []
-          for line in lines:
-              if "phase: 'OPEN'" in line and 'usOpen' in line:
-                  out.append("    if (min < usOpen + 30) return { phase: 'OPEN', sizeMult: 0.5, newEntries: true, onlyAPlus: false, minStrength: 4, label: 'Otwarcie US Active DT' };")
-              elif "phase: 'CLOSE'" in line and 'usClose' in line:
-                  out.append("    if (min >= usClose - 45) return { phase: 'CLOSE', sizeMult: 0.5, newEntries: true, onlyAPlus: false, minStrength: 4, timeStopBars: 20, label: 'Close Active DT' };")
-              else:
-                  out.append(line)
-          pe.write_text('\n'.join(out)+'\n', encoding='utf-8')
+          if ap.exists():
+              t = ap.read_text(encoding='utf-8').replace('score >= 70', 'score >= 63')
+              ap.write_text(t, encoding='utf-8')
           PY
 
       - name: Force 8-symbol universe into index.html
