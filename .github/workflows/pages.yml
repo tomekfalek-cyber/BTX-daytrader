@@ -54,7 +54,7 @@ jobs:
           inject() {
             local f="$1"
             if [ ! -f "$f" ]; then return 0; fi
-            for s in universe-pro.js auto-180.js strategy-pro.js ai-ensemble.js export-csv.js scan-countdown.js ai-panel.js coach-ui.js pro-desk.js settings-fix.js vpvr-session.js pro-upgrade-6.js learner-pack.js guide-7days.js macro-calendar.js xtb-bridge.js chart-ta-lesson.js autonomy-pro.js xtb-api-connect.js pro-assistant.js quality-cap.js ui-plain-polish.js; do
+            for s in universe-pro.js auto-180.js strategy-pro.js ai-ensemble.js export-csv.js scan-countdown.js ai-panel.js coach-ui.js pro-desk.js settings-fix.js vpvr-session.js pro-upgrade-6.js learner-pack.js guide-7days.js macro-calendar.js xtb-bridge.js chart-ta-lesson.js autonomy-pro.js xtb-api-connect.js pro-assistant.js quality-cap.js ui-plain-polish.js pro-edge.js; do
               if [ ! -f "$s" ]; then continue; fi
               if ! grep -q "$s" "$f"; then
                 if grep -q '</body>' "$f"; then
