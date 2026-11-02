@@ -51,7 +51,7 @@
   }
 
   function f2(x, sym) {
-    if (x == null || !isFinite(+x)) return '—';
+    if (x == null || !isFinite(+x)) return '\u2014';
     var s = String(sym || '');
     if (/EUR|USD|GBP|JPY/.test(s) && !/XAU/.test(s)) return Number(x).toFixed(5);
     return Number(x).toFixed(2);
@@ -122,42 +122,37 @@
 
   function ticketText(pl) {
     return [
-      pl.mode === 'OPEN' ? 'BTX POZYCJA → XTB' : 'BTX SYGNAŁ → XTB',
+      pl.mode === 'OPEN' ? 'BTX POZYCJA -> XTB' : 'BTX SYGNAL -> XTB',
       'Symbol XTB: ' + xtbSym(pl.sym),
       'Strona: ' + pl.side,
-      'Wejście: ' + f2(pl.entry, pl.sym),
+      'Wejscie: ' + f2(pl.entry, pl.sym),
       'Size: ' + pl.qty,
       'SL: ' + f2(pl.sl, pl.sym),
       'Partial: ' + f2(pl.partial, pl.sym),
       'TP: ' + f2(pl.tp, pl.sym),
-      'Siła: ' + (pl.strength != null ? pl.strength : '—'),
+      'Sila: ' + (pl.strength != null ? pl.strength : '-'),
       'Dlaczego: ' + String(pl.why || '').replace(/\s+/g, ' ').slice(0, 220)
     ].join('\n');
   }
 
   function getDeskPane() {
-    return document.getElementById('pane-desk') || document.querySelector('#pane-desk') || document.querySelector('[id="pane-desk"]');
+    return document.getElementById('pane-desk');
   }
 
   function ensureHost() {
     injectCss();
     var pane = getDeskPane();
     var el = document.getElementById(ROOT);
-
-    // jeśli ktoś skasował — odtwórz
     if (!el) {
       el = document.createElement('div');
       el.id = ROOT;
     }
-
-    // zawsze przenieś na SAMĄ GÓRĘ pane-desk
     if (pane) {
       if (el.parentNode !== pane || pane.firstChild !== el) {
         if (pane.firstChild) pane.insertBefore(el, pane.firstChild);
         else pane.appendChild(el);
       }
     } else if (!el.parentNode) {
-      // awaryjnie body
       document.body.insertBefore(el, document.body.firstChild);
     }
     return el;
@@ -166,60 +161,59 @@
   function render() {
     var el = ensureHost();
     if (!el) return;
-
     var pl = currentPlan();
     if (!pl) {
       el.innerHTML =
         '<div class="th-top">' +
-          '<div class="th-brand">Handel bota · Plan XTB</div>' +
+          '<div class="th-brand">Handel bota \u00b7 Plan XTB</div>' +
           '<div class="th-status">Brak otwartej pozycji i brak A/A+ w tej chwili</div>' +
         '</div>' +
         '<div class="th-empty">' +
-          '<b>Tu pojawia się LONG/SHORT, size, SL, TP i powód.</b><br>' +
-          'Gdy bot zajmie paper albo pojawi się sygnał PASS — ta karta wypełni się automatycznie. ' +
-          'Wtedy kopiujesz plan jednym kliknięciem do XTB.' +
+          '<b>Tu pojawia sie LONG/SHORT, size, SL, TP i powod.</b><br>' +
+          'Gdy bot zajmie paper albo pojawi sie sygnal PASS \u2014 ta karta wypelni sie automatycznie. ' +
+          'Wtedy kopiujesz plan jednym kliknieciem do XTB.' +
         '</div>' +
-        '<div class="th-foot">Karta jest zawsze na górze zakładki Pulpit</div>';
+        '<div class="th-foot">Karta jest zawsze na gorze zakladki Pulpit</div>';
       return;
     }
 
     var isLong = pl.side === 'LONG';
     var sideCls = isLong ? 'long' : 'short';
     var why = String(pl.why || '').replace(/</g, '');
-    if (why.length > 260) why = why.slice(0, 260) + '…';
+    if (why.length > 260) why = why.slice(0, 260) + '...';
 
     var html = '';
     html += '<div class="th-top">';
-    html += '<div class="th-brand">' + (pl.mode === 'OPEN' ? 'Pozycja otwarta · skopiuj na XTB' : 'Sygnał gotowy · skopiuj na XTB') + '</div>';
-    html += '<div class="th-status">Natychmiastowy podgląd handlu bota</div>';
+    html += '<div class="th-brand">' + (pl.mode === 'OPEN' ? 'Pozycja otwarta \u00b7 skopiuj na XTB' : 'Sygnal gotowy \u00b7 skopiuj na XTB') + '</div>';
+    html += '<div class="th-status">Natychmiastowy podglad handlu bota</div>';
     html += '</div>';
     html += '<div class="th-main"><div>';
-    html += '<div class="th-side ' + sideCls + '">' + pl.side + (pl.grade ? (' · ' + pl.grade) : '') + '</div>';
+    html += '<div class="th-side ' + sideCls + '">' + pl.side + (pl.grade ? (' \u00b7 ' + pl.grade) : '') + '</div>';
     html += '<div class="th-sym">' + pl.sym + '</div>';
     html += '<div class="th-why"><b style="color:#e8eef6">Dlaczego: </b>' + why + '</div>';
     html += '<div style="margin-top:10px">';
     html += '<span class="th-pill">XTB ' + xtbSym(pl.sym) + '</span>';
-    if (pl.strength != null) html += '<span class="th-pill">Siła ' + pl.strength + '/5</span>';
+    if (pl.strength != null) html += '<span class="th-pill">Sila ' + pl.strength + '/5</span>';
     if (pl.score != null) html += '<span class="th-pill">Score ' + pl.score + '</span>';
     html += '</div></div>';
     html += '<div class="th-metrics">';
-    html += '<div class="th-metric"><span>Wejście</span><strong>' + f2(pl.entry, pl.sym) + '</strong></div>';
+    html += '<div class="th-metric"><span>Wejscie</span><strong>' + f2(pl.entry, pl.sym) + '</strong></div>';
     html += '<div class="th-metric"><span>Size</span><strong>' + pl.qty + '</strong></div>';
     html += '<div class="th-metric"><span>Stop Loss</span><strong class="neg">' + f2(pl.sl, pl.sym) + '</strong></div>';
     html += '<div class="th-metric"><span>Take Profit</span><strong class="pos">' + f2(pl.tp, pl.sym) + '</strong></div>';
     html += '<div class="th-metric"><span>Partial ~50%</span><strong>' + f2(pl.partial, pl.sym) + '</strong></div>';
     if (pl.mode === 'OPEN' && pl.pnl != null) {
-      html += '< '<div class="th-metric"><span>Paper P&L</span><strong class="' + (pl.pnl >= 0 ? 'pos' : 'neg') + '">' +
+      html += '<div class="th-metric"><span>Paper P&L</span><strong class="' + (pl.pnl >= 0 ? 'pos' : 'neg') + '">' +
         (pl.pnl >= 0 ? '+' : '') + Number(pl.pnl).toFixed(2) + '</strong></div>';
     } else {
-      html += '<div class="th-metric"><span>Prognoza</span><strong>TP 2.5R · BE po 1R</strong></div>';
+      html += '<div class="th-metric"><span>Prognoza</span><strong>TP 2.5R \u00b7 BE po 1R</strong></div>';
     }
     html += '</div></div>';
     html += '<div class="th-actions">';
     html += '<button type="button" class="th-btn primary" id="th-copy">Kopiuj plan do XTB</button>';
-    html += '<button type="button" class="th-btn ghost" id="th-refresh">Odśwież kartę</button>';
+    html += '<button type="button" class="th-btn ghost" id="th-refresh">Odsviez karte</button>';
     html += '</div>';
-    html += '<div class="th-foot">Ustaw SL w XTB zanim klikniesz kup/sprzedaj · risk 0,5%</div>';
+    html += '<div class="th-foot">Ustaw SL w XTB zanim klikniesz kup/sprzedaj \u00b7 risk 0,5%</div>';
     el.innerHTML = html;
 
     var b = document.getElementById('th-copy');
@@ -251,15 +245,12 @@
     injectCss();
     render();
     bindTabs();
-    // obserwuj kasowanie węzła
     var pane = getDeskPane();
     if (pane && !pane.__thObs) {
       pane.__thObs = true;
       try {
         var obs = new MutationObserver(function () {
-          if (!document.getElementById(ROOT) || (pane.firstChild && pane.firstChild.id !== ROOT)) {
-            render();
-          }
+          if (!document.getElementById(ROOT) || (pane.firstChild && pane.firstChild.id !== ROOT)) render();
         });
         obs.observe(pane, { childList: true });
       } catch (e) {}
@@ -279,6 +270,5 @@
   global.BTX_TRADE_HERO = { render: render, currentPlan: currentPlan };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();
-  // dodatkowy start po pełnym załadowaniu skryptów
-  global.addEventListener && global.addEventListener('load', function () { setTimeout(boot, 50); });
+  if (global.addEventListener) global.addEventListener('load', function () { setTimeout(boot, 50); });
 })(typeof window !== 'undefined' ? window : globalThis);
