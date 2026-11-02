@@ -22,38 +22,22 @@ jobs:
       - name: Restore broken modules and apply Active DT
         run: |
           set -e
-          # restore if placeholder accident
           if grep -q PLACEHOLDER pro-edge.js 2>/dev/null || [ ! -s pro-edge.js ]; then
             curl -sL "https://raw.githubusercontent.com/tomekfalek-cyber/BTX-daytrader/91cae43a82045c562cb4d1ceb2f8cd6a0c88d3b5/pro-edge.js" -o pro-edge.js
-            echo "Restored pro-edge.js"
           fi
           if grep -q PLACEHOLDER autonomy-pro.js 2>/dev/null || [ ! -s autonomy-pro.js ]; then
             curl -sL "https://raw.githubusercontent.com/tomekfalek-cyber/BTX-daytrader/da57a27fea51194738a7c49034b964623d3a4d98/autonomy-pro.js" -o autonomy-pro.js
-            echo "Restored autonomy-pro.js"
           fi
           python3 << 'PY'
           from pathlib import Path
-          # autonomy score 63
           ap = Path('autonomy-pro.js')
-          t = ap.read_text(encoding='utf-8')
-          t = t.replace('score >= 70', 'score >= 63')
+          t = ap.read_text(encoding='utf-8').replace('score >= 70', 'score >= 63')
           ap.write_text(t, encoding='utf-8')
           pe = Path('pro-edge.js')
           p = pe.read_text(encoding='utf-8')
-          p = p.replace('base.score < 70', 'base.score < 63')
-          p = p.replace('pro < 70', 'pro < 63 (Active DT)')
+          p = p.replace('base.score < 70', 'base.score < 63').replace('pro < 70', 'pro < 63 (Active DT)')
           p = p.replace('pos > 0.92', 'pos > 0.95').replace('pos < 0.08', 'pos < 0.05')
-          # soft index reject -> penalty-friendly: change hard returns if still present
-          p = p.replace("return { ok: false, bias: bias, label: label, reason: 'Indeks słaby — long akcji pod wiatr' };",
-                        "return { ok: true, bias: bias, label: label + ' · kara long', penalty: 12 };")
-          p = p.replace("return { ok: false, bias: bias, label: label, reason: 'Indeks mocny — short pod wiatr' };",
-                        "return { ok: true, bias: bias, label: label + ' · kara short', penalty: 12 };")
-          p = p.replace("return { ok: false, rs: rs, label: label, reason: 'Słaba siła względna vs indeks', bonus: 0 };",
-                        "return { ok: true, rs: rs, label: label + ' · słaby RS', bonus: 0, penalty: 10 };")
-          p = p.replace("return { ok: false, rs: rs, label: label, reason: 'Za silny vs indeks na short', bonus: 0 };",
-                        "return { ok: true, rs: rs, label: label + ' · RS short', bonus: 0, penalty: 10 };")
-          lines = p.splitlines()
-          out = []
+          lines, out = p.splitlines(), []
           for line in lines:
               if "phase: 'OPEN'" in line and 'usOpen' in line:
                   out.append("    if (min < usOpen + 30) return { phase: 'OPEN', sizeMult: 0.5, newEntries: true, onlyAPlus: false, minStrength: 4, label: 'Otwarcie US — Active DT siła ≥4, half size' };")
@@ -61,8 +45,8 @@ jobs:
                   out.append("    if (min >= usClose - 45) return { phase: 'CLOSE', sizeMult: 0.5, newEntries: true, onlyAPlus: false, minStrength: 4, timeStopBars: 20, label: 'Końcówka — Active DT siła ≥4' };")
               else:
                   out.append(line)
-          pe.write_text('\n'.join(out) + '\n', encoding='utf-8')
-          print('Active DT thresholds applied')
+          pe.write_text('\n'.join(out)+'\n', encoding='utf-8')
+          print('ok')
           PY
 
       - name: Force 8-symbol universe into index.html
@@ -84,13 +68,8 @@ jobs:
               if not p.exists():
                   continue
               h = p.read_text(encoding='utf-8', errors='replace')
-              h2, n = re.subn(
-                  r'((?:var\s+)?SYMBOLS\s*=\s*)\[(?:[^\[\]]|\[[^\]]*\])*\]',
-                  lambda m: m.group(1) + UNI,
-                  h,
-              )
-              h2 = h2.replace('CFG.autoSec||60', 'CFG.autoSec||180')
-              h2 = h2.replace('autoSec||60', 'autoSec||180')
+              h2, n = re.subn(r'((?:var\s+)?SYMBOLS\s*=\s*)\[(?:[^\[\]]|\[[^\]]*\])*\]', lambda m: m.group(1)+UNI, h)
+              h2 = h2.replace('CFG.autoSec||60','CFG.autoSec||180').replace('autoSec||60','autoSec||180')
               p.write_text(h2, encoding='utf-8')
           PY
 
@@ -100,7 +79,7 @@ jobs:
           inject() {
             local f="$1"
             if [ ! -f "$f" ]; then return 0; fi
-            for s in universe-pro.js auto-180.js strategy-pro.js ai-ensemble.js export-csv.js scan-countdown.js ai-panel.js coach-ui.js pro-desk.js settings-fix.js vpvr-session.js pro-upgrade-6.js learner-pack.js guide-7days.js macro-calendar.js xtb-bridge.js chart-ta-lesson.js autonomy-pro.js xtb-api-connect.js pro-assistant.js quality-cap.js ui-plain-polish.js pro-edge.js active-dt-mode.js; do
+            for s in universe-pro.js auto-180.js strategy-pro.js ai-ensemble.js export-csv.js scan-countdown.js ai-panel.js coach-ui.js pro-desk.js settings-fix.js vpvr-session.js pro-upgrade-6.js learner-pack.js guide-7days.js macro-calendar.js xtb-bridge.js chart-ta-lesson.js autonomy-pro.js xtb-api-connect.js pro-assistant.js quality-cap.js ui-plain-polish.js pro-edge.js active-dt-mode.js dt-final-pack.js; do
               if [ ! -f "$s" ]; then continue; fi
               if ! grep -q "$s" "$f"; then
                 if grep -q '</body>' "$f"; then
