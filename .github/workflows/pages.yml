@@ -22,7 +22,6 @@ jobs:
       - name: Restore + harden modules
         run: |
           set -e
-          # Prefer repo files if full; only restore if PLACEHOLDER/tiny
           for pair in "autonomy-pro.js|da57a27fea51194738a7c49034b964623d3a4d98" "pro-edge.js|91cae43a82045c562cb4d1ceb2f8cd6a0c88d3b5"; do
             f="${pair%%|*}"; rev="${pair##*|}"
             sz=$(wc -c < "$f" 2>/dev/null || echo 0)
@@ -32,39 +31,22 @@ jobs:
           done
           python3 - <<'PY'
           from pathlib import Path
-          ap = Path('autonomy-pro.js')
-          if ap.exists():
-              t = ap.read_text(encoding='utf-8').replace('score >= 70', 'score >= 63')
-              ap.write_text(t, encoding='utf-8')
-          pe = Path('pro-edge.js')
-          if pe.exists():
-              p = pe.read_text(encoding='utf-8').replace('base.score < 70', 'base.score < 63')
-              pe.write_text(p, encoding='utf-8')
+          for name, old, new in [
+              ('autonomy-pro.js', 'score >= 70', 'score >= 63'),
+              ('pro-edge.js', 'base.score < 70', 'base.score < 63'),
+          ]:
+              p = Path(name)
+              if p.exists():
+                  p.write_text(p.read_text(encoding='utf-8').replace(old, new), encoding='utf-8')
           eh = Path('engine-hardening.js')
           if eh.exists():
               h = eh.read_text(encoding='utf-8')
-              lines, out, i = h.splitlines(), [], 0
-              while i < len(lines):
-                  if '5-min (symulacja)' in lines[i] and i + 1 < len(lines) and 'nie 250' in lines[i+1]:
-                      out.append("          el.innerHTML += '<div class=\"mut\" style=\"margin-top:8px;color:#fbbf24\">Uwaga: 250 to swiece 5-min, nie 250 sesji.</div>';")
-                      i += 1
-                      while i < len(lines) and '</div>' not in lines[i]:
-                          i += 1
-                      i += 1
-                      continue
-                  out.append(lines[i]); i += 1
-              h2 = '\n'.join(out) + '\n'
-              if 'CFG.slip = 0.03' not in h2:
-                  h2 = h2.replace(
+              if 'CFG.slip = 0.03' not in h:
+                  h = h.replace(
                       'function boot() {\n    ensureDayReset();',
-                      "function boot() {\n    try { if (global.CFG and (global.CFG.slip == null or global.CFG.slip === '')): global.CFG.slip = 0.03\n    except Exception:\n        pass\n    ensureDayReset();"
+                      "function boot() {\n    try { if (global.CFG && (global.CFG.slip == null || global.CFG.slip === '')) global.CFG.slip = 0.03; } catch (e) {}\n    ensureDayReset();",
                   )
-                  # fix accidental python in js - do proper js replace
-                  h2 = h2.replace(
-                      "function boot() {\n    try { if (global.CFG and (global.CFG.slip == null or global.CFG.slip === '')): global.CFG.slip = 0.03\n    except Exception:\n        pass\n    ensureDayReset();",
-                      "function boot() {\n    try { if (global.CFG && (global.CFG.slip == null || global.CFG.slip === '')) global.CFG.slip = 0.03; } catch (e) {}\n    ensureDayReset();"
-                  )
-              eh.write_text(h2, encoding='utf-8')
+              eh.write_text(h, encoding='utf-8')
           print('modules ok')
           PY
 
@@ -75,11 +57,10 @@ jobs:
           for f in *.js; do
             [ -f "$f" ] || continue
             sz=$(wc -c < "$f")
-            if [ "$sz" -lt 50 ]; then echo "SKIP tiny $f"; continue; fi
+            if [ "$sz" -lt 50 ]; then continue; fi
             if ! node --check "$f"; then echo "FAIL $f"; fail=1; fi
           done
           if [ "$fail" -ne 0 ]; then exit 1; fi
-          echo "All JS syntax OK"
 
       - name: Force 11-symbol universe + sync dashboard
         run: |
@@ -103,10 +84,8 @@ jobs:
               if not p.exists(): return
               h = p.read_text(encoding='utf-8', errors='replace')
               h2, n = re.subn(r'((?:var\s+)?SYMBOLS\s*=\s*)\[(?:[^\[\]]|\[[^\]]*\])*\]', lambda m: m.group(1)+UNI, h)
+              print(path, 'SYMBOLS replacements', n)
               h2 = h2.replace('CFG.autoSec||60','CFG.autoSec||180').replace('autoSec||60','autoSec||180')
-              if 'slip:' not in h2 and 'slip =' not in h2:
-                  h2 = h2.replace('risk:0.5', 'risk:0.5,slip:0.03')
-                  h2 = h2.replace('risk: 0.5', 'risk: 0.5, slip: 0.03')
               p.write_text(h2, encoding='utf-8')
           patch('index.html')
           if pathlib.Path('index.html').exists():
@@ -121,7 +100,7 @@ jobs:
             local f="$1"
             if [ ! -f "$f" ]; then return 0; fi
             for s in \
-              universe-pro.js eu-session.js auto-180.js strategy-pro.js ai-ensemble.js export-csv.js \
+              symbols-canon.js universe-pro.js eu-session.js auto-180.js strategy-pro.js ai-ensemble.js export-csv.js \
               scan-countdown.js ai-panel.js coach-ui.js pro-desk.js settings-fix.js \
               vpvr-session.js pro-upgrade-6.js learner-pack.js guide-7days.js macro-calendar.js \
               xtb-bridge.js chart-ta-lesson.js autonomy-pro.js xtb-api-connect.js \
