@@ -1,6 +1,6 @@
 /**
- * BTX Universe PRO — 8 instrumentów (backup + UI)
- * Główne źródło prawdy: Pages workflow nadpisuje SYMBOLS w index.html
+ * BTX Universe PRO — 8 US/FX + 3 płynne EU (XTB)
+ * Główne źródło: Pages workflow też nadpisuje SYMBOLS w index.html
  */
 (function (global) {
   var UNI = [
@@ -10,6 +10,9 @@
     { s: 'AAPL', n: 'Apple', t: 'Akcja', b: 230, v: 0.0014, mkt: 'US', xtb: 'AAPL.US' },
     { s: 'QQQ', n: 'Nasdaq 100 ETF', t: 'ETF', b: 480, v: 0.0012, mkt: 'US', xtb: 'US100' },
     { s: 'SPY', n: 'S&P 500 ETF', t: 'ETF', b: 560, v: 0.0009, mkt: 'US', xtb: 'US500' },
+    { s: 'ASML', n: 'ASML Holding (EU)', t: 'Akcja', b: 700, v: 0.0018, mkt: 'EU', xtb: 'ASML.NL' },
+    { s: 'SAP', n: 'SAP SE (EU)', t: 'Akcja', b: 220, v: 0.0015, mkt: 'EU', xtb: 'SAP.DE' },
+    { s: 'SIE.DE', n: 'Siemens (EU)', t: 'Akcja', b: 180, v: 0.0014, mkt: 'EU', xtb: 'SIE.DE' },
     { s: 'EURUSD', n: 'EUR/USD', t: 'FX', b: 1.08, v: 0.00035, mkt: 'FX', xtb: 'EURUSD' },
     { s: 'XAU/USD', n: 'Zloto (Gold)', t: 'FX', b: 2650, v: 0.0008, mkt: 'FX', xtb: 'GOLD' }
   ];
@@ -31,12 +34,6 @@
       }).join('');
       if (UNI.some(function (m) { return m.s === cur; })) sel.value = cur;
     }
-    var uni = document.getElementById('uni');
-    if (uni) {
-      uni.innerHTML = UNI.map(function (m) {
-        return '<span class="tag">' + m.s + '</span> ' + m.n + ' · XTB ' + m.xtb;
-      }).join('<br>');
-    }
     var note = document.getElementById('universe-note');
     if (!note) {
       var host = document.getElementById('pane-mkt');
@@ -52,25 +49,23 @@
         }
       }
     }
-    if (note) note.innerHTML = '<b>Uniwersum: 8</b> NVDA TSLA META AAPL QQQ SPY EURUSD XAU/USD (Auto 180s)';
+    if (note) {
+      note.innerHTML = '<b>Uniwersum: 11</b> · US tech/ETF + <b>EU płynne: ASML, SAP, SIE.DE</b> (XTB) + FX/Gold. ' +
+        'EU sesja ~9:00–17:30 PL · US od ~15:30. Free Twelve: obserwuj limit API.';
+    }
   }
 
   function patch() {
     apply();
-    if (typeof global.renderMkt === 'function' && !global.renderMkt.__u8) {
-      var rm = global.renderMkt;
-      global.renderMkt = function () { apply(); return rm.apply(this, arguments); };
-      global.renderMkt.__u8 = true;
-    }
-    if (typeof global.render === 'function' && !global.render.__u8) {
+    if (typeof global.render === 'function' && !global.render.__u11) {
       var r = global.render;
-      global.render = function () { apply(); var out = r.apply(this, arguments); return out; };
-      global.render.__u8 = true;
+      global.render = function () { apply(); return r.apply(this, arguments); };
+      global.render.__u11 = true;
     }
-    if (typeof global.cycle === 'function' && !global.cycle.__u8) {
+    if (typeof global.cycle === 'function' && !global.cycle.__u11) {
       var c = global.cycle;
       global.cycle = function () { apply(); return c.apply(this, arguments); };
-      global.cycle.__u8 = true;
+      global.cycle.__u11 = true;
     }
   }
 
@@ -78,11 +73,9 @@
     patch();
     setTimeout(patch, 200);
     setTimeout(patch, 800);
-    setTimeout(patch, 2000);
-    setInterval(patch, 5000);
   }
 
-  global.BTX_UNIVERSE = { list: UNI, apply: apply };
+  global.BTX_UNI = { list: UNI, apply: apply };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();
 })(typeof window !== 'undefined' ? window : globalThis);
