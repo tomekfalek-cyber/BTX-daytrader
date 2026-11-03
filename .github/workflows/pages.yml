@@ -93,6 +93,30 @@ jobs:
               shutil.copyfile('index.html', 'dashboard/index.html')
           PY
 
+      - name: Smoke test universe (11 + EU)
+        run: |
+          python3 << 'PY'
+          from pathlib import Path
+          import re
+          h = Path('index.html').read_text(encoding='utf-8', errors='replace')
+          # after patch, ASML/SAP/SIE must exist
+          for s in ['ASML', 'SAP', 'SIE.DE', 'NVDA', 'EURUSD', 'XAU/USD']:
+              assert s in h, f'missing {s} in index.html'
+          # count symbol entries roughly
+          found = re.findall(r"\{s:'([^']+)'", h)
+          # may match multiple SYMBOLS arrays - unique
+          uniq = []
+          for x in found:
+              if x not in uniq: uniq.append(x)
+          print('symbols seen', uniq)
+          assert 'ASML' in uniq and 'SAP' in uniq and 'SIE.DE' in uniq
+          assert len([u for u in uniq if u in ['NVDA','TSLA','META','AAPL','QQQ','SPY','ASML','SAP','SIE.DE','EURUSD','XAU/USD']]) >= 11
+          # modules exist
+          for f in ['session-profiles.js','live-hard-gate.js','api-budget.js','day-report.js','xtb-map-full.js','symbols-canon.js','universe-pro.js']:
+              assert Path(f).exists() and Path(f).stat().st_size > 100, f
+          print('SMOKE OK')
+          PY
+
       - name: Wire client modules (ordered)
         run: |
           set -e
@@ -100,7 +124,9 @@ jobs:
             local f="$1"
             if [ ! -f "$f" ]; then return 0; fi
             for s in \
-              symbols-canon.js universe-pro.js eu-session.js auto-180.js strategy-pro.js ai-ensemble.js export-csv.js \
+              symbols-canon.js universe-pro.js xtb-map-full.js eu-session.js session-profiles.js \
+              live-hard-gate.js api-budget.js day-report.js \
+              auto-180.js strategy-pro.js ai-ensemble.js export-csv.js \
               scan-countdown.js ai-panel.js coach-ui.js pro-desk.js settings-fix.js \
               vpvr-session.js pro-upgrade-6.js learner-pack.js guide-7days.js macro-calendar.js \
               xtb-bridge.js chart-ta-lesson.js autonomy-pro.js xtb-api-connect.js \
