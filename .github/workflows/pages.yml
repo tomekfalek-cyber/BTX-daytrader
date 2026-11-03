@@ -104,7 +104,7 @@ jobs:
               scan-countdown.js ai-panel.js coach-ui.js pro-desk.js settings-fix.js \
               vpvr-session.js pro-upgrade-6.js learner-pack.js guide-7days.js macro-calendar.js \
               xtb-bridge.js chart-ta-lesson.js autonomy-pro.js xtb-api-connect.js \
-              pro-assistant.js quality-cap.js ui-plain-polish.js pro-edge.js \
+              pro-assistant.js quality-cap.js quality-cap-eu-map.js ui-plain-polish.js pro-edge.js \
               active-dt-mode.js dt-final-pack.js trade-hero.js engine-hardening.js desk-compact.js
             do
               if [ ! -f "$s" ]; then continue; fi
