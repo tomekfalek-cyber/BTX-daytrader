@@ -1,6 +1,6 @@
 /**
- * BTX Universe PRO — 8 US/FX + 3 płynne EU (XTB)
- * Główne źródło: Pages workflow też nadpisuje SYMBOLS w index.html
+ * BTX Universe PRO — 11 instrumentów (jedno źródło prawdy w runtime)
+ * US 6 + EU 3 + FX 2
  */
 (function (global) {
   var UNI = [
@@ -14,7 +14,7 @@
     { s: 'SAP', n: 'SAP SE (EU)', t: 'Akcja', b: 220, v: 0.0015, mkt: 'EU', xtb: 'SAP.DE' },
     { s: 'SIE.DE', n: 'Siemens (EU)', t: 'Akcja', b: 180, v: 0.0014, mkt: 'EU', xtb: 'SIE.DE' },
     { s: 'EURUSD', n: 'EUR/USD', t: 'FX', b: 1.08, v: 0.00035, mkt: 'FX', xtb: 'EURUSD' },
-    { s: 'XAU/USD', n: 'Zloto (Gold)', t: 'FX', b: 2650, v: 0.0008, mkt: 'FX', xtb: 'GOLD' }
+    { s: 'XAU/USD', n: 'Złoto (Gold)', t: 'FX', b: 2650, v: 0.0008, mkt: 'FX', xtb: 'GOLD' }
   ];
 
   function apply() {
@@ -34,6 +34,12 @@
       }).join('');
       if (UNI.some(function (m) { return m.s === cur; })) sel.value = cur;
     }
+    var uni = document.getElementById('uni');
+    if (uni) {
+      uni.innerHTML = UNI.map(function (m) {
+        return '<span class="tag">' + m.s + '</span> ' + m.n + ' · XTB ' + (m.xtb || m.s) + ' · ' + m.mkt;
+      }).join('<br>');
+    }
     var note = document.getElementById('universe-note');
     if (!note) {
       var host = document.getElementById('pane-mkt');
@@ -50,8 +56,7 @@
       }
     }
     if (note) {
-      note.innerHTML = '<b>Uniwersum: 11</b> · US tech/ETF + <b>EU płynne: ASML, SAP, SIE.DE</b> (XTB) + FX/Gold. ' +
-        'EU sesja ~9:00–17:30 PL · US od ~15:30. Free Twelve: obserwuj limit API.';
+      note.innerHTML = '<b>Uniwersum: 11</b> · US: NVDA TSLA META AAPL QQQ SPY · <b>EU: ASML SAP SIE.DE</b> · FX: EURUSD XAU/USD';
     }
   }
 
@@ -71,8 +76,9 @@
 
   function boot() {
     patch();
-    setTimeout(patch, 200);
-    setTimeout(patch, 800);
+    setTimeout(patch, 150);
+    setTimeout(patch, 600);
+    setTimeout(patch, 1500);
   }
 
   global.BTX_UNI = { list: UNI, apply: apply };

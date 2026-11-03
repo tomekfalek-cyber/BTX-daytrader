@@ -1,5 +1,5 @@
 /**
- * Sesja EU: ASML / SAP / SIE.DE handlowalne ~9:00–17:30 PL
+ * Sesja EU: ASML / SAP / SIE.DE ~9:00–17:30 PL
  */
 (function (global) {
   function patchSession() {
@@ -19,14 +19,13 @@
         var min = parseInt(map.hour, 10) * 60 + parseInt(map.minute, 10);
         var weekend = /Sat|Sun/i.test(map.weekday || '');
         if (weekend) return false;
-        // Xetra / EU equity ok. 9:00–17:30 PL
         return min >= 9 * 60 && min < 17 * 60 + 30;
       }
       return orig.apply(this, arguments);
     };
     global.sessionOpen.__eu = true;
 
-    if (global.BTX_HARDENING && global.BTX_HARDENING.sessionOpenFixed && !global.BTX_HARDENING.sessionOpenFixed.__eu) {
+    if (global.BTX_HARDENING && typeof global.BTX_HARDENING.sessionOpenFixed === 'function' && !global.BTX_HARDENING.sessionOpenFixed.__eu) {
       var oh = global.BTX_HARDENING.sessionOpenFixed;
       global.BTX_HARDENING.sessionOpenFixed = function (mkt) {
         if (mkt === 'EU' || mkt === 'PL') return global.sessionOpen(mkt);
@@ -36,27 +35,9 @@
     }
   }
 
-  // mapowanie Twelve / XTB dla EU
-  function patchFetch() {
-    if (typeof global.fetchReal !== 'function' || global.fetchReal.__euMap) return;
-    var orig = global.fetchReal;
-    global.fetchReal = async function (sym) {
-      var map = {
-        'SIE.DE': 'SIE.DE',
-        ASML: 'ASML',
-        SAP: 'SAP',
-        EURUSD: 'EUR/USD'
-      };
-      var req = map[sym] || sym;
-      return orig.call(this, req);
-    };
-    global.fetchReal.__euMap = true;
-  }
-
   function boot() {
     patchSession();
-    patchFetch();
-    setInterval(function () { patchSession(); patchFetch(); }, 3000);
+    setInterval(patchSession, 3000);
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();
