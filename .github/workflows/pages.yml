@@ -19,68 +19,65 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Restore core modules and patch syntax
+      - name: Restore + harden modules
         run: |
           set -e
-          # ALWAYS restore autonomy + pro-edge (main often had PLACEHOLDER)
+          # Core modules (never ship PLACEHOLDER)
           curl -sL "https://raw.githubusercontent.com/tomekfalek-cyber/BTX-daytrader/da57a27fea51194738a7c49034b964623d3a4d98/autonomy-pro.js" -o autonomy-pro.js
           curl -sL "https://raw.githubusercontent.com/tomekfalek-cyber/BTX-daytrader/91cae43a82045c562cb4d1ceb2f8cd6a0c88d3b5/pro-edge.js" -o pro-edge.js
           python3 - <<'PY'
           from pathlib import Path
           import re
-          # Active DT score
           ap = Path('autonomy-pro.js')
           t = ap.read_text(encoding='utf-8').replace('score >= 70', 'score >= 63')
           ap.write_text(t, encoding='utf-8')
-          # pro-edge soft thresholds
+          assert ap.stat().st_size > 5000, 'autonomy too small'
           pe = Path('pro-edge.js')
-          p = pe.read_text(encoding='utf-8')
-          p = p.replace('base.score < 70', 'base.score < 63')
+          p = pe.read_text(encoding='utf-8').replace('base.score < 70', 'base.score < 63')
           pe.write_text(p, encoding='utf-8')
-          # engine-hardening: fix broken multiline string if present
+          assert pe.stat().st_size > 5000, 'edge too small'
           eh = Path('engine-hardening.js')
           if eh.exists():
               h = eh.read_text(encoding='utf-8')
-              h2 = re.sub(
-                  r"el\.innerHTML \+=\s*\n\s*'<div class=\"mut\"[^']*$\n\s*[^']*</div>';",
-                  'el.innerHTML += \'<div class="mut" style="margin-top:8px;color:#fbbf24">Uwaga: 250 to swiece 5-min, nie 250 sesji. Wynik orientacyjny.</div>\';',
-                  h,
-                  flags=re.M,
-              )
-              # simpler replace of known broken fragment
-              h2 = h2.replace(
-                  '"250" to 250 \u015bwiec 5-min (symulacja),\n           nie 250 sesji',
-                  '"250" to 250 swiec 5-min (symulacja), nie 250 sesji'
-              )
-              # raw broken lines join
-              lines = h2.splitlines()
-              out = []
-              i = 0
+              # fix broken multiline warning if present
+              lines, out, i = h.splitlines(), [], 0
               while i < len(lines):
-                  if '250 \u015bwiec 5-min (symulacja),' in lines[i] or '250 świec 5-min (symulacja),' in lines[i]:
+                  if '5-min (symulacja)' in lines[i] and i + 1 < len(lines) and 'nie 250' in lines[i+1]:
                       out.append("          el.innerHTML += '<div class=\"mut\" style=\"margin-top:8px;color:#fbbf24\">Uwaga: 250 to swiece 5-min, nie 250 sesji. Wynik orientacyjny.</div>';")
-                      # skip continuation lines until ;
                       i += 1
-                      while i < len(lines) and 'div>' not in lines[i]:
+                      while i < len(lines) and '</div>' not in lines[i]:
                           i += 1
                       i += 1
                       continue
-                  out.append(lines[i])
-                  i += 1
-              eh.write_text('\n'.join(out) + '\n', encoding='utf-8')
-              print('engine-hardening patched')
-          print('restored autonomy', ap.stat().st_size, 'edge', pe.stat().st_size)
+                  out.append(lines[i]); i += 1
+              h2 = '\n'.join(out) + '\n'
+              if 'CFG.slip = 0.03' not in h2:
+                  h2 = h2.replace(
+                      'function boot() {\n    ensureDayReset();',
+                      "function boot() {\n    try { if (global.CFG && (global.CFG.slip == null || global.CFG.slip === '')) global.CFG.slip = 0.03; } catch (e) {}\n    ensureDayReset();"
+                  )
+              eh.write_text(h2, encoding='utf-8')
+          print('modules restored/patched')
           PY
-          # syntax gate
-          node --check autonomy-pro.js
-          node --check pro-edge.js
-          if [ -f engine-hardening.js ]; then node --check engine-hardening.js; fi
-          if [ -f trade-hero.js ]; then node --check trade-hero.js || true; fi
 
-      - name: Force 8-symbol universe into index.html
+      - name: Syntax check all client JS
+        run: |
+          set -e
+          fail=0
+          for f in *.js; do
+            [ -f "$f" ] || continue
+            # skip empty placeholder leftovers
+            sz=$(wc -c < "$f")
+            if [ "$sz" -lt 50 ]; then echo "SKIP tiny $f"; continue; fi
+            if ! node --check "$f"; then echo "FAIL $f"; fail=1; fi
+          done
+          if [ "$fail" -ne 0 ]; then exit 1; fi
+          echo "All JS syntax OK"
+
+      - name: Force 8-symbol universe + sync dashboard
         run: |
           python3 << 'PY'
-          import re, pathlib
+          import re, pathlib, shutil
           UNI = """[
           {s:'NVDA',n:'NVIDIA',t:'Akcja',b:140,v:0.0022,mkt:'US'},
           {s:'TSLA',n:'Tesla',t:'Akcja',b:250,v:0.0024,mkt:'US'},
@@ -91,22 +88,40 @@ jobs:
           {s:'EURUSD',n:'EUR/USD',t:'FX',b:1.08,v:0.00035,mkt:'FX'},
           {s:'XAU/USD',n:'Zloto (Gold)',t:'FX',b:2650,v:0.0008,mkt:'FX'}
           ]"""
-          for path in ['index.html','dashboard/index.html']:
-              p=pathlib.Path(path)
-              if not p.exists(): continue
-              h=p.read_text(encoding='utf-8',errors='replace')
-              h2,n=re.subn(r'((?:var\s+)?SYMBOLS\s*=\s*)\[(?:[^\[\]]|\[[^\]]*\])*\]',lambda m:m.group(1)+UNI,h)
-              h2=h2.replace('CFG.autoSec||60','CFG.autoSec||180').replace('autoSec||60','autoSec||180')
-              p.write_text(h2,encoding='utf-8')
+          def patch(path):
+              p = pathlib.Path(path)
+              if not p.exists(): return
+              h = p.read_text(encoding='utf-8', errors='replace')
+              h2, n = re.subn(r'((?:var\s+)?SYMBOLS\s*=\s*)\[(?:[^\[\]]|\[[^\]]*\])*\]', lambda m: m.group(1)+UNI, h)
+              h2 = h2.replace('CFG.autoSec||60','CFG.autoSec||180').replace('autoSec||60','autoSec||180')
+              # default slip in CFG object if present
+              if 'slip:' not in h2 and 'slip =' not in h2:
+                  h2 = h2.replace('risk:0.5', 'risk:0.5,slip:0.03')
+                  h2 = h2.replace('risk: 0.5', 'risk: 0.5, slip: 0.03')
+              p.write_text(h2, encoding='utf-8')
+          patch('index.html')
+          # sync dashboard from root index to avoid drift
+          if pathlib.Path('index.html').exists():
+              pathlib.Path('dashboard').mkdir(exist_ok=True)
+              shutil.copyfile('index.html', 'dashboard/index.html')
+              print('dashboard synced from index.html')
           PY
 
-      - name: Wire client modules into index.html
+      - name: Wire client modules (ordered)
         run: |
           set -e
           inject() {
             local f="$1"
             if [ ! -f "$f" ]; then return 0; fi
-            for s in universe-pro.js auto-180.js strategy-pro.js ai-ensemble.js export-csv.js scan-countdown.js ai-panel.js coach-ui.js pro-desk.js settings-fix.js vpvr-session.js pro-upgrade-6.js learner-pack.js guide-7days.js macro-calendar.js xtb-bridge.js chart-ta-lesson.js autonomy-pro.js xtb-api-connect.js pro-assistant.js quality-cap.js ui-plain-polish.js pro-edge.js active-dt-mode.js dt-final-pack.js trade-hero.js engine-hardening.js; do
+            # ordered: strategy/data -> risk/desk -> autonomy/edge -> UI -> hardening last
+            for s in \
+              universe-pro.js auto-180.js strategy-pro.js ai-ensemble.js export-csv.js \
+              scan-countdown.js ai-panel.js coach-ui.js pro-desk.js settings-fix.js \
+              vpvr-session.js pro-upgrade-6.js learner-pack.js guide-7days.js macro-calendar.js \
+              xtb-bridge.js chart-ta-lesson.js autonomy-pro.js xtb-api-connect.js \
+              pro-assistant.js quality-cap.js ui-plain-polish.js pro-edge.js \
+              active-dt-mode.js dt-final-pack.js trade-hero.js engine-hardening.js desk-compact.js
+            do
               if [ ! -f "$s" ]; then continue; fi
               if ! grep -q "$s" "$f"; then
                 if grep -q '</body>' "$f"; then
