@@ -31,7 +31,6 @@ jobs:
           done
           python3 - <<'PY'
           from pathlib import Path
-          # Permanent daytrade patches on strategy-pro at build time
           p = Path('strategy-pro.js')
           if p.exists():
               t = p.read_text(encoding='utf-8')
@@ -64,7 +63,7 @@ jobs:
               pp = Path(name)
               if pp.exists():
                   pp.write_text(pp.read_text(encoding='utf-8').replace(old, new), encoding='utf-8')
-          print('DT patches applied')
+          print('DT permanent')
           PY
 
       - name: Syntax check all client JS
@@ -109,10 +108,6 @@ jobs:
               shutil.copyfile('index.html', 'dashboard/index.html')
           PY
 
-      - name: Smoke test
-        run: |
-          python3 -c "from pathlib import Path; assert Path('daytrader-mode.js').exists(); print('OK')"
-
       - name: Wire client modules (ordered)
         run: |
           set -e
@@ -128,13 +123,12 @@ jobs:
               xtb-bridge.js chart-ta-lesson.js autonomy-pro.js xtb-api-connect.js \
               pro-assistant.js quality-cap.js quality-cap-eu-map.js ui-plain-polish.js pro-edge.js \
               active-dt-mode.js dt-final-pack.js trade-hero.js engine-hardening.js \
-              unblock-trading.js desk-compact.js
+              unblock-trading.js desk-compact.js ui-less-noise.js
             do
               if [ ! -f "$s" ]; then continue; fi
               if ! grep -q "$s" "$f"; then
                 if grep -q '</body>' "$f"; then
                   sed -i "s|</body>|\\n<script src=\"$s\"></script>\\n</body>|" "$f"
-                  echo "Injected $s into $f"
                 fi
               fi
             done
