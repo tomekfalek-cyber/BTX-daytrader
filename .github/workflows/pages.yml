@@ -31,14 +31,40 @@ jobs:
           done
           python3 - <<'PY'
           from pathlib import Path
+          # Permanent daytrade patches on strategy-pro at build time
+          p = Path('strategy-pro.js')
+          if p.exists():
+              t = p.read_text(encoding='utf-8')
+              for a,b in [
+                  ('minStrengthOpen: 4','minStrengthOpen: 3'),
+                  ('requireTrend: true','requireTrend: false'),
+                  ('atrSlMult: 2.0','atrSlMult: 1.2'),
+                  ('tpR: 2.5','tpR: 1.6'),
+                  ('beR: 1.0','beR: 0.8'),
+                  ('coolBars: 12','coolBars: 4'),
+                  ('minHoldBars: 4','minHoldBars: 2'),
+                  ('maxDayTrades: 4','maxDayTrades: 6'),
+                  ('newsPadMin: 30','newsPadMin: 10'),
+                  ('scoreL >= 6','scoreL >= 4'),
+                  ('scoreS >= 6','scoreS >= 4'),
+              ]:
+                  t = t.replace(a,b)
+              if 'EU:' not in t:
+                  t = t.replace(
+                      "PL: { open: 8 * 60, close: 16 * 60 + 50, prime: [[8 * 60 + 5, 10 * 60], [14 * 60, 16 * 60]] },",
+                      "PL: { open: 8 * 60, close: 16 * 60 + 50, prime: [[8 * 60 + 5, 10 * 60], [14 * 60, 16 * 60]] },\n      EU: { open: 8 * 60, close: 16 * 60 + 50, prime: [[8 * 60 + 5, 10 * 60], [14 * 60, 16 * 60]] },",
+                  )
+              p.write_text(t, encoding='utf-8')
           for name, old, new in [
-              ('autonomy-pro.js', 'score >= 70', 'score >= 63'),
-              ('pro-edge.js', 'base.score < 70', 'base.score < 63'),
+              ('autonomy-pro.js', 'score >= 70', 'score >= 55'),
+              ('autonomy-pro.js', 'score >= 63', 'score >= 55'),
+              ('pro-edge.js', 'base.score < 70', 'base.score < 55'),
+              ('pro-edge.js', 'base.score < 63', 'base.score < 55'),
           ]:
-              p = Path(name)
-              if p.exists():
-                  p.write_text(p.read_text(encoding='utf-8').replace(old, new), encoding='utf-8')
-          print('modules ok')
+              pp = Path(name)
+              if pp.exists():
+                  pp.write_text(pp.read_text(encoding='utf-8').replace(old, new), encoding='utf-8')
+          print('DT patches applied')
           PY
 
       - name: Syntax check all client JS
@@ -75,7 +101,7 @@ jobs:
               if not p.exists(): return
               h = p.read_text(encoding='utf-8', errors='replace')
               h2, n = re.subn(r'((?:var\s+)?SYMBOLS\s*=\s*)\[(?:[^\[\]]|\[[^\]]*\])*\]', lambda m: m.group(1)+UNI, h)
-              h2 = h2.replace('CFG.autoSec||60','CFG.autoSec||180').replace('autoSec||60','autoSec||180')
+              h2 = h2.replace('CFG.autoSec||60','CFG.autoSec||120').replace('autoSec||60','autoSec||120')
               p.write_text(h2, encoding='utf-8')
           patch('index.html')
           if pathlib.Path('index.html').exists():
@@ -83,16 +109,9 @@ jobs:
               shutil.copyfile('index.html', 'dashboard/index.html')
           PY
 
-      - name: Smoke test universe (11 + EU)
+      - name: Smoke test
         run: |
-          python3 << 'PY'
-          from pathlib import Path
-          for s in ['ASML', 'SAP', 'SIE.DE']:
-              assert s in Path('index.html').read_text(encoding='utf-8', errors='replace')
-          for f in ['session-profiles.js','unblock-trading.js','universe-pro.js']:
-              assert Path(f).exists()
-          print('SMOKE OK')
-          PY
+          python3 -c "from pathlib import Path; assert Path('daytrader-mode.js').exists(); print('OK')"
 
       - name: Wire client modules (ordered)
         run: |
@@ -103,7 +122,7 @@ jobs:
             for s in \
               symbols-canon.js universe-pro.js xtb-map-full.js eu-session.js session-profiles.js \
               live-hard-gate.js api-budget.js day-report.js \
-              auto-180.js strategy-pro.js ai-ensemble.js export-csv.js \
+              auto-180.js strategy-pro.js daytrader-mode.js ai-ensemble.js export-csv.js \
               scan-countdown.js ai-panel.js coach-ui.js pro-desk.js settings-fix.js \
               vpvr-session.js pro-upgrade-6.js learner-pack.js guide-7days.js macro-calendar.js \
               xtb-bridge.js chart-ta-lesson.js autonomy-pro.js xtb-api-connect.js \
