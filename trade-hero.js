@@ -1,5 +1,5 @@
 /**
- * BTX Trade Hero — zawsze widoczny na górze Pulptu
+ * Handel bota — WSZYSTKIE otwarte pozycje + kapitał z portfela
  */
 (function (global) {
   var ROOT = 'btx-trade-hero';
@@ -10,150 +10,160 @@
     var s = document.createElement('style');
     s.id = STYLE;
     s.textContent = [
-      '#' + ROOT + '{display:block!important;visibility:visible!important;opacity:1!important;',
-      'margin:0 0 16px!important;border-radius:18px;overflow:hidden;position:relative;z-index:5;',
-      'border:1px solid rgba(228,0,43,.35)!important;',
-      'background:radial-gradient(1000px 380px at 8% -30%,rgba(228,0,43,.22),transparent 55%),',
-      'linear-gradient(180deg,#1a1014 0%,#12161d 55%,#0e1319 100%)!important;',
-      'box-shadow:0 14px 40px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.05)}',
-      '#' + ROOT + ' .th-top{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;',
-      'justify-content:space-between;padding:14px 16px 8px}',
-      '#' + ROOT + ' .th-brand{font-size:11px;letter-spacing:.14em;text-transform:uppercase;',
-      'color:#f5a3b0;font-weight:800}',
+      '#' + ROOT + '{display:block!important;margin:0 0 14px;border-radius:16px;overflow:hidden;',
+      'border:1px solid rgba(228,0,43,.45);background:linear-gradient(165deg,#1a1216 0%,#0c0f14 55%,#101820 100%);',
+      'box-shadow:0 12px 40px rgba(0,0,0,.45);position:relative;z-index:60}',
+      '#' + ROOT + ' .th-top{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;justify-content:space-between;',
+      'padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.06);background:rgba(228,0,43,.12)}',
+      '#' + ROOT + ' .th-brand{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#ffb3c0;font-weight:800}',
       '#' + ROOT + ' .th-status{font-size:12px;color:#c5d0dc}',
-      '#' + ROOT + ' .th-main{padding:6px 16px 14px;display:grid;grid-template-columns:1.15fr 1fr;gap:14px}',
-      '@media(max-width:820px){#' + ROOT + ' .th-main{grid-template-columns:1fr}}',
-      '#' + ROOT + ' .th-side{font-size:12px;font-weight:800;letter-spacing:.1em}',
-      '#' + ROOT + ' .th-side.long{color:#3ddeaa}',
-      '#' + ROOT + ' .th-side.short{color:#ff6b7a}',
-      '#' + ROOT + ' .th-sym{font-size:30px;line-height:1.05;font-weight:800;color:#fff;',
-      'font-family:ui-monospace,SFMono-Regular,Menlo,monospace;margin:4px 0 8px}',
-      '#' + ROOT + ' .th-why{font-size:13px;line-height:1.55;color:#b0becb}',
-      '#' + ROOT + ' .th-metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}',
-      '#' + ROOT + ' .th-metric{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);',
-      'border-radius:12px;padding:10px 12px}',
-      '#' + ROOT + ' .th-metric span{display:block;font-size:10px;letter-spacing:.08em;text-transform:uppercase;',
-      'color:#8b97a5;margin-bottom:4px;font-weight:700}',
-      '#' + ROOT + ' .th-metric strong{font-size:15px;color:#eef3f8;font-family:ui-monospace,monospace}',
+      '#' + ROOT + ' .th-list{padding:12px 16px;display:flex;flex-direction:column;gap:12px}',
+      '#' + ROOT + ' .th-card{padding:12px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.1);background:rgba(0,0,0,.28)}',
+      '#' + ROOT + ' .th-card .row1{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:8px}',
+      '#' + ROOT + ' .th-sym{font-size:22px;font-weight:800;color:#fff}',
+      '#' + ROOT + ' .th-side.long{color:#3ddeaa;font-weight:800}',
+      '#' + ROOT + ' .th-side.short{color:#ff6b7a;font-weight:800}',
+      '#' + ROOT + ' .th-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:8px}',
+      '@media(max-width:700px){#' + ROOT + ' .th-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}',
+      '#' + ROOT + ' .th-metric{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:8px 10px}',
+      '#' + ROOT + ' .th-metric span{display:block;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#8b97a5;margin-bottom:3px}',
+      '#' + ROOT + ' .th-metric strong{font-size:14px;color:#eef3f8;font-family:ui-monospace,monospace}',
       '#' + ROOT + ' .th-metric strong.pos{color:#3ddeaa}',
       '#' + ROOT + ' .th-metric strong.neg{color:#ff6b7a}',
-      '#' + ROOT + ' .th-actions{display:flex;flex-wrap:wrap;gap:8px;padding:0 16px 14px}',
-      '#' + ROOT + ' .th-btn{border:0;cursor:pointer;border-radius:10px;padding:11px 14px;font-weight:700;font-size:12px}',
+      '#' + ROOT + ' .th-why{font-size:12.5px;line-height:1.5;color:#b0becb;margin-top:8px}',
+      '#' + ROOT + ' .th-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}',
+      '#' + ROOT + ' .th-btn{border:0;cursor:pointer;border-radius:10px;padding:10px 14px;font-weight:700;font-size:12px}',
       '#' + ROOT + ' .th-btn.primary{background:linear-gradient(180deg,#e4002b,#b80020);color:#fff}',
       '#' + ROOT + ' .th-btn.ghost{background:rgba(255,255,255,.05);color:#d5dee8;border:1px solid rgba(255,255,255,.1)}',
-      '#' + ROOT + ' .th-empty{padding:18px 16px 20px;color:#c5d0dc;font-size:13.5px;line-height:1.55}',
-      '#' + ROOT + ' .th-empty b{color:#fff;font-size:15px}',
-      '#' + ROOT + ' .th-foot{padding:10px 16px 12px;border-top:1px solid rgba(255,255,255,.06);font-size:11px;color:#8b97a5}',
-      '#' + ROOT + ' .th-pill{display:inline-flex;padding:3px 8px;border-radius:99px;background:rgba(255,255,255,.06);',
-      'border:1px solid rgba(255,255,255,.08);font-size:10px;color:#c5d0dc;margin:2px 4px 2px 0}'
+      '#' + ROOT + ' .th-empty{padding:18px 16px;color:#c5d0dc;font-size:13.5px;line-height:1.55}',
+      '#' + ROOT + ' .th-foot{padding:10px 16px;border-top:1px solid rgba(255,255,255,.06);font-size:11px;color:#8b97a5}'
     ].join('');
     document.head.appendChild(s);
   }
 
-  function f2(x, sym) {
-    if (x == null || !isFinite(+x)) return '\u2014';
-    var s = String(sym || '');
-    if (/EUR|USD|GBP|JPY/.test(s) && !/XAU/.test(s)) return Number(x).toFixed(5);
-    return Number(x).toFixed(2);
+  function f2(x) {
+    if (typeof global.f2 === 'function') return global.f2(x);
+    var n = Number(x);
+    if (!isFinite(n)) return '—';
+    return Math.abs(n) >= 100 ? n.toFixed(2) : (Math.abs(n) >= 1 ? n.toFixed(4) : n.toFixed(5));
   }
-
+  function money(x) {
+    var n = Number(x) || 0;
+    return n.toFixed(2) + ' PLN';
+  }
   function xtbSym(sym) {
     if (global.BTX_QCAP && global.BTX_QCAP.mapSym) return global.BTX_QCAP.mapSym(sym);
-    var m = { QQQ: 'US100', SPY: 'US500', 'XAU/USD': 'GOLD', NVDA: 'NVDA.US', TSLA: 'TSLA.US', META: 'META.US', AAPL: 'AAPL.US', EURUSD: 'EURUSD' };
-    return m[sym] || sym;
+    if (global.BTX_XTB_MAP && global.BTX_XTB_MAP.map) return global.BTX_XTB_MAP.map(sym);
+    var m = { QQQ: 'US100', SPY: 'US500', 'XAU/USD': 'GOLD', ASML: 'ASML.NL', SAP: 'SAP.DE', 'SIE.DE': 'SIE.DE' };
+    return m[sym] || (sym + '.US');
   }
 
-  function planFromPos(sym, p) {
-    var b = global.ST && global.ST.series && global.ST.series[sym];
-    var last = b && b.length ? b[b.length - 1].c : p.entry;
-    var risk = Math.abs(p.entry - (p.stop != null ? p.stop : p.entry)) || (p.entry * 0.004);
-    if (!risk) risk = p.entry * 0.004;
-    var tp = p.tp != null ? p.tp : (p.side === 'SHORT' ? p.entry - 2.5 * risk : p.entry + 2.5 * risk);
-    var sl = p.stop != null ? p.stop : (p.side === 'SHORT' ? p.entry + risk : p.entry - risk);
-    var partial = p.side === 'SHORT' ? p.entry - 1.5 * risk : p.entry + 1.5 * risk;
-    var pnl = p.side === 'LONG' ? (last - p.entry) * (p.qty || 0) : (p.entry - last) * (p.qty || 0);
-    return {
-      mode: 'OPEN', sym: sym, side: p.side, entry: p.entry, last: last, sl: sl, tp: tp, partial: partial,
-      qty: p.qty || 1, pnl: pnl, why: p.why || p.setup || 'Pozycja paper otwarta przez bota',
-      strength: p.strength, bars: p.bars
-    };
-  }
-
-  function planFromSignal(g) {
-    if (!g) return null;
-    var price = g.price || 0;
-    var atr = g.atr || price * 0.004;
-    var sd = atr * 2;
-    var eq = (global.ST && global.ST.equity) || 100000;
-    var riskPct = (global.CFG && global.CFG.risk) || 0.5;
-    var qty = sd > 0 ? Math.max(1, Math.floor(eq * (riskPct / 100) / sd)) : 1;
-    return {
-      mode: 'SIGNAL', sym: g.sym, side: g.side, entry: price, last: price,
-      sl: g.side === 'SHORT' ? price + sd : price - sd,
-      tp: g.side === 'SHORT' ? price - 2.5 * sd : price + 2.5 * sd,
-      partial: g.side === 'SHORT' ? price - 1.5 * sd : price + 1.5 * sd,
-      qty: qty, pnl: null,
-      why: g.why || 'Setup z Signal Desk',
-      strength: g.strength, score: g.desk && g.desk.score, grade: g.desk && g.desk.grade
-    };
-  }
-
-  function currentPlan() {
+  function portfolio() {
     var ST = global.ST || {};
-    var pos = ST.pos || {};
-    var keys = Object.keys(pos);
-    if (keys.length) return planFromPos(keys[0], pos[keys[0]]);
+    var CFG = global.CFG || {};
+    var equity = ST.equity != null ? ST.equity : (CFG.capital || 500);
+    var cash = ST.cash != null ? ST.cash : equity;
+    return { equity: equity, cash: cash, capital: CFG.capital || equity };
+  }
+
+  function lastPx(sym) {
     try {
-      if (global.BTX_AUTONOMY && global.BTX_AUTONOMY.rankSignals) {
-        var ranked = global.BTX_AUTONOMY.rankSignals();
-        for (var i = 0; i < ranked.length; i++) {
-          if (ranked[i].gr && ranked[i].gr.pass && ranked[i].g) {
-            var pl = planFromSignal(ranked[i].g);
-            if (pl) { pl.score = ranked[i].gr.score; pl.grade = ranked[i].gr.grade; return pl; }
-          }
-        }
+      if (typeof global.last === 'function') {
+        var b = global.last(sym);
+        if (b && b.c != null) return b.c;
       }
     } catch (e) {}
-    var sig = (ST.sig || []).filter(function (x) { return x.side === 'LONG' || x.side === 'SHORT'; })
-      .sort(function (a, b) { return (b.strength || 0) - (a.strength || 0); })[0];
-    if (sig && (sig.strength || 0) >= 4) return planFromSignal(sig);
+    var ST = global.ST;
+    if (ST && ST.series && ST.series[sym] && ST.series[sym].length) return ST.series[sym][ST.series[sym].length - 1].c;
     return null;
   }
 
-  function ticketText(pl) {
+  function enrichPos(sym, p) {
+    var entry = Number(p.entry) || 0;
+    var qty = Number(p.qty) || 0;
+    var px = lastPx(sym);
+    if (px == null) px = entry;
+    var notional = Math.abs(entry * qty); // środki zaangażowane (nominał pozycji)
+    var pf = portfolio();
+    var pctPort = pf.equity > 0 ? (notional / pf.equity) * 100 : 0;
+    var pnl = p.side === 'LONG' ? (px - entry) * qty : (entry - px) * qty;
+    var pnlPct = entry ? ((p.side === 'LONG' ? (px - entry) : (entry - px)) / entry) * 100 : 0;
+    var risk0 = Number(p.risk0) || (p.stop != null ? Math.abs(entry - p.stop) : entry * 0.004);
+    var riskCash = risk0 * qty;
+    var sl = p.stop != null ? p.stop : (p.side === 'SHORT' ? entry + risk0 : entry - risk0);
+    var tp = p.target != null ? p.target : (p.side === 'SHORT' ? entry - 1.6 * risk0 : entry + 1.6 * risk0);
+    return {
+      sym: sym, side: p.side, entry: entry, qty: qty, px: px, notional: notional, pctPort: pctPort,
+      pnl: pnl, pnlPct: pnlPct, riskCash: riskCash, sl: sl, tp: tp, why: p.why || '', bars: p.bars || 0,
+      mode: 'OPEN'
+    };
+  }
+
+  function allOpen() {
+    var ST = global.ST || {};
+    var pos = ST.pos || {};
+    return Object.keys(pos).map(function (k) { return enrichPos(k, pos[k]); });
+  }
+
+  function copyText(pl) {
+    var pf = portfolio();
     return [
-      pl.mode === 'OPEN' ? 'BTX POZYCJA -> XTB' : 'BTX SYGNAL -> XTB',
-      'Symbol XTB: ' + xtbSym(pl.sym),
-      'Strona: ' + pl.side,
-      'Wejscie: ' + f2(pl.entry, pl.sym),
+      'BTX → XTB',
+      pl.side + ' ' + xtbSym(pl.sym) + ' (' + pl.sym + ')',
       'Size: ' + pl.qty,
-      'SL: ' + f2(pl.sl, pl.sym),
-      'Partial: ' + f2(pl.partial, pl.sym),
-      'TP: ' + f2(pl.tp, pl.sym),
-      'Sila: ' + (pl.strength != null ? pl.strength : '-'),
-      'Dlaczego: ' + String(pl.why || '').replace(/\s+/g, ' ').slice(0, 220)
+      'Wejście: ' + f2(pl.entry),
+      'SL: ' + f2(pl.sl),
+      'TP: ' + f2(pl.tp),
+      'Nominał (środki w pozycji): ' + money(pl.notional),
+      'Udział w portfelu: ' + pl.pctPort.toFixed(1) + '% (equity ' + money(pf.equity) + ')',
+      'Ryzyko ≈ ' + money(pl.riskCash),
+      'Powód: ' + String(pl.why || '').slice(0, 200)
     ].join('\n');
   }
 
-  function getDeskPane() {
-    return document.getElementById('pane-desk');
+  function cardHtml(pl, idx) {
+    var long = pl.side === 'LONG';
+    var sign = pl.pnl >= 0 ? '+' : '';
+    var pnlCls = pl.pnl >= 0 ? 'pos' : 'neg';
+    var why = String(pl.why || '').replace(/</g, '');
+    if (why.length > 200) why = why.slice(0, 200) + '…';
+    return (
+      '<div class="th-card" data-sym="' + pl.sym + '">' +
+      '<div class="row1">' +
+      '<span class="th-sym">' + pl.sym + '</span>' +
+      '<span class="th-side ' + (long ? 'long' : 'short') + '">' + pl.side + '</span>' +
+      '<span class="th-side ' + pnlCls + '" style="margin-left:auto">' + sign + money(pl.pnl) + ' (' + sign + pl.pnlPct.toFixed(2) + '%)</span>' +
+      '</div>' +
+      '<div class="th-metrics">' +
+      '<div class="th-metric"><span>Wejście</span><strong>' + f2(pl.entry) + '</strong></div>' +
+      '<div class="th-metric"><span>Ilość</span><strong>' + pl.qty + '</strong></div>' +
+      '<div class="th-metric"><span>Środki w pozycji</span><strong>' + money(pl.notional) + '</strong></div>' +
+      '<div class="th-metric"><span>% portfela</span><strong>' + pl.pctPort.toFixed(1) + '%</strong></div>' +
+      '<div class="th-metric"><span>Stop Loss</span><strong class="neg">' + f2(pl.sl) + '</strong></div>' +
+      '<div class="th-metric"><span>Take Profit</span><strong class="pos">' + f2(pl.tp) + '</strong></div>' +
+      '<div class="th-metric"><span>Ryzyko ≈</span><strong>' + money(pl.riskCash) + '</strong></div>' +
+      '<div class="th-metric"><span>Cena teraz</span><strong>' + f2(pl.px) + '</strong></div>' +
+      '<div class="th-metric"><span>XTB</span><strong>' + xtbSym(pl.sym) + '</strong></div>' +
+      '</div>' +
+      (why ? '<div class="th-why"><b style="color:#e8eef6">Dlaczego: </b>' + why + '</div>' : '') +
+      '<div class="th-actions">' +
+      '<button type="button" class="th-btn primary" data-copy="' + idx + '">Kopiuj plan XTB</button>' +
+      '</div></div>'
+    );
   }
 
   function ensureHost() {
     injectCss();
-    var pane = getDeskPane();
     var el = document.getElementById(ROOT);
+    var pane = document.getElementById('pane-desk');
+    if (!pane) return el;
     if (!el) {
       el = document.createElement('div');
       el.id = ROOT;
-    }
-    if (pane) {
-      if (el.parentNode !== pane || pane.firstChild !== el) {
-        if (pane.firstChild) pane.insertBefore(el, pane.firstChild);
-        else pane.appendChild(el);
-      }
-    } else if (!el.parentNode) {
-      document.body.insertBefore(el, document.body.firstChild);
+      if (pane.firstChild) pane.insertBefore(el, pane.firstChild);
+      else pane.appendChild(el);
+    } else if (el.parentNode === pane && pane.firstChild !== el) {
+      pane.insertBefore(el, pane.firstChild);
     }
     return el;
   }
@@ -161,114 +171,70 @@
   function render() {
     var el = ensureHost();
     if (!el) return;
-    var pl = currentPlan();
-    if (!pl) {
+    var list = allOpen();
+    var pf = portfolio();
+
+    if (!list.length) {
       el.innerHTML =
         '<div class="th-top">' +
-          '<div class="th-brand">Handel bota \u00b7 Plan XTB</div>' +
-          '<div class="th-status">Brak otwartej pozycji i brak A/A+ w tej chwili</div>' +
-        '</div>' +
-        '<div class="th-empty">' +
-          '<b>Tu pojawia sie LONG/SHORT, size, SL, TP i powod.</b><br>' +
-          'Gdy bot zajmie paper albo pojawi sie sygnal PASS \u2014 ta karta wypelni sie automatycznie. ' +
-          'Wtedy kopiujesz plan jednym kliknieciem do XTB.' +
-        '</div>' +
-        '<div class="th-foot">Karta jest zawsze na gorze zakladki Pulpit</div>';
+        '<div class="th-brand">Handel bota · Plan XTB</div>' +
+        '<div class="th-status">Portfel ' + money(pf.equity) + ' · gotówka ' + money(pf.cash) + '</div></div>' +
+        '<div class="th-empty"><b>Brak otwartych pozycji paper.</b><br>Gdy bot otworzy LONG/SHORT — tu zobaczysz wszystkie naraz, z kwotą środków i % portfela.</div>' +
+        '<div class="th-foot">Karta zawsze na górze Pulptu</div>';
       return;
     }
 
-    var isLong = pl.side === 'LONG';
-    var sideCls = isLong ? 'long' : 'short';
-    var why = String(pl.why || '').replace(/</g, '');
-    if (why.length > 260) why = why.slice(0, 260) + '...';
-
+    var totalNom = list.reduce(function (s, p) { return s + p.notional; }, 0);
     var html = '';
     html += '<div class="th-top">';
-    html += '<div class="th-brand">' + (pl.mode === 'OPEN' ? 'Pozycja otwarta \u00b7 skopiuj na XTB' : 'Sygnal gotowy \u00b7 skopiuj na XTB') + '</div>';
-    html += '<div class="th-status">Natychmiastowy podglad handlu bota</div>';
+    html += '<div class="th-brand">Otwarte pozycje · kopiuj na XTB</div>';
+    html += '<div class="th-status">' + list.length + ' poz. · portfel ' + money(pf.equity) +
+      ' · w pozycjach ' + money(totalNom) + ' (' + (pf.equity ? (totalNom / pf.equity * 100).toFixed(1) : '0') + '%)</div>';
     html += '</div>';
-    html += '<div class="th-main"><div>';
-    html += '<div class="th-side ' + sideCls + '">' + pl.side + (pl.grade ? (' \u00b7 ' + pl.grade) : '') + '</div>';
-    html += '<div class="th-sym">' + pl.sym + '</div>';
-    html += '<div class="th-why"><b style="color:#e8eef6">Dlaczego: </b>' + why + '</div>';
-    html += '<div style="margin-top:10px">';
-    html += '<span class="th-pill">XTB ' + xtbSym(pl.sym) + '</span>';
-    if (pl.strength != null) html += '<span class="th-pill">Sila ' + pl.strength + '/5</span>';
-    if (pl.score != null) html += '<span class="th-pill">Score ' + pl.score + '</span>';
-    html += '</div></div>';
-    html += '<div class="th-metrics">';
-    html += '<div class="th-metric"><span>Wejscie</span><strong>' + f2(pl.entry, pl.sym) + '</strong></div>';
-    html += '<div class="th-metric"><span>Size</span><strong>' + pl.qty + '</strong></div>';
-    html += '<div class="th-metric"><span>Stop Loss</span><strong class="neg">' + f2(pl.sl, pl.sym) + '</strong></div>';
-    html += '<div class="th-metric"><span>Take Profit</span><strong class="pos">' + f2(pl.tp, pl.sym) + '</strong></div>';
-    html += '<div class="th-metric"><span>Partial ~50%</span><strong>' + f2(pl.partial, pl.sym) + '</strong></div>';
-    if (pl.mode === 'OPEN' && pl.pnl != null) {
-      html += '<div class="th-metric"><span>Paper P&L</span><strong class="' + (pl.pnl >= 0 ? 'pos' : 'neg') + '">' +
-        (pl.pnl >= 0 ? '+' : '') + Number(pl.pnl).toFixed(2) + '</strong></div>';
-    } else {
-      html += '<div class="th-metric"><span>Prognoza</span><strong>TP 2.5R \u00b7 BE po 1R</strong></div>';
-    }
-    html += '</div></div>';
-    html += '<div class="th-actions">';
-    html += '<button type="button" class="th-btn primary" id="th-copy">Kopiuj plan do XTB</button>';
-    html += '<button type="button" class="th-btn ghost" id="th-refresh">Odsviez karte</button>';
+    html += '<div class="th-list">';
+    list.forEach(function (pl, idx) { html += cardHtml(pl, idx); });
     html += '</div>';
-    html += '<div class="th-foot">Ustaw SL w XTB zanim klikniesz kup/sprzedaj \u00b7 risk 0,5%</div>';
+    html += '<div class="th-foot">„Środki w pozycji” = cena wejścia × ilość (nominał). „% portfela” = ten nominał / equity (np. przy 500 PLN).</div>';
     el.innerHTML = html;
 
-    var b = document.getElementById('th-copy');
-    if (b) b.onclick = function () {
-      var t = ticketText(pl);
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(t).then(function () {
-          if (global.toast) global.toast('Plan XTB skopiowany', 'ok');
-          else alert('Skopiowano plan XTB');
-        });
-      } else alert(t);
-    };
-    var r = document.getElementById('th-refresh');
-    if (r) r.onclick = function () { render(); };
-  }
-
-  function bindTabs() {
-    document.querySelectorAll('.nav button[data-tab], button[data-tab]').forEach(function (btn) {
-      if (btn.__thBound) return;
-      btn.__thBound = true;
-      btn.addEventListener('click', function () {
-        setTimeout(render, 30);
-        setTimeout(render, 200);
-      });
+    list.forEach(function (pl, idx) {
+      var btn = el.querySelector('[data-copy="' + idx + '"]');
+      if (btn) {
+        btn.onclick = function () {
+          var t = copyText(pl);
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(t).then(function () {
+              if (global.toast) global.toast('Skopiowano plan ' + pl.sym, 'ok');
+            });
+          } else {
+            prompt('Skopiuj plan:', t);
+          }
+        };
+      }
     });
   }
 
   function boot() {
     injectCss();
     render();
-    bindTabs();
-    var pane = getDeskPane();
-    if (pane && !pane.__thObs) {
-      pane.__thObs = true;
-      try {
-        var obs = new MutationObserver(function () {
-          if (!document.getElementById(ROOT) || (pane.firstChild && pane.firstChild.id !== ROOT)) render();
-        });
-        obs.observe(pane, { childList: true });
-      } catch (e) {}
-    }
+    document.querySelectorAll('button[data-tab], .nav button').forEach(function (btn) {
+      if (btn.__thMulti) return;
+      btn.__thMulti = true;
+      btn.addEventListener('click', function () { setTimeout(render, 50); setTimeout(render, 250); });
+    });
     if (typeof global.render === 'function' && !global.render.__tradeHero) {
       var orig = global.render;
       global.render = function () {
-        var out = orig.apply(this, arguments);
+        var r = orig.apply(this, arguments);
         try { render(); } catch (e) {}
-        return out;
+        return r;
       };
       global.render.__tradeHero = true;
     }
-    setInterval(function () { bindTabs(); render(); }, 2500);
+    setInterval(render, 2500);
   }
 
-  global.BTX_TRADE_HERO = { render: render, currentPlan: currentPlan };
+  global.BTX_TRADE_HERO = { render: render, allOpen: allOpen };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();
-  if (global.addEventListener) global.addEventListener('load', function () { setTimeout(boot, 50); });
 })(typeof window !== 'undefined' ? window : globalThis);
