@@ -1,8 +1,5 @@
 /**
- * BTX Autonomy PRO + Signal Desk 9/10
- *
- * 1) Autonomia paper: sam skanuje, otwiera, zamyka (w limicie PRO)
- * 2) System sygnalowy: jeden twardy gate jakosci A+ / odrzucenia z powodami
+ * BTX Autonomy PRO + Signal Desk (daytrader)
  */
 (function (global) {
   var STYLE = 'btx-autonomy-css';
@@ -41,7 +38,7 @@
     if (!g || (g.side !== 'LONG' && g.side !== 'SHORT')) {
       return { pass: false, grade: 'REJECT', score: 0, reasons: ['brak kierunku'] };
     }
-    if (str < 4) reasons.push('sila < 4');
+    if (str < 3) reasons.push('sila < 3');
     else score += str >= 5 ? 20 : 12;
 
     try {
@@ -62,7 +59,7 @@
     if (global.ST && global.ST.blocked) reasons.push('blokada dnia');
 
     score = Math.max(0, Math.min(100, score + (str * 4)));
-    var pass = reasons.length === 0 && str >= 4 && score >= 63;
+    var pass = reasons.length === 0 && str >= 3 && score >= 55;
     var grade = !pass ? 'REJECT' : (score >= 85 || str >= 5 ? 'A+' : 'A');
     return { pass: pass, grade: grade, score: score, reasons: reasons };
   }
@@ -83,23 +80,14 @@
     return out;
   }
 
-  function manageOpen() {
-    var ST = global.ST;
-    if (!ST || !ST.pos) return;
-    Object.keys(ST.pos).forEach(function (sym) {
-      var p = ST.pos[sym];
-      var b = global.last && global.last(sym);
-      if (!b || !p) return;
-      // time-stop / SL / TP handled by cycle/hardening; soft BE already in engine
-    });
-  }
+  function manageOpen() {}
 
   function tryOpenBest() {
     var ST = global.ST;
     var CFG = global.CFG || {};
     if (!ST || ST.blocked) return null;
     if (Object.keys(ST.pos || {}).length >= (CFG.maxPos || 2)) return null;
-    if ((ST.dayTrades || 0) >= (CFG.maxTrades || 4)) return null;
+    if ((ST.dayTrades || 0) >= (CFG.maxTrades || 6)) return null;
     var ranked = rankSignals();
     for (var i = 0; i < ranked.length; i++) {
       var r = ranked[i];
@@ -128,7 +116,7 @@
     stop();
     setOn(true);
     try { localStorage.setItem('BTX_TRADE_MODE', 'trade'); } catch (e) {}
-    var sec = (global.CFG && global.CFG.autoSec) || 180;
+    var sec = (global.CFG && global.CFG.autoSec) || 120;
     sec = Math.max(90, Math.min(300, sec));
     tick();
     timer = setInterval(tick, sec * 1000);
@@ -158,7 +146,7 @@
     if (!el) return;
     var ranked = rankSignals();
     var html = '<h3>Autonomia paper \u00b7 Signal Desk</h3>';
-    html += '<p class="why"><b>Po co:</b> bot skanuje i moze otwierac pozycje cwiczeniowe tylko przy PASS (sila \u2265 4, score \u2265 63 Active DT, bez blokad).</p>';
+    html += '<p class="why"><b>Po co:</b> bot skanuje i moze otwierac pozycje cwiczeniowe przy PASS (sila \u2265 3, score \u2265 55, daytrader).</p>';
     html += '<div class="row">';
     html += '<button type="button" class="btn" id="btx-auto-toggle">' + (isOn() ? 'Autonomia ON \u2713' : 'Wlacz autonomie paper') + '</button>';
     html += '<button type="button" class="btn ghost" id="btx-auto-tick">Skan teraz</button>';
