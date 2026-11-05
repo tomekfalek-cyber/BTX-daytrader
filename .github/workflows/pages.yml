@@ -22,7 +22,6 @@ jobs:
       - name: Permanent daytrade params (no swing leftovers)
         run: |
           set -e
-          # Only restore if file is PLACEHOLDER/tiny
           for pair in "autonomy-pro.js|da57a27fea51194738a7c49034b964623d3a4d98" "pro-edge.js|91cae43a82045c562cb4d1ceb2f8cd6a0c88d3b5"; do
             f="${pair%%|*}"; rev="${pair##*|}"
             sz=$(wc -c < "$f" 2>/dev/null || echo 0)
@@ -32,7 +31,6 @@ jobs:
           done
           python3 - <<'PY'
           from pathlib import Path
-          # strategy-pro
           p = Path('strategy-pro.js')
           if p.exists():
               t = p.read_text(encoding='utf-8')
@@ -51,33 +49,14 @@ jobs:
                   ('scoreS >= 6','scoreS >= 4'),
               ]:
                   t = t.replace(a,b)
-              t = t.replace(
-                  "var allowShort = (global.CFG && global.CFG.allowShort) || mkt === 'FX';",
-                  "var allowShort = (global.CFG && global.CFG.allowShort) || mkt === 'FX' || mkt === 'EU';",
-              )
-              if 'EU:' not in t:
-                  t = t.replace(
-                      "PL: { open: 8 * 60, close: 16 * 60 + 50, prime: [[8 * 60 + 5, 10 * 60], [14 * 60, 16 * 60]] },",
-                      "PL: { open: 8 * 60, close: 16 * 60 + 50, prime: [[8 * 60 + 5, 10 * 60], [14 * 60, 16 * 60]] },\n      EU: { open: 8 * 60, close: 16 * 60 + 50, prime: [[8 * 60 + 5, 10 * 60], [14 * 60, 16 * 60]] },",
-                  )
               p.write_text(t, encoding='utf-8')
-          # force daytrade strings across modules
           for name in Path('.').glob('*.js'):
               t = name.read_text(encoding='utf-8', errors='replace')
               o = t
-              t = t.replace('score >= 70', 'score >= 55')
-              t = t.replace('score >= 63', 'score >= 55')
-              t = t.replace('base.score < 70', 'base.score < 55')
-              t = t.replace('base.score < 63', 'base.score < 55')
-              t = t.replace('CFG.maxTrades > 4) CFG.maxTrades = 4', 'CFG.maxTrades < 6) CFG.maxTrades = 6')
+              t = t.replace('score >= 70', 'score >= 55').replace('score >= 63', 'score >= 55')
               t = t.replace("if (CFG.maxTrades == null || CFG.maxTrades > 4) CFG.maxTrades = 4;", "if (CFG.maxTrades == null || CFG.maxTrades < 6) CFG.maxTrades = 6;")
-              t = t.replace('p.minStrength = 4', 'p.minStrength = 3')
-              t = t.replace('var MIN_SCORE = 63', 'var MIN_SCORE = 55')
-              t = t.replace('var MIN_SCORE = 70', 'var MIN_SCORE = 55')
-              if t != o:
-                  name.write_text(t, encoding='utf-8')
-                  print('patched', name)
-          print('DT canon build done')
+              if t != o: name.write_text(t, encoding='utf-8')
+          print('DT ok')
           PY
 
       - name: Syntax check all client JS
@@ -115,7 +94,6 @@ jobs:
               h = p.read_text(encoding='utf-8', errors='replace')
               h2, n = re.subn(r'((?:var\s+)?SYMBOLS\s*=\s*)\[(?:[^\[\]]|\[[^\]]*\])*\]', lambda m: m.group(1)+UNI, h)
               h2 = h2.replace('CFG.autoSec||60','CFG.autoSec||120').replace('autoSec||60','autoSec||120')
-              h2 = h2.replace('CFG.autoSec||180','CFG.autoSec||120').replace('autoSec||180','autoSec||120')
               p.write_text(h2, encoding='utf-8')
           patch('index.html')
           if pathlib.Path('index.html').exists():
@@ -123,7 +101,7 @@ jobs:
               shutil.copyfile('index.html', 'dashboard/index.html')
           PY
 
-      - name: Wire client modules (ordered, dt-canon last)
+      - name: Wire client modules
         run: |
           set -e
           inject() {
@@ -137,8 +115,8 @@ jobs:
               vpvr-session.js pro-upgrade-6.js learner-pack.js guide-7days.js macro-calendar.js \
               xtb-bridge.js chart-ta-lesson.js autonomy-pro.js xtb-api-connect.js \
               pro-assistant.js quality-cap.js quality-cap-eu-map.js ui-plain-polish.js pro-edge.js \
-              active-dt-mode.js dt-final-pack.js trade-hero.js engine-hardening.js \
-              unblock-trading.js desk-compact.js ui-less-noise.js dt-canon.js
+              active-dt-mode.js dt-final-pack.js trade-hero.js trade-hero-multi.js positions-fix.js \
+              engine-hardening.js unblock-trading.js desk-compact.js ui-less-noise.js dt-canon.js
             do
               if [ ! -f "$s" ]; then continue; fi
               if ! grep -q "$s" "$f"; then
