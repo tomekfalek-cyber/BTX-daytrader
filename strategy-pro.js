@@ -256,6 +256,7 @@
     if (mkt === 'FX') { if (trend < 2) scoreL--; if (trend > -2) scoreS--; }
     if (!allowShort) scoreS = 0;
     if (r14 > 72) scoreL--; if (r14 < 28) scoreS--;
+    if (!allowShort) scoreS = 0;
     if (scoreL >= need && scoreL > scoreS) { g.side = 'LONG'; g.strength = Math.min(5, Math.max(1, Math.round(scoreL / 2))); g.why = whyL.slice(0, 4).join(' · '); }
     else if (scoreS >= need && scoreS > scoreL && allowShort) { g.side = 'SHORT'; g.strength = Math.min(5, Math.max(1, Math.round(scoreS / 2))); g.why = whyS.slice(0, 4).join(' · '); }
     else { g.side = 'WAIT'; g.strength = 0; g.why = 'brak konfluencji (L' + scoreL + '/S' + scoreS + ', wymagane ' + need + ')'; }

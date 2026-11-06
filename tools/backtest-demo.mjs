@@ -38,4 +38,4 @@ for (const [api, meta, rt, spr] of [
 if (!sets.length) process.exit(0);
 const o = { slipPct: 0.0002, allowShort: false };
 const res = BT.compare(sets, o);
-console.log(BT.format(res, { coverage: 'Dane: demo-key (AAPL, EUR/USD), filtr SPY pominiety', scen: BT.scenarios(sets, o), sides: BT.sides(sets, o) }));
+console.log(BT.format(res, { coverage: 'Dane: demo-key (AAPL, EUR/USD), filtr SPY pominiety', scen: BT.scenarios(sets, o), sides: BT.sides(sets, o), attrib: BT.attribution(sets, o) }));

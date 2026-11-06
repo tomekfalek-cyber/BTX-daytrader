@@ -42,7 +42,7 @@
       var costR = pos.entry * rt / pos.sd;
       var R = gross - costR;
       trades.push({ t: bars[exitI].t, sym: meta.s, side: pos.side, qty: 1, entry: pos.entry, exit: legs[legs.length - 1].px,
-        pnl: R, R: R, fees: costR, why: why, bars: pos.bars });
+        pnl: R, R: R, fees: costR, why: why, entryWhy: pos.why, bars: pos.bars });
       if (R < 0) consec++; else consec = 0;
       cool = P.coolBars; pos = null;
     }
@@ -100,7 +100,7 @@
       var costPU = entry * rt, netRR = (P.tpR * sdv - costPU) / (sdv + costPU);
       if (netRR < P.minNetRR) { skippedCost++; skipRatio += costPU / sdv; continue; }
       pos = { side: side, entry: entry, sd: sdv, stop: entry - sg * sdv, target: entry + sg * P.tpR * sdv,
-        partial: entry + sg * P.partialR * sdv, partialDone: false, remaining: 1, be: false, bars: 0, legs: [] };
+        partial: entry + sg * P.partialR * sdv, partialDone: false, remaining: 1, be: false, bars: 0, legs: [], why: g.why || '' };
       dayTrades++;
     }
     return { trades: trades, skippedCost: skippedCost, costToStop: skippedCost ? skipRatio / skippedCost : null };
@@ -157,6 +157,22 @@
     return { LONG: S.computeStats(all.filter(function (t) { return t.side === 'LONG'; })), SHORT: S.computeStats(all.filter(function (t) { return t.side === 'SHORT'; })) };
   }
 
+  // skutecznosc skladnikow sygnalu: wynik (E[R]) transakcji, w ktorych dany powod wystapil — pokazuje, co naprawde dziala
+  function attribution(rowSets, opts) {
+    opts = opts || {};
+    var all = [];
+    rowSets.forEach(function (rs) { all = all.concat(run(rs.bars, rs.meta, Object.assign({}, opts, { params: {}, roundTripPct: 0, slipPct: 0 })).trades); });
+    var by = {};
+    all.forEach(function (t) {
+      String(t.entryWhy || '').split(' · ').forEach(function (tag) {
+        if (!tag) return;
+        var b = by[tag] || (by[tag] = { tag: tag, n: 0, w: 0, r: 0 }); b.n++; b.r += t.R; if (t.R > 0) b.w++;
+      });
+    });
+    return Object.keys(by).map(function (k) { var b = by[k]; return { tag: b.tag, n: b.n, winRate: b.w / b.n, expectancy: b.r / b.n }; })
+      .sort(function (a, b) { return b.n - a.n; });
+  }
+
   function recommend(results) {
     var cand = results.filter(function (r) { return r.st.all.n >= 30 && r.st.train.expectancy > 0; });
     if (!cand.length) return 'Brak wariantu z dodatnia oczekiwana wartoscia (E[R]) na probie uczacej i >= 30 transakcjach. Reguly nie wykazuja przewagi po kosztach — nie handluj na prawdziwe pieniadze.';
@@ -186,6 +202,11 @@
       });
       L.push('');
     }
+    if (meta && meta.attrib && meta.attrib.length) {
+      L.push('SKLADNIKI SYGNALU (BRUTTO, tylko LONG; E[R] transakcji z danym powodem):');
+      meta.attrib.forEach(function (a) { L.push('  ' + (a.tag + '                        ').slice(0, 22) + ' N ' + ('    ' + a.n).slice(-4) + ' · win ' + (a.winRate * 100).toFixed(0) + '% · E[R] ' + f2(a.expectancy)); });
+      L.push('');
+    }
     if (meta && meta.sides) {
       L.push('LONG vs SHORT (koszty jak CFD; shorty w bocie wylaczone):');
       ['LONG', 'SHORT'].forEach(function (k) { var s = meta.sides[k]; L.push('  ' + k + ': N ' + s.n + ' · win ' + (s.winRate * 100).toFixed(0) + '% · PF ' + pf(s) + ' · E[R] ' + f2(s.expectancy)); });
@@ -212,7 +233,7 @@
     return L.join('\n');
   }
 
-  global.BTX_BT = { run: run, scenarios: scenarios, sides: sides, compare: compare, recommend: recommend, format: format, VARIANTS: VARIANTS, cache: {} };
+  global.BTX_BT = { run: run, scenarios: scenarios, sides: sides, attribution: attribution, compare: compare, recommend: recommend, format: format, VARIANTS: VARIANTS, cache: {} };
 
   if (typeof document === 'undefined') return; // testy w Node
 
@@ -264,7 +285,8 @@
       (notes.length ? '\nPominiete: ' + notes.join('; ') : '');
     var scen = global.BTX_BT.scenarios(rowSets, { allowShort: false, slipPct: 0.0002, marketBars: marketBars });
     var sd2 = global.BTX_BT.sides(rowSets, { slipPct: 0.0002, marketBars: marketBars });
-    out.textContent = format(res, { coverage: cov, scen: scen, sides: sd2 });
+    var attr = global.BTX_BT.attribution(rowSets, { allowShort: false, marketBars: marketBars });
+    out.textContent = format(res, { coverage: cov, scen: scen, sides: sd2, attrib: attr });
     btn.disabled = false;
   }
 
