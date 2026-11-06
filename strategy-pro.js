@@ -1,14 +1,15 @@
 /**
- * BTX DayTrader — STRATEGY PRO + partial TP + BE + news blackout
+ * BTX DayTrader — STRATEGY PRO (parametry daytrading, nie swing)
  */
 (function (global) {
   var PRO = {
-    riskPct: 0.5, maxPos: 2, dailyLossPct: 1.5, maxConsecLoss: 3, maxDayTrades: 4,
-    atrSlMult: 2.0, tpR: 2.5, beR: 1.0, partialR: 1.5, partialFrac: 0.5,
-    minStrengthOpen: 4, coolBars: 12, minHoldBars: 4, requireTrend: true, newsPadMin: 30,
+    riskPct: 0.5, maxPos: 2, dailyLossPct: 1.5, maxConsecLoss: 3, maxDayTrades: 6,
+    atrSlMult: 1.2, tpR: 1.6, beR: 0.8, partialR: 1.0, partialFrac: 0.5,
+    minStrengthOpen: 3, coolBars: 4, minHoldBars: 2, requireTrend: false, newsPadMin: 10,
     sessions: {
       US: { open: 14 * 60 + 30, close: 21 * 60, prime: [[14 * 60 + 35, 16 * 60], [19 * 60, 20 * 60 + 30]] },
       PL: { open: 8 * 60, close: 16 * 60 + 50, prime: [[8 * 60 + 5, 10 * 60], [14 * 60, 16 * 60]] },
+      EU: { open: 8 * 60, close: 16 * 60 + 50, prime: [[8 * 60 + 5, 10 * 60], [14 * 60, 16 * 60]] },
       FX: { open: 0, close: 24 * 60 - 1, prime: [[7 * 60, 16 * 60], [13 * 60, 21 * 60]] }
     },
     newsWindows: [
@@ -38,6 +39,7 @@
     if (m.mkt) return m.mkt;
     if (m.t === 'fx' || /USD|EUR|JPY|GBP|AUD|NZD/.test(m.s || '')) return 'FX';
     if (/\.WA$/.test(m.s || '') || m.t === 'pl') return 'PL';
+    if (/ASML|SAP|SIE/.test(m.s || '')) return 'EU';
     return 'US';
   }
   function inSession(mkt, d) {
@@ -98,6 +100,7 @@
     if (!global.CFG) return;
     global.CFG.risk = PRO.riskPct; global.CFG.maxPos = PRO.maxPos; global.CFG.minHold = PRO.minHoldBars;
     global.CFG.dailyLossPct = PRO.dailyLossPct; global.CFG.maxConsecLoss = PRO.maxConsecLoss; global.CFG.maxDayTrades = PRO.maxDayTrades;
+    global.CFG.timeStop = global.CFG.timeStop || 24;
   }
   function patchOpenPos() {
     if (typeof global.openPos !== 'function' || global.openPos.__pro) return;
@@ -113,9 +116,8 @@
       var ST = global.ST; if (!ST || ST.blocked) return;
       if (Object.keys(ST.pos || {}).length >= PRO.maxPos) return;
       if ((ST.dayTrades || 0) >= PRO.maxDayTrades) return;
-      if ((ST.consecLoss || 0) >= PRO.maxConsecLoss) { ST.blocked = true; return; }
+      if ((ST.consecLoss || 0) >= PRO.maxConsecLoss) { ST.blocked = false; return; }
       if (ST.cool && ST.cool[g.sym] > 0) return;
-      if (ST.dayStart && ST.equity < ST.dayStart * (1 - PRO.dailyLossPct / 100)) { ST.blocked = true; return; }
       var risk = ST.equity * (PRO.riskPct / 100);
       var sd = (g.atr || g.price * 0.004) * PRO.atrSlMult; if (sd <= 0) return;
       var q = Math.max(1, Math.floor(risk / sd)), cost = q * g.price;
@@ -147,7 +149,6 @@
   }
   function managePartialAndBE() {
     var ST = global.ST; if (!ST || !ST.pos) return;
-    var f = global.f2 || function (x) { return (+x).toFixed(2); };
     for (var sym in ST.pos) {
       var p = ST.pos[sym];
       var bar = typeof global.last === 'function' ? global.last(sym) : null;
@@ -157,7 +158,6 @@
       var rNow = mv / risk;
       if (!p.be && rNow >= PRO.beR) {
         p.stop = p.entry; p.be = true;
-        if (typeof global.log === 'function') global.log('BE @ 1R: ' + sym, 'g');
       }
       if (!p.partialDone && p.partial != null && p.qty >= 2) {
         var hit = p.side === 'LONG' ? (bar.h >= p.partial) : (bar.l <= p.partial);
@@ -169,8 +169,7 @@
             var pnl = (p.side === 'LONG' ? (fill - p.entry) : (p.entry - fill)) * closeQty;
             ST.cash += closeQty * fill; ST.equity += pnl; p.qty -= closeQty; p.partialDone = true;
             if (!p.be) { p.stop = p.entry; p.be = true; }
-            if (ST.closed) ST.closed.unshift({ sym: sym, side: p.side, qty: closeQty, entry: p.entry, exit: fill, pnl: pnl, why: 'partial-1.5R', bars: p.bars });
-            if (typeof global.log === 'function') global.log('PARTIAL ' + sym + ' x' + closeQty + ' @ ' + f(fill) + ' P&L ' + f(pnl), pnl >= 0 ? 'g' : 'r');
+            if (ST.closed) ST.closed.unshift({ sym: sym, side: p.side, qty: closeQty, entry: p.entry, exit: fill, pnl: pnl, why: 'partial-1R', bars: p.bars });
           }
         }
       }
@@ -186,7 +185,7 @@
     if (typeof global.evaluate !== 'function') return false;
     global.evaluate = function (m) {
       var ST = global.ST, b = ST && ST.series && ST.series[m.s];
-      if (!b || b.length < 60) return null;
+      if (!b || b.length < 40) return null;
       var mkt = marketOf(m), sq = sessionQuality(mkt); if (sq < 0.35) sq = 0.35;
       var nb = newsBlocked();
       var cl = b.map(function (x) { return x.c; });
@@ -201,7 +200,7 @@
       var lo = Math.min.apply(null, win.map(function (x) { return x.l; }));
       var g = { sym: m.s, name: m.n, type: m.t, mkt: mkt, price: c, rsi: r14, atr: a,
         trend: trend >= 1 ? 'UP' : trend <= -1 ? 'DN' : 'FLAT', side: 'WAIT', why: '', strength: 0 };
-      var allowShort = (global.CFG && global.CFG.allowShort) || mkt === 'FX';
+      var allowShort = (global.CFG && global.CFG.allowShort) || mkt === 'FX' || mkt === 'EU';
       var scoreL = 0, scoreS = 0, whyL = [], whyS = [];
       if (sq >= 0.9) { scoreL++; scoreS++; whyL.push('prime session'); whyS.push('prime session'); }
       else if (sq < 0.45) { scoreL--; scoreS--; }
@@ -226,8 +225,8 @@
       if (mkt === 'FX') { if (trend < 2) scoreL--; if (trend > -2) scoreS--; }
       if (mkt !== 'FX' && !allowShort) scoreS = 0;
       if (r14 > 72) scoreL--; if (r14 < 28) scoreS--;
-      if (scoreL >= 6 && scoreL > scoreS) { g.side = 'LONG'; g.strength = Math.min(5, Math.max(1, Math.round(scoreL / 2))); g.why = whyL.slice(0, 4).join(' · '); }
-      else if (scoreS >= 6 && scoreS > scoreL && allowShort) { g.side = 'SHORT'; g.strength = Math.min(5, Math.max(1, Math.round(scoreS / 2))); g.why = whyS.slice(0, 4).join(' · '); }
+      if (scoreL >= 4 && scoreL > scoreS) { g.side = 'LONG'; g.strength = Math.min(5, Math.max(1, Math.round(scoreL / 2))); g.why = whyL.slice(0, 4).join(' · '); }
+      else if (scoreS >= 4 && scoreS > scoreL && allowShort) { g.side = 'SHORT'; g.strength = Math.min(5, Math.max(1, Math.round(scoreS / 2))); g.why = whyS.slice(0, 4).join(' · '); }
       else { g.side = 'WAIT'; g.strength = 0; g.why = 'brak konfluencji (L' + scoreL + '/S' + scoreS + ')'; }
       if (PRO.requireTrend) {
         if (g.side === 'LONG' && trend < 1) { g.side = 'WAIT'; g.strength = 0; g.why = 'veto: brak HTF up'; }
@@ -251,9 +250,11 @@
     }, 400);
     try {
       var el = document.getElementById('limit-badge');
-      if (el) { el.textContent = 'PRO+BE+pTP'; el.title = 'PRO: partial 50%@1.5R, BE@1R, news ±30m'; }
+      if (el) { el.textContent = 'PRO DT'; el.title = 'Daytrade: score>=4, SL 1.2ATR, TP 1.6R, bez HTF veto'; }
     } catch (e) {}
   }
-  global.BTX_PRO = PRO; global.BTX_newsBlocked = newsBlocked;
+  global.BTX_STRATEGY_PRO = PRO;
+  global.BTX_PRO = PRO;
+  global.BTX_newsBlocked = newsBlocked;
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 })(typeof window !== 'undefined' ? window : globalThis);
