@@ -219,8 +219,8 @@ test('scenariusze kosztowe: model aplikacji vs CFD vs brutto', () => {
   const rs = [{ meta: META, bars, roundTripPct: 0.0012, spreadPct: 0, commPct: 0 }];
   const sc = BT.scenarios(rs, { signalFn: SIG(100) });
   assert.equal(sc.length, 3);
-  assert.ok(Math.abs(sc[0].st.all.expectancy + 1.1) < 1e-9);
-  assert.ok(Math.abs(sc[2].st.all.expectancy + 1) < 1e-9);
+  assert.ok(Math.abs(sc[0].st.expectancy + 1.1) < 1e-9);
+  assert.ok(Math.abs(sc[2].st.expectancy + 1) < 1e-9);
   const txt = BT.format(BT.compare(rs, { signalFn: SIG(100) }), { scen: sc });
   assert.match(txt, /SCENARIUSZE KOSZTOWE/);
 });
