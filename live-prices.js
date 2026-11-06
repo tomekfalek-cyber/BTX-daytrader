@@ -27,6 +27,8 @@
 
   // symbol w aplikacji -> parametry Twelve Data
   var TD_MAP = {
+    'EURUSD': { symbol: 'EUR/USD' },
+    'XAUUSD': { symbol: 'XAU/USD' },
     'SIE.DE': { symbol: 'SIE', exchange: 'XETR' },
     'SAP': { symbol: 'SAP', exchange: 'XETR' },
     'ASML': { symbol: 'ASML', exchange: 'Euronext' }

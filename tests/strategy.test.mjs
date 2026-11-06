@@ -213,3 +213,21 @@ test('panel Plan: build() dziala na przykladowym stanie (bez bledow)', () => {
   assert.match(out, /BTX PLAN/); assert.match(out, /OTWARTE POZYCJE/); assert.match(out, /NVDA LONG x10/);
   assert.match(out, /SETUPY/); assert.match(out, /BEZ WEJSCIA/);
 });
+test('scenariusze kosztowe: model aplikacji vs CFD vs brutto', () => {
+  const bars = flatBars(T100, 140);
+  bars[102] = { ...bars[102], l: 98.0 };
+  const rs = [{ meta: META, bars, roundTripPct: 0.0012, spreadPct: 0, commPct: 0 }];
+  const sc = BT.scenarios(rs, { signalFn: SIG(100) });
+  assert.equal(sc.length, 3);
+  assert.ok(Math.abs(sc[0].st.all.expectancy + 1.1) < 1e-9);
+  assert.ok(Math.abs(sc[2].st.all.expectancy + 1) < 1e-9);
+  const txt = BT.format(BT.compare(rs, { signalFn: SIG(100) }), { scen: sc });
+  assert.match(txt, /SCENARIUSZE KOSZTOWE/);
+});
+
+test('backtest: koszt 1% (konwersja walut) przy stopie ~0.3% odrzuca wszystkie wejscia', () => {
+  const bars = flatBars(T100, 140);
+  const r = BT.run(bars, META, { signalFn: (i) => (i === 100 ? { side: 'LONG', strength: 5, atr: 0.3, why: 't' } : null), roundTripPct: 0.0103, slipPct: 0 });
+  assert.equal(r.trades.length, 0); assert.equal(r.skippedCost, 1);
+  assert.ok(r.costToStop > 2);
+});

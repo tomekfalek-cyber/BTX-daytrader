@@ -33,7 +33,7 @@
     var rt = opts.roundTripPct != null ? opts.roundTripPct : 0.0008;   // spread + prowizje, calosc na transakcje (ulamek nominalu)
     var slip = opts.slipPct != null ? opts.slipPct : 0.0002;           // poslizg na kazda strone
     var mkt = C.marketOf(meta), trades = [], n = bars.length;
-    var pos = null, cool = 0, dayKey = null, dayTrades = 0, consec = 0, skippedCost = 0;
+    var pos = null, cool = 0, dayKey = null, dayTrades = 0, consec = 0, skippedCost = 0, skipRatio = 0;
     var mb = opts.marketBars || null, mj = -1;   // swiece SPY (filtr rynku) - tylko dla akcji USA
 
     function finish(exitI, legs, why) {
@@ -98,12 +98,12 @@
       var side = g.side, sg = sgn(side), entry = nxt.o * (1 + sg * slip), sdv = g.sd || (g.atr || entry * 0.004) * P.atrSlMult;
       if (!(sdv > 0)) continue;
       var costPU = entry * rt, netRR = (P.tpR * sdv - costPU) / (sdv + costPU);
-      if (netRR < P.minNetRR) { skippedCost++; continue; }
+      if (netRR < P.minNetRR) { skippedCost++; skipRatio += costPU / sdv; continue; }
       pos = { side: side, entry: entry, sd: sdv, stop: entry - sg * sdv, target: entry + sg * P.tpR * sdv,
         partial: entry + sg * P.partialR * sdv, partialDone: false, remaining: 1, be: false, bars: 0, legs: [] };
       dayTrades++;
     }
-    return { trades: trades, skippedCost: skippedCost };
+    return { trades: trades, skippedCost: skippedCost, costToStop: skippedCost ? skipRatio / skippedCost : null };
   }
 
   function splitStats(trades) {
@@ -126,6 +126,24 @@
     });
   }
 
+  // ta sama strategia (BAZA) przy trzech zalozeniach kosztowych: czy przewaga istnieje przed kosztami i czy da sie ja zagrac taniej
+  function scenarios(rowSets, opts) {
+    opts = opts || {};
+    var defs = [
+      { name: 'Model aplikacji (CFG.fees)', rt: function (rs) { return rs.roundTripPct != null ? rs.roundTripPct : 0.0008; }, slip: opts.slipPct },
+      { name: 'CFD bez konwersji walut (spread+prowizja)', rt: function (rs) { return (rs.spreadPct != null ? rs.spreadPct : 0.0003) + 2 * (rs.commPct || 0); }, slip: opts.slipPct },
+      { name: 'BEZ kosztow (przewaga brutto)', rt: function () { return 0; }, slip: 0 }
+    ];
+    return defs.map(function (d) {
+      var all = [], skipped = 0, ratio = 0, nr = 0;
+      rowSets.forEach(function (rs) {
+        var r = run(rs.bars, rs.meta, Object.assign({}, opts, { params: {}, roundTripPct: d.rt(rs), slipPct: d.slip }));
+        all = all.concat(r.trades); skipped += r.skippedCost; if (r.costToStop != null) { ratio += r.costToStop; nr++; }
+      });
+      return { name: d.name, st: global.BTX_STATS.computeStats(all), skipped: skipped, costToStop: nr ? ratio / nr : null, rt: rowSets.length ? d.rt(rowSets[0]) : 0 };
+    });
+  }
+
   function recommend(results) {
     var cand = results.filter(function (r) { return r.st.all.n >= 30 && r.st.train.expectancy > 0; });
     if (!cand.length) return 'Brak wariantu z dodatnia oczekiwana wartoscia (E[R]) na probie uczacej i >= 30 transakcjach. Reguly nie wykazuja przewagi po kosztach — nie handluj na prawdziwe pieniadze.';
@@ -145,6 +163,16 @@
     L.push('BACKTEST (prawdziwe dane 5-min, koszty+poslizg wliczone, wyniki w R)');
     if (meta && meta.coverage) L.push(meta.coverage);
     L.push('');
+    if (meta && meta.scen) {
+      L.push('SCENARIUSZE KOSZTOWE (te same reguly, BAZA):');
+      L.push('Scenariusz                                       koszt rundy   N   Win%   PF    E[R]   odrzucone przez koszty');
+      meta.scen.forEach(function (sc) {
+        var s = sc.st;
+        L.push((sc.name + '                                          ').slice(0, 46) + ' ' + ('      ' + (sc.rt * 100).toFixed(2) + '%').slice(-9) + '  ' + ('   ' + s.n).slice(-4) + ' ' + ('   ' + (s.winRate * 100).toFixed(0) + '%').slice(-5) + ' ' +
+          ('    ' + pf(s)).slice(-5) + ' ' + ('     ' + f2(s.expectancy)).slice(-6) + '   ' + sc.skipped + (sc.costToStop != null ? '  (koszt = ' + sc.costToStop.toFixed(1) + 'x dystansu stopu)' : ''));
+      });
+      L.push('');
+    }
     L.push('Wariant                         N    Win%   PF    E[R]   uczaca   TEST   MaxDD(R)');
     results.forEach(function (r) {
       var s = r.st.all;
@@ -166,7 +194,7 @@
     return L.join('\n');
   }
 
-  global.BTX_BT = { run: run, compare: compare, recommend: recommend, format: format, VARIANTS: VARIANTS, cache: {} };
+  global.BTX_BT = { run: run, scenarios: scenarios, compare: compare, recommend: recommend, format: format, VARIANTS: VARIANTS, cache: {} };
 
   if (typeof document === 'undefined') return; // testy w Node
 
@@ -191,14 +219,22 @@
       var bars = global.BTX_BT.cache[sym + ':' + size];
       if (!bars) {
         out.textContent = 'Pobieranie ' + sym + ' (' + (i + 1) + '/' + fetchList.length + ') ...';
-        try { bars = await live.fetchHistory(sym, size); global.BTX_BT.cache[sym + ':' + size] = bars; await sleep(8700); }
-        catch (e) { notes.push(sym + ': ' + e.message); continue; }
+        var attempt = 0;
+        while (true) {
+          try { bars = await live.fetchHistory(sym, size); global.BTX_BT.cache[sym + ':' + size] = bars; break; }
+          catch (e) {
+            if (attempt === 0 && /limit|minute|pauza/i.test(e.message)) { out.textContent = 'Limit zapytan Twelve — czekam 65 s (' + sym + ') ...'; await sleep(65000); attempt++; continue; }
+            notes.push(sym + ': ' + e.message); break;
+          }
+        }
+        await sleep(8700);
+        if (!bars) continue;
       }
       if (sym === 'SPY') marketBars = bars;
       if (syms.indexOf(sym) < 0) continue;   // SPY pobrany tylko jako filtr rynku
-      var rt = 0.0008;
-      try { if (typeof global.feeOf === 'function') { var f = global.feeOf(meta); rt = 2 * (f.comm + f.conv) + f.spr; } } catch (e2) {}
-      rowSets.push({ meta: meta, bars: bars, roundTripPct: rt });
+      var rt = 0.0008, spr = 0.0003, cm = 0;
+      try { if (typeof global.feeOf === 'function') { var f = global.feeOf(meta); rt = 2 * (f.comm + f.conv) + f.spr; spr = f.spr; cm = f.comm; } } catch (e2) {}
+      rowSets.push({ meta: meta, bars: bars, roundTripPct: rt, spreadPct: spr, commPct: cm });
     }
     if (!rowSets.length) { out.textContent = 'Nie pobrano zadnych danych.\n' + notes.join('\n'); btn.disabled = false; return; }
     out.textContent = 'Liczenie ...';
@@ -208,7 +244,8 @@
     var first = Math.min.apply(null, rowSets.map(function (r) { return r.bars[0].t; })), lastT = Math.max.apply(null, rowSets.map(function (r) { return r.bars[r.bars.length - 1].t; }));
     var cov = 'Dane: ' + rowSets.length + ' symboli, ' + tot + ' swiec, ' + new Date(first).toISOString().slice(0, 10) + ' .. ' + new Date(lastT).toISOString().slice(0, 10) +
       (notes.length ? '\nPominiete: ' + notes.join('; ') : '');
-    out.textContent = format(res, { coverage: cov });
+    var scen = global.BTX_BT.scenarios(rowSets, { allowShort: !!(global.CFG && global.CFG.allowShort), slipPct: 0.0002, marketBars: marketBars });
+    out.textContent = format(res, { coverage: cov, scen: scen });
     btn.disabled = false;
   }
 
