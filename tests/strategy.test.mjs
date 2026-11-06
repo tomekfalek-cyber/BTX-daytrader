@@ -196,3 +196,20 @@ test('koszty zjadajace przewage blokuja wejscie (R:R netto)', () => {
   delete sb.feeOf; delete sb.rateOf;
   assert.equal(r.ok, false); assert.match(r.reason, /koszty/);
 });
+test('panel Plan: build() dziala na przykladowym stanie (bez bledow)', () => {
+  const noop = () => {};
+  const el = () => ({ style: {}, addEventListener: noop, appendChild: noop });
+  const sb2 = { document: { readyState: 'complete', getElementById: () => null, createElement: el, body: { appendChild: noop }, addEventListener: noop } };
+  vm.createContext(sb2);
+  vm.runInContext(readFileSync(new URL('../daytrade-panel.js', import.meta.url), 'utf8'), sb2, { filename: 'daytrade-panel.js' });
+  Object.assign(sb2, { BTX_STRATEGY_CORE: CORE, BTX_STRATEGY_PRO: sb.BTX_STRATEGY_PRO, BTX_TIME: TIME,
+    BTX_LIVE: { isFresh: () => true, status: () => ({ ok: true }), budget: () => ({ n: 5 }) } });
+  const end = Date.now(), bars = [];
+  for (let i = 0; i < 300; i++) { const c = 100 + Math.sin(i / 7) * 2; bars.push({ t: end - (299 - i) * 300000, o: c, h: c + 0.4, l: c - 0.4, c, v: 1000 }); }
+  sb2.SYMBOLS = [{ s: 'NVDA', n: 'NVIDIA', t: 'Akcja', mkt: 'US', b: 100 }, { s: 'SPY', n: 'SPY', t: 'ETF', mkt: 'US', b: 100 }, { s: 'EURUSD', n: 'EUR', t: 'FX', mkt: 'FX', b: 1.1 }];
+  sb2.ST = { equity: 10000, cash: 9000, series: { NVDA: bars, SPY: bars, EURUSD: bars }, cool: {}, dayTrades: 1, consecLoss: 0, closed: [],
+    pos: { NVDA: { sym: 'NVDA', side: 'LONG', qty: 10, entry: 100, stop: 98.8, target: 101.9, partial: 101.2, risk0: 1.2, bars: 3, rate: 1 } } };
+  const out = sb2.BTX_PLAN.build();
+  assert.match(out, /BTX PLAN/); assert.match(out, /OTWARTE POZYCJE/); assert.match(out, /NVDA LONG x10/);
+  assert.match(out, /SETUPY/); assert.match(out, /BEZ WEJSCIA/);
+});
