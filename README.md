@@ -2,34 +2,38 @@
 
 https://tomekfalek-cyber.github.io/BTX-daytrader/
 
-Paper / sygnalowy asystent daytradingu (akcje, ETF, FX) pod reczne XTB. Dziala z GitHub Pages.
+Paper / sygnałowy asystent daytradingu (akcje, ETF, FX) pod ręczne XTB. Działa z GitHub Pages.
 
 ## Szybki start
-1. Otworz GitHub Pages projektu
-2. Ustawienia \u2192 klucz **Twelve Data** \u2192 Test dostawcy (LIVE)
-3. Pulpit \u2192 autonomia paper ON
-4. Sesja US ok. **15:30\u201322:00 PL** (pn\u2013pt)
-5. Karta handlu na gorze: LONG/SHORT, SL, TP \u2192 kopiuj do XTB
+1. Otwórz GitHub Pages projektu
+2. Ustawienia → klucz **Twelve Data** → Test dostawcy (LIVE)
+3. Pulpit → autonomia paper ON
+4. Sesja US ok. **15:30–22:00 PL** (pn–pt)
+5. Karta handlu na górze: LONG/SHORT, SL, TP → kopiuj do XTB
 
-## Co jest w srodku
-- Signal Desk (sila, score Active DT \u226563)
-- Risk PRO (0.5%, max 2 pos, max 4/dzien)
+## Co jest w środku
+- Signal Desk (siła, score Active DT ≥63)
+- Risk PRO (0.5%, max 2 pozycje, max 6 transakcji dziennie)
 - Engine Hardening (LIVE bez synth, weekend OFF, reset dnia, flat koniec US)
 - Pro Edge + Pakiet DT (pullback, open 15m, tech XOR QQQ, spread)
 - Edukacja, journal, plan 7 dni
 - Box **Dlaczego 0 trade** + zwijane panele na Pulpicie
 
-## Limity
-- Free Twelve: trzymaj **8 instrumentow**
-- To nie gwarancja zysku; paper \u2260 real XTB
-- Auto-zlecenia XTB tylko przy xAPI ONLINE + swiadomy ARM (DEMO)
+## Instrumenty i limity
+- 11 symboli (US, EU, FX) — lista jest wpisana na stałe w `index.html` (`SYMBOLS`)
+- Free Twelve Data ma limit zapytań — przy 11 symbolach i skanie co 120 s pilnuj budżetu API (moduł `api-budget.js`)
+- To nie gwarancja zysku; paper ≠ real XTB
+- Auto-zlecenia XTB tylko przy xAPI ONLINE + świadomy ARM (DEMO)
+
+## Parametry strategii
+Docelowe wartości są wpisane bezpośrednio w `strategy-pro.js` (np. `minStrengthOpen: 3`, `tpR: 1.6`, `maxDayTrades: 6`). CI niczego już nie nadpisuje.
 
 ## Dev / CI
-- Moduly JS wstrzykiwane przy deploy (`.github/workflows/pages.yml`)
-- `node --check` na modulach przed publikacja
-- autonomy-pro / pro-edge zawsze przywracane z dobrych wersji w CI (ochrona przed PLACEHOLDER)
+- Moduły JS są dopisane jako `<script src>` na końcu `index.html` (kolejność = kolejność ładowania; `anti-flicker.js` pierwszy)
+- Workflow `.github/workflows/pages.yml`: guard rozmiaru krytycznych plików → `node --check` → sprawdzenie, że wszystkie skrypty istnieją → `npm test` → dopiero deploy (tylko z `main`)
 - Testy: `tests/engine-core.test.mjs`
+- `dashboard/index.html` to tylko przekierowanie do strony głównej
 
-## Bezpieczenstwo
-- Klucze w localStorage przegladarki \u2014 nie wspoldziel urzadzenia
-- Docelowo: Worker proxy (`worker-proxy.js`) dla kluczy API
+## Bezpieczeństwo
+- Klucze w localStorage przeglądarki — nie współdziel urządzenia
+- Docelowo: Worker proxy (`worker-proxy.js`, opis w `worker-proxy.md`) dla kluczy API

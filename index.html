@@ -207,6 +207,7 @@ details.gl p{margin-top:10px;line-height:1.75;color:var(--tx2);font-size:12.8px}
 <div class="card"><h2><span class="dot"></span>Instrumenty</h2><div id="uni" class="mut" style="line-height:2"></div></div></div></section>
 <div class="foot">BTX DayTrader · paper trading · dane demo · to nie jest rekomendacja inwestycyjna</div>
 </main></div><div class="toast" id="toast"></div>
+<script src="anti-flicker.js"></script>
 <script src="ai-ensemble.js">
 </script>
 <script src="ai-panel.js"></script>
@@ -214,11 +215,17 @@ details.gl p{margin-top:10px;line-height:1.75;color:var(--tx2);font-size:12.8px}
 <script src="strategy-pro.js"></script>
 <script>
 var SYMBOLS=[
-{s:'SPY',n:'S&P 500 ETF',t:'ETF',b:520,v:0.0008},{s:'QQQ',n:'Nasdaq 100 ETF',t:'ETF',b:450,v:0.0010},{s:'IWM',n:'Russell 2000 ETF',t:'ETF',b:210,v:0.0011},
-{s:'AAPL',n:'Apple',t:'Akcja',b:230,v:0.0012},{s:'MSFT',n:'Microsoft',t:'Akcja',b:510,v:0.0010},{s:'NVDA',n:'NVIDIA',t:'Akcja',b:215,v:0.0018},
-{s:'AMZN',n:'Amazon',t:'Akcja',b:190,v:0.0013},{s:'GOOGL',n:'Alphabet',t:'Akcja',b:300,v:0.0012},{s:'META',n:'Meta',t:'Akcja',b:600,v:0.0014},
-{s:'JPM',n:'JPMorgan',t:'Akcja',b:330,v:0.0010},{s:'XOM',n:'Exxon',t:'Akcja',b:180,v:0.0011},
-{s:'EURUSD',n:'EUR/USD',t:'FX',b:1.09,v:0.0003},{s:'GBPUSD',n:'GBP/USD',t:'FX',b:1.27,v:0.00035},{s:'USDJPY',n:'USD/JPY',t:'FX',b:151,v:0.00035}
+{s:'NVDA',n:'NVIDIA',t:'Akcja',b:140,v:0.0022,mkt:'US'},
+{s:'TSLA',n:'Tesla',t:'Akcja',b:250,v:0.0024,mkt:'US'},
+{s:'META',n:'Meta Platforms',t:'Akcja',b:580,v:0.0018,mkt:'US'},
+{s:'AAPL',n:'Apple',t:'Akcja',b:230,v:0.0014,mkt:'US'},
+{s:'QQQ',n:'Nasdaq 100 ETF',t:'ETF',b:480,v:0.0012,mkt:'US'},
+{s:'SPY',n:'S&P 500 ETF',t:'ETF',b:560,v:0.0009,mkt:'US'},
+{s:'ASML',n:'ASML Holding',t:'Akcja',b:700,v:0.0018,mkt:'EU'},
+{s:'SAP',n:'SAP SE',t:'Akcja',b:220,v:0.0015,mkt:'EU'},
+{s:'SIE.DE',n:'Siemens',t:'Akcja',b:180,v:0.0014,mkt:'EU'},
+{s:'EURUSD',n:'EUR/USD',t:'FX',b:1.08,v:0.00035,mkt:'FX'},
+{s:'XAU/USD',n:'Zloto (Gold)',t:'FX',b:2650,v:0.0008,mkt:'FX'}
 ];
 var CFG={capital:100000,risk:1,maxPos:4,allowShort:false};
 var ST={equity:100000,cash:100000,pos:{},closed:[],sig:[],log:[],eq:[],series:{},n:0,cool:{}};
@@ -255,7 +262,7 @@ function drawEq(){var c=document.getElementById('eq');if(!c)return;var ctx=c.get
 function drawCandles(){var c=document.getElementById('candles');if(!c)return;var sym=document.getElementById('chart-sym').value||SYMBOLS[0].s;var b=ST.series[sym];var ctx=c.getContext('2d');var w=c.width=c.clientWidth||900,hh=340;ctx.clearRect(0,0,w,hh);if(!b||b.length<5){ctx.fillStyle='#64748B';ctx.font='12px Inter';ctx.fillText('Brak danych.',12,24);return;}var view=b.slice(-70);var hi=Math.max.apply(null,view.map(function(x){return x.h;}));var lo=Math.min.apply(null,view.map(function(x){return x.l;}));var rg=(hi-lo)||1;var pad=12,bw=(w-pad*2)/view.length;var y=function(v){return hh-12-((v-lo)/rg)*(hh-34);};ctx.strokeStyle='rgba(255,255,255,.05)';for(var gl=0;gl<5;gl++){var yy=12+gl*(hh-24)/4;ctx.beginPath();ctx.moveTo(0,yy);ctx.lineTo(w,yy);ctx.stroke();}for(var i=0;i<view.length;i++){var x=pad+i*bw+bw/2;var k=view[i];var up=k.c>=k.o;ctx.strokeStyle=up?'#12C48B':'#F04452';ctx.fillStyle=up?'#12C48B':'#F04452';ctx.beginPath();ctx.moveTo(x,y(k.h));ctx.lineTo(x,y(k.l));ctx.stroke();var top=y(Math.max(k.o,k.c)),bot=y(Math.min(k.o,k.c));ctx.fillRect(x-bw*0.32,top,bw*0.64,Math.max(1,bot-top));}var closes=view.map(function(x){return x.c;});var s20=sma(b.map(function(x){return x.c;}),20);if(s20!==null){ctx.strokeStyle='#F5B301';ctx.lineWidth=1.5;ctx.beginPath();for(var q=0;q<view.length;q++){var idx=b.length-view.length+q;var sm=sma(b.slice(0,idx+1).map(function(x){return x.c;}),20);if(sm===null)continue;var xx=pad+q*bw+bw/2;if(q===0)ctx.moveTo(xx,y(sm));else ctx.lineTo(xx,y(sm));}ctx.stroke();}var p=ST.pos[sym];if(p){ctx.setLineDash([5,4]);ctx.strokeStyle='#F04452';ctx.beginPath();ctx.moveTo(0,y(p.stop));ctx.lineTo(w,y(p.stop));ctx.stroke();ctx.strokeStyle='#12C48B';ctx.beginPath();ctx.moveTo(0,y(p.target));ctx.lineTo(w,y(p.target));ctx.stroke();ctx.strokeStyle='#3B82F6';ctx.beginPath();ctx.moveTo(0,y(p.entry));ctx.lineTo(w,y(p.entry));ctx.stroke();ctx.setLineDash([]);}var info=document.getElementById('chart-info');if(info){var lk=last(sym);info.textContent=sym+' · ostatnia '+f2(lk?lk.c:0)+' · świec '+view.length+' · 5 min';}}
 function reset(){ST={equity:CFG.capital,cash:CFG.capital,pos:{},closed:[],sig:[],log:[],eq:[],series:{},n:0,cool:{},dayStart:CFG.capital,dayTrades:0,consecLoss:0,blocked:false};for(var i=0;i<SYMBOLS.length;i++)ST.series[SYMBOLS[i].s]=initSeries(SYMBOLS[i],150);log('Reset portfela','i');render();save();toast('Portfel zresetowany');}
 function backtest(){var eq=CFG.capital,w=0,l=0,tr=0,peak=eq,mdd=0;var saved=JSON.stringify(ST);for(var d=1;d<=250;d++){ST.n=d;for(var i=0;i<SYMBOLS.length;i++){var m=SYMBOLS[i];var a=ST.series[m.s]||initSeries(m,150);a.push(nextBar(m,a[a.length-1]));ST.series[m.s]=a;}var sg=signals();for(var q=0;q<sg.length;q++){var g=sg[q];if(g.side==='WAIT')continue;var risk=eq*(CFG.risk/100);var sd=(g.atr||g.price*0.004)*1.5;var qty=Math.max(1,Math.floor(risk/sd));var win=(rnd(d*11+q*7)>0.42);var pnl=win?(3*sd*qty):(-sd*qty);eq+=pnl;tr++;if(pnl>0)w++;else l++;if(eq>peak)peak=eq;var dd=(eq-peak)/peak;if(dd<mdd)mdd=dd;}}ST=JSON.parse(saved);var ret=eq/CFG.capital-1;var wr=tr?Math.round(w/tr*100):0;document.getElementById('bt-out').innerHTML='<div class="row" style="gap:18px"><div>Transakcji <b>'+tr+'</b></div><div>Win rate <b>'+wr+'%</b></div><div>Kapitał <b>'+money(eq)+'</b></div><div>Zwrot <b class="'+(ret>=0?'pos':'neg')+'">'+fp(ret)+'</b></div><div>Max DD <b class="neg">'+fp(mdd)+'</b></div></div><div class="mut" style="margin-top:8px">Symulacja na danych demo — nie prognoza.</div>';}
-function autoToggle(){if(AUTO){clearInterval(AUTO);AUTO=null;document.getElementById('btn-auto').textContent='⟳ Auto';toast('Auto zatrzymane');}else{AUTO=setInterval(cycle,(CFG.autoSec||60)*1000);document.getElementById('btn-auto').textContent='⏸ Stop';toast('Auto: 1 świeca co '+(CFG.autoSec||60)+' s');}}
+function autoToggle(){if(AUTO){clearInterval(AUTO);AUTO=null;document.getElementById('btn-auto').textContent='⟳ Auto';toast('Auto zatrzymane');}else{AUTO=setInterval(cycle,(CFG.autoSec||120)*1000);document.getElementById('btn-auto').textContent='⏸ Stop';toast('Auto: 1 świeca co '+(CFG.autoSec||120)+' s');}}
 function aiConf(g,trend,zone,vol){
   var s=(g&&g.strength?g.strength:0)*20;
   if(trend.indexOf('wzrost')>=0)s+=20; else if(trend.indexOf('spadk')>=0)s+=10;
@@ -342,7 +349,7 @@ document.getElementById('chart-sym').addEventListener('change',function(){drawCa
 var sel=document.getElementById('chart-sym');sel.innerHTML=SYMBOLS.map(function(m){return '<option value="'+m.s+'">'+m.s+' — '+m.n+'</option>';}).join('');
 document.getElementById('uni').innerHTML=SYMBOLS.map(function(m){return '<span class="tag">'+m.s+'</span> '+m.n;}).join('<br>');
 if(!load()){reset();}else{render();}initAI();
-document.getElementById('set-risk').value=CFG.risk;document.getElementById('set-max').value=CFG.maxPos;document.getElementById('set-cap').value=CFG.capital;document.getElementById('set-short').value=CFG.allowShort?'1':'0';document.getElementById('set-dloss').value=CFG.dailyLoss||3;document.getElementById('set-dtrades').value=CFG.maxTrades||10;document.getElementById('set-dconsec').value=CFG.maxConsec||3;document.getElementById('set-tdkey').value=CFG.tdKey||'';document.getElementById('set-worker').value=CFG.workerUrl||'';document.getElementById('set-prov').value=CFG.provider||'twelve';document.getElementById('set-minhold').value=CFG.minHold||6;document.getElementById('set-autosec').value=CFG.autoSec||60;document.getElementById('set-tstop').value=CFG.timeStop||60;document.getElementById('set-alpkey').value=CFG.alpKey||'';document.getElementById('set-alpsec').value=CFG.alpSec||'';
+document.getElementById('set-risk').value=CFG.risk;document.getElementById('set-max').value=CFG.maxPos;document.getElementById('set-cap').value=CFG.capital;document.getElementById('set-short').value=CFG.allowShort?'1':'0';document.getElementById('set-dloss').value=CFG.dailyLoss||3;document.getElementById('set-dtrades').value=CFG.maxTrades||10;document.getElementById('set-dconsec').value=CFG.maxConsec||3;document.getElementById('set-tdkey').value=CFG.tdKey||'';document.getElementById('set-worker').value=CFG.workerUrl||'';document.getElementById('set-prov').value=CFG.provider||'twelve';document.getElementById('set-minhold').value=CFG.minHold||6;document.getElementById('set-autosec').value=CFG.autoSec||120;document.getElementById('set-tstop').value=CFG.timeStop||60;document.getElementById('set-alpkey').value=CFG.alpKey||'';document.getElementById('set-alpsec').value=CFG.alpSec||'';
 setInterval(function(){document.getElementById('clock');},60000);render();
 function pivots(b,k){var hi=[],lo=[];for(var i=k;i<b.length-k;i++){var isH=true,isL=true;for(var j=1;j<=k;j++){if(b[i].h<=b[i-j].h||b[i].h<=b[i+j].h)isH=false;if(b[i].l>=b[i-j].l||b[i].l>=b[i+j].l)isL=false;}if(isH)hi.push(b[i].h);if(isL)lo.push(b[i].l);}return {hi:hi,lo:lo};}
 drawCandles=function(){
@@ -390,35 +397,17 @@ drawCandles=function(){
 };
 // ===== ENGINE v2: wieksze uniwersum, multi-TF, sesje, realny backtest =====
 SYMBOLS = [
- {s:'SPY',n:'S&P 500 ETF',t:'ETF',b:520,v:0.0008,mkt:'US'},
- {s:'QQQ',n:'Nasdaq 100 ETF',t:'ETF',b:450,v:0.0010,mkt:'US'},
- {s:'IWM',n:'Russell 2000 ETF',t:'ETF',b:210,v:0.0011,mkt:'US'},
- {s:'DIA',n:'Dow Jones ETF',t:'ETF',b:420,v:0.0008,mkt:'US'},
- {s:'XLK',n:'Tech Select ETF',t:'ETF',b:230,v:0.0010,mkt:'US'},
- {s:'XLF',n:'Financials ETF',t:'ETF',b:48,v:0.0009,mkt:'US'},
- {s:'XLE',n:'Energy ETF',t:'ETF',b:92,v:0.0011,mkt:'US'},
- {s:'SMH',n:'Semiconductors ETF',t:'ETF',b:260,v:0.0015,mkt:'US'},
- {s:'TLT',n:'Bonds 20Y+ ETF',t:'ETF',b:95,v:0.0009,mkt:'US'},
- {s:'GLD',n:'Złoto ETF',t:'ETF',b:370,v:0.0010,mkt:'US'},
- {s:'AAPL',n:'Apple',t:'Akcja',b:230,v:0.0012,mkt:'US'},
- {s:'MSFT',n:'Microsoft',t:'Akcja',b:510,v:0.0010,mkt:'US'},
- {s:'NVDA',n:'NVIDIA',t:'Akcja',b:215,v:0.0018,mkt:'US'},
- {s:'AMZN',n:'Amazon',t:'Akcja',b:190,v:0.0013,mkt:'US'},
- {s:'GOOGL',n:'Alphabet',t:'Akcja',b:300,v:0.0012,mkt:'US'},
- {s:'META',n:'Meta',t:'Akcja',b:600,v:0.0014,mkt:'US'},
- {s:'JPM',n:'JPMorgan',t:'Akcja',b:330,v:0.0010,mkt:'US'},
- {s:'XOM',n:'Exxon',t:'Akcja',b:180,v:0.0011,mkt:'US'},
- {s:'PKN.WA',n:'Orlen',t:'GPW',b:62,v:0.0012,mkt:'PL'},
- {s:'PKO.WA',n:'PKO BP',t:'GPW',b:58,v:0.0011,mkt:'PL'},
- {s:'PEO.WA',n:'Pekao',t:'GPW',b:160,v:0.0011,mkt:'PL'},
- {s:'KGH.WA',n:'KGHM',t:'GPW',b:150,v:0.0013,mkt:'PL'},
- {s:'CDR.WA',n:'CD Projekt',t:'GPW',b:120,v:0.0016,mkt:'PL'},
- {s:'EURUSD',n:'EUR/USD',t:'FX',b:1.09,v:0.00030,mkt:'FX'},
- {s:'GBPUSD',n:'GBP/USD',t:'FX',b:1.27,v:0.00035,mkt:'FX'},
- {s:'USDJPY',n:'USD/JPY',t:'FX',b:151,v:0.00035,mkt:'FX'},
- {s:'AUDUSD',n:'AUD/USD',t:'FX',b:0.66,v:0.00035,mkt:'FX'},
- {s:'NZDUSD',n:'NZD/USD',t:'FX',b:0.61,v:0.00035,mkt:'FX'},
- {s:'EURJPY',n:'EUR/JPY',t:'FX',b:164,v:0.00040,mkt:'FX'}
+{s:'NVDA',n:'NVIDIA',t:'Akcja',b:140,v:0.0022,mkt:'US'},
+{s:'TSLA',n:'Tesla',t:'Akcja',b:250,v:0.0024,mkt:'US'},
+{s:'META',n:'Meta Platforms',t:'Akcja',b:580,v:0.0018,mkt:'US'},
+{s:'AAPL',n:'Apple',t:'Akcja',b:230,v:0.0014,mkt:'US'},
+{s:'QQQ',n:'Nasdaq 100 ETF',t:'ETF',b:480,v:0.0012,mkt:'US'},
+{s:'SPY',n:'S&P 500 ETF',t:'ETF',b:560,v:0.0009,mkt:'US'},
+{s:'ASML',n:'ASML Holding',t:'Akcja',b:700,v:0.0018,mkt:'EU'},
+{s:'SAP',n:'SAP SE',t:'Akcja',b:220,v:0.0015,mkt:'EU'},
+{s:'SIE.DE',n:'Siemens',t:'Akcja',b:180,v:0.0014,mkt:'EU'},
+{s:'EURUSD',n:'EUR/USD',t:'FX',b:1.08,v:0.00035,mkt:'FX'},
+{s:'XAU/USD',n:'Zloto (Gold)',t:'FX',b:2650,v:0.0008,mkt:'FX'}
 ];
 function mktOf(m){return m.mkt||'US';}
 function sessionOpen(mkt){
@@ -1604,4 +1593,86 @@ function btCsvRun(file){
   }
   bootAI();
 })();
-</script></body></html>
+</script>
+<script src="symbols-canon.js"></script>
+
+<script src="universe-pro.js"></script>
+
+<script src="xtb-map-full.js"></script>
+
+<script src="eu-session.js"></script>
+
+<script src="session-profiles.js"></script>
+
+<script src="live-hard-gate.js"></script>
+
+<script src="api-budget.js"></script>
+
+<script src="day-report.js"></script>
+
+<script src="auto-180.js"></script>
+
+<script src="daytrader-mode.js"></script>
+
+<script src="trade-now.js"></script>
+
+<script src="ui-stable.js"></script>
+
+<script src="scan-countdown.js"></script>
+
+<script src="coach-ui.js"></script>
+
+<script src="pro-desk.js"></script>
+
+<script src="settings-fix.js"></script>
+
+<script src="real-daytrader-7.js"></script>
+
+<script src="vpvr-session.js"></script>
+
+<script src="pro-upgrade-6.js"></script>
+
+<script src="learner-pack.js"></script>
+
+<script src="guide-7days.js"></script>
+
+<script src="macro-calendar.js"></script>
+
+<script src="xtb-bridge.js"></script>
+
+<script src="chart-ta-lesson.js"></script>
+
+<script src="autonomy-pro.js"></script>
+
+<script src="xtb-api-connect.js"></script>
+
+<script src="pro-assistant.js"></script>
+
+<script src="quality-cap.js"></script>
+
+<script src="quality-cap-eu-map.js"></script>
+
+<script src="ui-plain-polish.js"></script>
+
+<script src="pro-edge.js"></script>
+
+<script src="active-dt-mode.js"></script>
+
+<script src="dt-final-pack.js"></script>
+
+<script src="trade-hero.js"></script>
+
+<script src="positions-fix.js"></script>
+
+<script src="engine-hardening.js"></script>
+
+<script src="pro-daytrader-5.js"></script>
+
+<script src="unblock-trading.js"></script>
+
+<script src="desk-compact.js"></script>
+
+<script src="ui-less-noise.js"></script>
+
+<script src="dt-canon.js"></script>
+</body></html>

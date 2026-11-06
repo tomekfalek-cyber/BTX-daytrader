@@ -1,130 +1,55 @@
 name: Deploy static site to Pages
 on:
   push:
-    branches: [main]
+  pull_request:
   workflow_dispatch:
 permissions:
   contents: read
   pages: write
   id-token: write
 concurrency:
-  group: pages
-  cancel-in-progress: true
+  group: pages-${{ github.ref }}
+  cancel-in-progress: false
 jobs:
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+  verify:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Permanent daytrade params + calm UI intervals
+      - name: Guard - krytyczne moduly nie moga byc puste/placeholder
         run: |
-          set -e
-          for pair in "autonomy-pro.js|da57a27fea51194738a7c49034b964623d3a4d98" "pro-edge.js|91cae43a82045c562cb4d1ceb2f8cd6a0c88d3b5"; do
-            f="${pair%%|*}"; rev="${pair##*|}"
-            sz=$(wc -c < "$f" 2>/dev/null || echo 0)
-            if [ "$sz" -lt 500 ]; then
-              curl -sL "https://raw.githubusercontent.com/tomekfalek-cyber/BTX-daytrader/${rev}/${f}" -o "$f"
-            fi
+          for f in autonomy-pro.js pro-edge.js strategy-pro.js index.html; do
+            sz=$(wc -c < "$f")
+            if [ "$sz" -lt 500 ]; then echo "FAIL $f ma tylko $sz B"; exit 1; fi
+            if grep -q PLACEHOLDER "$f"; then echo "FAIL $f zawiera PLACEHOLDER"; exit 1; fi
           done
-          python3 - <<'PY'
-          from pathlib import Path
-          p = Path('strategy-pro.js')
-          if p.exists():
-              t = p.read_text(encoding='utf-8')
-              for a,b in [
-                  ('minStrengthOpen: 4','minStrengthOpen: 3'),
-                  ('requireTrend: true','requireTrend: false'),
-                  ('atrSlMult: 2.0','atrSlMult: 1.2'),
-                  ('tpR: 2.5','tpR: 1.6'),
-                  ('beR: 1.0','beR: 0.8'),
-                  ('partialR: 1.5','partialR: 1.0'),
-                  ('coolBars: 12','coolBars: 4'),
-                  ('minHoldBars: 4','minHoldBars: 2'),
-                  ('maxDayTrades: 4','maxDayTrades: 6'),
-                  ('newsPadMin: 30','newsPadMin: 10'),
-                  ('scoreL >= 6','scoreL >= 4'),
-                  ('scoreS >= 6','scoreS >= 4'),
-                  ('ST.blocked = true', 'ST.blocked = false'),
-              ]:
-                  t = t.replace(a,b)
-              p.write_text(t, encoding='utf-8')
-          print('ok')
-          PY
-
       - name: Syntax check all client JS
         run: |
-          set -e
           fail=0
           for f in *.js; do
             [ -f "$f" ] || continue
-            sz=$(wc -c < "$f")
-            if [ "$sz" -lt 50 ]; then continue; fi
+            if [ "$(wc -c < "$f")" -lt 50 ]; then continue; fi
             if ! node --check "$f"; then echo "FAIL $f"; fail=1; fi
           done
-          if [ "$fail" -ne 0 ]; then exit 1; fi
-
-      - name: Force 11-symbol universe + sync dashboard
+          exit $fail
+      - name: Wszystkie <script src> z index.html istnieja
         run: |
-          python3 << 'PY'
-          import re, pathlib, shutil
-          UNI = """[
-          {s:'NVDA',n:'NVIDIA',t:'Akcja',b:140,v:0.0022,mkt:'US'},
-          {s:'TSLA',n:'Tesla',t:'Akcja',b:250,v:0.0024,mkt:'US'},
-          {s:'META',n:'Meta Platforms',t:'Akcja',b:580,v:0.0018,mkt:'US'},
-          {s:'AAPL',n:'Apple',t:'Akcja',b:230,v:0.0014,mkt:'US'},
-          {s:'QQQ',n:'Nasdaq 100 ETF',t:'ETF',b:480,v:0.0012,mkt:'US'},
-          {s:'SPY',n:'S&P 500 ETF',t:'ETF',b:560,v:0.0009,mkt:'US'},
-          {s:'ASML',n:'ASML Holding',t:'Akcja',b:700,v:0.0018,mkt:'EU'},
-          {s:'SAP',n:'SAP SE',t:'Akcja',b:220,v:0.0015,mkt:'EU'},
-          {s:'SIE.DE',n:'Siemens',t:'Akcja',b:180,v:0.0014,mkt:'EU'},
-          {s:'EURUSD',n:'EUR/USD',t:'FX',b:1.08,v:0.00035,mkt:'FX'},
-          {s:'XAU/USD',n:'Zloto (Gold)',t:'FX',b:2650,v:0.0008,mkt:'FX'}
-          ]"""
-          def patch(path):
-              p = pathlib.Path(path)
-              if not p.exists(): return
-              h = p.read_text(encoding='utf-8', errors='replace')
-              h2, n = re.subn(r'((?:var\s+)?SYMBOLS\s*=\s*)\[(?:[^\[\]]|\[[^\]]*\])*\]', lambda m: m.group(1)+UNI, h)
-              h2 = h2.replace('CFG.autoSec||60','CFG.autoSec||120').replace('autoSec||60','autoSec||120')
-              p.write_text(h2, encoding='utf-8')
-          patch('index.html')
-          if pathlib.Path('index.html').exists():
-              pathlib.Path('dashboard').mkdir(exist_ok=True)
-              shutil.copyfile('index.html', 'dashboard/index.html')
-          PY
-
-      - name: Wire client modules
-        run: |
-          set -e
-          inject() {
-            local f="$1"
-            if [ ! -f "$f" ]; then return 0; fi
-            for s in \
-              symbols-canon.js universe-pro.js xtb-map-full.js eu-session.js session-profiles.js \
-              live-hard-gate.js api-budget.js day-report.js \
-              auto-180.js strategy-pro.js daytrader-mode.js trade-now.js ui-stable.js ai-ensemble.js export-csv.js \
-              scan-countdown.js ai-panel.js coach-ui.js pro-desk.js settings-fix.js real-daytrader-7.js \
-              vpvr-session.js pro-upgrade-6.js learner-pack.js guide-7days.js macro-calendar.js \
-              xtb-bridge.js chart-ta-lesson.js autonomy-pro.js xtb-api-connect.js \
-              pro-assistant.js quality-cap.js quality-cap-eu-map.js ui-plain-polish.js pro-edge.js \
-              active-dt-mode.js dt-final-pack.js trade-hero.js positions-fix.js \
-              engine-hardening.js pro-daytrader-5.js unblock-trading.js desk-compact.js \
-              ui-less-noise.js dt-canon.js ui-stable.js real-daytrader-7.js trade-now.js
-            do
-              if [ ! -f "$s" ]; then continue; fi
-              if ! grep -q "$s" "$f" 2>/dev/null; then
-                if grep -q '</body>' "$f"; then
-                  sed -i "s|</body>|\\n<script src=\"$s\"></script>\\n</body>|" "$f"
-                fi
-              fi
-            done
-          }
-          inject index.html
-          inject dashboard/index.html
-
+          fail=0
+          for s in $(grep -o '<script src="[^"]*"' index.html | sed 's/.*src="//;s/"$//'); do
+            case "$s" in http*) continue;; esac
+            if [ ! -f "$s" ]; then echo "BRAK $s"; fail=1; fi
+          done
+          exit $fail
+      - name: Testy
+        run: npm test
+  deploy:
+    needs: verify
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
