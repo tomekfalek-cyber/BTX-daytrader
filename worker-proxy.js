@@ -1,35 +1,83 @@
-// Cloudflare Worker: proxy danych + cache (klucze po stronie serwera).
+/**
+ * Cloudflare Worker — proxy Twelve Data + Telegram
+ *
+ * Ustaw sekrety w Workerze:
+ *   TWELVE_KEY = twój klucz Twelve Data
+ *
+ * Deploy: wrangler secret put TWELVE_KEY
+ * Endpointy:
+ *   GET  /bars?symbol=EURUSD
+ *   POST /telegram  { token, chat_id, text }  — albo token z env TG_BOT_TOKEN
+ */
 export default {
-  async fetch(request, env, ctx) {
+  async fetch(request, env) {
     const url = new URL(request.url);
-    const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': '*', 'Content-Type': 'application/json' };
+    const cors = {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type'
+    };
     if (request.method === 'OPTIONS') return new Response(null, { headers: cors });
-    if (url.pathname === '/health') return new Response(JSON.stringify({ ok: true }), { headers: cors });
-    if (url.pathname !== '/bars') return new Response(JSON.stringify({ error: 'not found' }), { status: 404, headers: cors });
-    const symbol = (url.searchParams.get('symbol') || 'SPY').toUpperCase();
-    const tf = url.searchParams.get('tf') || '5min';
-    const provider = (url.searchParams.get('provider') || 'twelve').toLowerCase();
-    const cacheKey = new Request(url.toString(), request);
-    const cache = caches.default;
-    const hit = await cache.match(cacheKey);
-    if (hit) return hit;
-    let out;
-    if (provider === 'twelve') {
-      const key = env.TWELVE_DATA_KEY;
-      if (!key) return new Response(JSON.stringify({ error: 'brak TWELVE_DATA_KEY' }), { status: 500, headers: cors });
-      const u = 'https://api.twelvedata.com/time_series?symbol=' + encodeURIComponent(symbol) + '&interval=' + encodeURIComponent(tf) + '&outputsize=120&apikey=' + encodeURIComponent(key);
-      const r = await fetch(u); const j = await r.json();
-      out = (j.values || []).slice().reverse().map(v => ({ t: new Date(v.datetime).getTime(), o: +v.open, h: +v.high, l: +v.low, c: +v.close, v: +(v.volume || 0) }));
-    } else if (provider === 'alpaca') {
-      const u = 'https://data.alpaca.markets/v2/stocks/' + encodeURIComponent(symbol) + '/bars?timeframe=5Min&limit=120&feed=iex&adjustment=raw';
-      const r = await fetch(u, { headers: { 'APCA-API-KEY-ID': env.ALPACA_KEY_ID, 'APCA-API-SECRET-KEY': env.ALPACA_SECRET } });
-      const j = await r.json();
-      out = (j.bars || []).map(b => ({ t: new Date(b.t).getTime(), o: +b.o, h: +b.h, l: +b.l, c: +b.c, v: +(b.v || 0) }));
-    } else {
-      return new Response(JSON.stringify({ error: 'provider?' }), { status: 400, headers: cors });
+
+    try {
+      if (url.pathname === '/bars' && request.method === 'GET') {
+        const symbol = url.searchParams.get('symbol') || 'EURUSD';
+        const key = env.TWELVE_KEY;
+        if (!key) {
+          return json({ error: 'Brak TWELVE_KEY w Workerze' }, 500, cors);
+        }
+        let sym = symbol;
+        if (sym === 'EURUSD') sym = 'EUR/USD';
+        if (sym === 'XAUUSD' || sym === 'XAU/USD') sym = 'XAU/USD';
+        const api = 'https://api.twelvedata.com/time_series?symbol=' +
+          encodeURIComponent(sym) + '&interval=5min&outputsize=120&apikey=' + encodeURIComponent(key);
+        const r = await fetch(api);
+        const data = await r.json();
+        if (!data || !data.values) {
+          return json({ error: data && data.message ? data.message : 'Twelve error', raw: data }, 502, cors);
+        }
+        const bars = data.values.slice().reverse().map(function (v) {
+          return {
+            t: Date.parse(v.datetime),
+            o: +v.open,
+            h: +v.high,
+            l: +v.low,
+            c: +v.close,
+            v: +(v.volume || 0)
+          };
+        });
+        return json({ symbol: symbol, bars: bars }, 200, cors);
+      }
+
+      if (url.pathname === '/telegram' && request.method === 'POST') {
+        const body = await request.json();
+        const token = body.token || env.TG_BOT_TOKEN;
+        const chat = body.chat_id || env.TG_CHAT_ID;
+        const text = body.text || '';
+        if (!token || !chat) return json({ error: 'token/chat_id required' }, 400, cors);
+        const tg = await fetch('https://api.telegram.org/bot' + token + '/sendMessage', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ chat_id: chat, text: text, disable_web_page_preview: true })
+        });
+        const out = await tg.json();
+        return json(out, tg.ok ? 200 : 502, cors);
+      }
+
+      return json({
+        ok: true,
+        service: 'BTX worker-proxy',
+        endpoints: ['GET /bars?symbol=', 'POST /telegram']
+      }, 200, cors);
+    } catch (e) {
+      return json({ error: String(e && e.message || e) }, 500, cors);
     }
-    const res = new Response(JSON.stringify({ symbol, tf, bars: out }), { headers: Object.assign({ 'Cache-Control': 'public, max-age=300' }, cors) });
-    ctx.waitUntil(cache.put(cacheKey, res.clone()));
-    return res;
   }
 };
+
+function json(obj, status, cors) {
+  return new Response(JSON.stringify(obj), {
+    status: status || 200,
+    headers: Object.assign({ 'Content-Type': 'application/json' }, cors || {})
+  });
+}
