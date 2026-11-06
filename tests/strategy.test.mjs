@@ -5,7 +5,7 @@ import { readFileSync } from 'node:fs';
 
 const sb = {};
 vm.createContext(sb);
-for (const f of ['pro-report.js', 'strategy-pro.js', 'backtest-real.js']) {
+for (const f of ['pro-report.js', 'strategy-pro.js', 'backtest-real.js', 'shadow-shorts.js']) {
   vm.runInContext(readFileSync(new URL('../' + f, import.meta.url), 'utf8'), sb, { filename: f });
 }
 const TIME = sb.BTX_TIME, CORE = sb.BTX_STRATEGY_CORE, BT = sb.BTX_BT;
@@ -230,4 +230,34 @@ test('backtest: koszt 1% (konwersja walut) przy stopie ~0.3% odrzuca wszystkie w
   const r = BT.run(bars, META, { signalFn: (i) => (i === 100 ? { side: 'LONG', strength: 5, atr: 0.3, why: 't' } : null), roundTripPct: 0.0103, slipPct: 0 });
   assert.equal(r.trades.length, 0); assert.equal(r.skippedCost, 1);
   assert.ok(r.costToStop > 2);
+});
+test('domyslnie tylko LONG: evalCore nie zwraca SHORT bez jawnego wlaczenia', () => {
+  const end = U(2026, 11, 6, 12, 0), bars = [];
+  for (let i = 0; i < 300; i++) { const c = 1.2 - i * 0.0004 + Math.sin(i / 4) * 0.0003; bars.push({ t: end - (299 - i) * 300000, o: c, h: c + 0.0003, l: c - 0.0003, c, v: 0 }); }
+  const fx = { s: 'EURUSD', mkt: 'FX', n: 'EUR/USD', t: 'FX' };
+  const g = CORE.evalCore(fx, bars, end + 300000, {});
+  assert.notEqual(g.side, 'SHORT'); assert.equal(g._pro.scoreS, 0);
+});
+
+test('cien SHORT: cel => +1.6R, stop => -1R, koszt pomniejsza wynik', () => {
+  const P = sb.BTX_STRATEGY_PRO, S = sb.BTX_SHADOW_CORE, sess = P.sessions.US;
+  const flat = (n) => flatBars(T100, n);
+  const hitTarget = flat(10); hitTarget[2] = { ...hitTarget[2], l: 97.0 };
+  const r1 = S.advance({ sigT: T100, sd: 1.2 }, hitTarget, P, TIME, sess, 0, 0);
+  assert.equal(r1.done, true); assert.equal(r1.why, 'cel'); assert.ok(Math.abs(r1.R - 1.6) < 1e-9, 'R=' + r1.R);
+  const hitStop = flat(10); hitStop[2] = { ...hitStop[2], h: 102.0 };
+  const r2 = S.advance({ sigT: T100, sd: 1.2 }, hitStop, P, TIME, sess, 0, 0);
+  assert.equal(r2.why, 'stop'); assert.ok(Math.abs(r2.R + 1) < 1e-9, 'R=' + r2.R);
+  const r3 = S.advance({ sigT: T100, sd: 1.2 }, hitStop, P, TIME, sess, 0.0012, 0);
+  assert.ok(Math.abs(r3.R + 1.1) < 1e-9, 'R=' + r3.R);
+  assert.equal(S.advance({ sigT: T100, sd: 1.2 }, flat(3), P, TIME, sess, 0, 0).done, false); // jeszcze trwa
+});
+
+test('cien SHORT: podsumowanie i werdykt (min. 30 rozliczonych)', () => {
+  const S = sb.BTX_SHADOW_CORE;
+  assert.match(S.summary([{ sym: 'A', R: 1, exitT: 1 }]).verdict, /za malo danych/);
+  const good = []; for (let i = 0; i < 40; i++) good.push({ sym: 'A', R: i % 3 === 0 ? -1 : 1.2, exitT: i });
+  assert.match(S.summary(good).verdict, /przewaga widoczna/);
+  const bad = []; for (let i = 0; i < 40; i++) bad.push({ sym: 'A', R: i % 2 ? -1 : 0.8, exitT: i });
+  assert.match(S.summary(bad).verdict, /brak przewagi/);
 });

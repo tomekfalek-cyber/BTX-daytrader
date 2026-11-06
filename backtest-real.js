@@ -131,7 +131,7 @@
     opts = opts || {};
     var defs = [
       { name: 'Model aplikacji (CFG.fees)', rt: function (rs) { return rs.roundTripPct != null ? rs.roundTripPct : 0.0008; }, slip: opts.slipPct },
-      { name: 'CFD bez konwersji walut (spread+prowizja)', rt: function (rs) { return (rs.spreadPct != null ? rs.spreadPct : 0.0003) + 2 * (rs.commPct || 0); }, slip: opts.slipPct },
+      { name: 'Konto USD / CFD (bez konwersji walut)', rt: function (rs) { return (rs.spreadPct != null ? rs.spreadPct : 0.0003) + 2 * (rs.commPct || 0); }, slip: opts.slipPct },
       { name: 'BEZ kosztow (przewaga brutto)', rt: function () { return 0; }, slip: 0 }
     ];
     return defs.map(function (d) {
@@ -142,6 +142,19 @@
       });
       return { name: d.name, st: global.BTX_STATS.computeStats(all), skipped: skipped, costToStop: nr ? ratio / nr : null, rt: rowSets.length ? d.rt(rowSets[0]) : 0 };
     });
+  }
+
+  // LONG vs SHORT: te same reguly z wlaczonymi shortami (koszt jak CFD: spread+prowizja), wyniki rozdzielone wg kierunku
+  function sides(rowSets, opts) {
+    opts = opts || {};
+    var all = [];
+    rowSets.forEach(function (rs) {
+      var r = run(rs.bars, rs.meta, Object.assign({}, opts, { params: {}, allowShort: true, slipPct: opts.slipPct,
+        roundTripPct: (rs.spreadPct != null ? rs.spreadPct : 0.0003) + 2 * (rs.commPct || 0) }));
+      all = all.concat(r.trades);
+    });
+    var S = global.BTX_STATS;
+    return { LONG: S.computeStats(all.filter(function (t) { return t.side === 'LONG'; })), SHORT: S.computeStats(all.filter(function (t) { return t.side === 'SHORT'; })) };
   }
 
   function recommend(results) {
@@ -173,6 +186,11 @@
       });
       L.push('');
     }
+    if (meta && meta.sides) {
+      L.push('LONG vs SHORT (koszty jak CFD; shorty w bocie wylaczone):');
+      ['LONG', 'SHORT'].forEach(function (k) { var s = meta.sides[k]; L.push('  ' + k + ': N ' + s.n + ' · win ' + (s.winRate * 100).toFixed(0) + '% · PF ' + pf(s) + ' · E[R] ' + f2(s.expectancy)); });
+      L.push('');
+    }
     L.push('Wariant                         N    Win%   PF    E[R]   uczaca   TEST   MaxDD(R)');
     results.forEach(function (r) {
       var s = r.st.all;
@@ -194,7 +212,7 @@
     return L.join('\n');
   }
 
-  global.BTX_BT = { run: run, scenarios: scenarios, compare: compare, recommend: recommend, format: format, VARIANTS: VARIANTS, cache: {} };
+  global.BTX_BT = { run: run, scenarios: scenarios, sides: sides, compare: compare, recommend: recommend, format: format, VARIANTS: VARIANTS, cache: {} };
 
   if (typeof document === 'undefined') return; // testy w Node
 
@@ -239,13 +257,14 @@
     if (!rowSets.length) { out.textContent = 'Nie pobrano zadnych danych.\n' + notes.join('\n'); btn.disabled = false; return; }
     out.textContent = 'Liczenie ...';
     await sleep(30);
-    var res = global.BTX_BT.compare(rowSets, { allowShort: !!(global.CFG && global.CFG.allowShort), slipPct: 0.0002, marketBars: marketBars });
+    var res = global.BTX_BT.compare(rowSets, { allowShort: false, slipPct: 0.0002, marketBars: marketBars });
     var tot = rowSets.reduce(function (a, r) { return a + r.bars.length; }, 0);
     var first = Math.min.apply(null, rowSets.map(function (r) { return r.bars[0].t; })), lastT = Math.max.apply(null, rowSets.map(function (r) { return r.bars[r.bars.length - 1].t; }));
     var cov = 'Dane: ' + rowSets.length + ' symboli, ' + tot + ' swiec, ' + new Date(first).toISOString().slice(0, 10) + ' .. ' + new Date(lastT).toISOString().slice(0, 10) +
       (notes.length ? '\nPominiete: ' + notes.join('; ') : '');
-    var scen = global.BTX_BT.scenarios(rowSets, { allowShort: !!(global.CFG && global.CFG.allowShort), slipPct: 0.0002, marketBars: marketBars });
-    out.textContent = format(res, { coverage: cov, scen: scen });
+    var scen = global.BTX_BT.scenarios(rowSets, { allowShort: false, slipPct: 0.0002, marketBars: marketBars });
+    var sd2 = global.BTX_BT.sides(rowSets, { slipPct: 0.0002, marketBars: marketBars });
+    out.textContent = format(res, { coverage: cov, scen: scen, sides: sd2 });
     btn.disabled = false;
   }
 

@@ -64,6 +64,8 @@
     L.push('Dzis: ' + (ST.dayTrades || 0) + '/' + P.maxDayTrades + ' transakcji · seria strat ' + (ST.consecLoss || 0) + '/' + P.maxConsecLoss +
       ' · wynik ' + sgn(ds.R) + 'R (' + sgn(ds.pnl) + ') · W' + ds.w + '/L' + ds.l + ' · pozycje ' + Object.keys(ST.pos || {}).length + '/' + P.maxPos);
 
+    L.push('Tryb: ' + ((global.CFG && global.CFG.allowShort) ? 'LONG + SHORT' : 'tylko LONG (shorty wylaczone)'));
+
     // --- otwarte pozycje ---
     var keys = Object.keys(ST.pos || {});
     L.push(''); L.push('--- OTWARTE POZYCJE ---');
@@ -115,6 +117,14 @@
       if (w.fr && !w.fr.ok) why = 'BRAK ceny LIVE: ' + w.fr.why;
       L.push(w.m.s + '  L' + pr.scoreL + '/S' + pr.scoreS + ' (wym. ' + pr.need + ') 15m' + arrow(pr.t15) + ' → ' + why);
     });
+    if (global.BTX_SHADOW && global.BTX_SHADOW.summary) {
+      var shs = global.BTX_SHADOW.summary();
+      if (shs) {
+        L.push(''); L.push('--- SHORTY W CIENIU (nie sa handlowane) ---');
+        L.push('Rozliczone: ' + shs.n + ' · trafnosc ' + (shs.winRate * 100).toFixed(0) + '% · E[R] ' + sgn(shs.expectancy) + (shs.pf != null ? ' · PF ' + f2(shs.pf) : '') + ' · otwarte: ' + (global.BTX_SHADOW.open().join(', ') || 'brak'));
+        L.push('Ocena: ' + shs.verdict);
+      }
+    }
     L.push('');
     L.push('Plan to podglad decyzji bota, nie rekomendacja inwestycyjna. Przewage sprawdz przyciskiem Backtest.');
     return L.join('\n');

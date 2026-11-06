@@ -230,7 +230,7 @@
     var ht = htfTrend(b), trend = ht.trend, zone = pdZone(b), rx = rangeExpansion(b);
     var g = { sym: m.s, name: m.n, type: m.t, mkt: mkt, price: c, rsi: r14, atr: a,
       trend: trend >= 1 ? 'UP' : trend <= -1 ? 'DN' : 'FLAT', side: 'WAIT', why: '', strength: 0 };
-    var allowShort = !!opts.allowShort || mkt === 'FX' || mkt === 'EU';
+    var allowShort = !!opts.allowShort;   // domyslnie TYLKO LONG (rowniez FX/EU); shorty tylko po jawnym wlaczeniu CFG.allowShort
     var scoreL = 0, scoreS = 0, whyL = [], whyS = [];
     if (sq >= 0.9) { scoreL++; scoreS++; whyL.push('prime session'); whyS.push('prime session'); }
     else if (sq < 0.45) { scoreL--; scoreS--; }
@@ -254,7 +254,7 @@
     }
     if (rx > 2.2) { scoreL--; scoreS--; }
     if (mkt === 'FX') { if (trend < 2) scoreL--; if (trend > -2) scoreS--; }
-    if (mkt !== 'FX' && !allowShort) scoreS = 0;
+    if (!allowShort) scoreS = 0;
     if (r14 > 72) scoreL--; if (r14 < 28) scoreS--;
     if (scoreL >= need && scoreL > scoreS) { g.side = 'LONG'; g.strength = Math.min(5, Math.max(1, Math.round(scoreL / 2))); g.why = whyL.slice(0, 4).join(' · '); }
     else if (scoreS >= need && scoreS > scoreL && allowShort) { g.side = 'SHORT'; g.strength = Math.min(5, Math.max(1, Math.round(scoreS / 2))); g.why = whyS.slice(0, 4).join(' · '); }
