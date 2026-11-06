@@ -132,3 +132,67 @@ test('backtest na losowych danych nie wyrzuca bledow, wyniki skonczone', () => {
   res.forEach((r) => r.trades.forEach((t) => { assert.ok(Number.isFinite(t.R)); }));
   assert.match(BT.format(res, {}), /WNIOSEK/);
 });
+test('FX: okno handlu 08:00-21:00 PL', () => {
+  assert.equal(CORE.inSession('FX', U(2026, 11, 6, 6, 59)), false);
+  assert.equal(CORE.inSession('FX', U(2026, 11, 6, 7, 0)), true);
+  assert.equal(CORE.inSession('FX', U(2026, 11, 6, 19, 59)), true);
+  assert.equal(CORE.inSession('FX', U(2026, 11, 6, 20, 0)), false);
+  assert.equal(CORE.sessionQuality('FX', U(2026, 11, 6, 19, 30)), 0); // ostatnie 45 min: bez nowych wejsc
+});
+
+test('stop strukturalny: w widelkach ATR', () => {
+  const mk = (low) => { const b = []; for (let i = 0; i < 10; i++) b.push({ t: i, o: 100, h: 100.5, l: low, c: 100 }); return b; };
+  assert.equal(CORE.swingStopDist(mk(98.0), 'LONG', 1), 1.6);   // za daleko -> ucina do 1.6 ATR
+  assert.equal(CORE.swingStopDist(mk(99.9), 'LONG', 1), 0.9);   // za blisko -> min 0.9 ATR
+  assert.ok(Math.abs(CORE.swingStopDist(mk(98.9), 'LONG', 1) - 1.2) < 1e-9);
+});
+
+test('RVOL: stosunek ostatnich 3 swiec do 20 poprzednich; brak wolumenu = null', () => {
+  const b = []; for (let i = 0; i < 30; i++) b.push({ v: i >= 27 ? 200 : 100 });
+  assert.equal(CORE.rvolOf(b), 2);
+  assert.equal(CORE.rvolOf(b.map(() => ({ v: 0 }))), null);
+});
+
+const TS_IN = U(2026, 11, 6, 16, 0);
+const mkG = (o = {}) => ({ sym: 'NVDA', side: 'LONG', strength: 4, price: 100, atr: 1, sd: 1.2,
+  _pro: { scoreL: 5, scoreS: 0, need: 4, veto: '' }, ...o });
+const mkST = (o = {}) => ({ equity: 10000, cash: 10000, pos: {}, cool: {}, dayTrades: 0, consecLoss: 0, ...o });
+sb.SYMBOLS = [{ s: 'NVDA', mkt: 'US' }, { s: 'TSLA', mkt: 'US' }, { s: 'EURUSD', mkt: 'FX' }];
+
+test('bramka: wszystko OK => otwarcie z planem pozycji', () => {
+  const r = CORE.gateCheck(mkG(), sb.SYMBOLS[0], mkST(), TS_IN);
+  assert.equal(r.ok, true, r.reason);
+  assert.equal(r.sp.qty, 41); // 0.5% z 10000 = 50 / 1.2
+});
+
+test('bramka: poza sesja, news, limity, seria strat, cooldown', () => {
+  const m = sb.SYMBOLS[0];
+  assert.match(CORE.gateCheck(mkG(), m, mkST(), U(2026, 11, 7, 16, 0)).reason, /sesja|news/);
+  assert.match(CORE.gateCheck(mkG(), m, mkST(), U(2026, 11, 6, 13, 30)).reason, /news|sesja/);
+  assert.match(CORE.gateCheck(mkG(), m, mkST({ dayTrades: 6 }), TS_IN).reason, /limit transakcji/);
+  assert.match(CORE.gateCheck(mkG(), m, mkST({ consecLoss: 3 }), TS_IN).reason, /seria/);
+  assert.match(CORE.gateCheck(mkG(), m, mkST({ cool: { NVDA: 2 } }), TS_IN).reason, /cooldown/);
+  assert.match(CORE.gateCheck(mkG(), m, mkST({ pos: { A: {}, B: {} } }), TS_IN).reason, /limit pozycji/);
+});
+
+test('bramka: rdzen (nakladki nie obnizaja progu) i veto', () => {
+  const m = sb.SYMBOLS[0];
+  assert.match(CORE.gateCheck(mkG({ _pro: { scoreL: 3, need: 4 } }), m, mkST(), TS_IN).reason, /rdzen/);
+  assert.match(CORE.gateCheck(mkG({ _pro: { scoreL: 6, need: 4, veto: 'niski wolumen' } }), m, mkST(), TS_IN).reason, /veto/);
+  assert.match(CORE.gateCheck(mkG({ _pro: undefined }), m, mkST(), TS_IN).reason, /scoringu/);
+});
+
+test('bramka: korelacja — druga pozycja LONG w grupie US odrzucona, FX osobno', () => {
+  const st = mkST({ pos: { TSLA: { side: 'LONG' } } });
+  assert.match(CORE.gateCheck(mkG(), sb.SYMBOLS[0], st, TS_IN).reason, /korelacja/);
+  const st2 = mkST({ pos: { TSLA: { side: 'SHORT' } } });
+  assert.equal(CORE.gateCheck(mkG(), sb.SYMBOLS[0], st2, TS_IN).ok, true); // przeciwny kierunek = hedge
+});
+
+test('koszty zjadajace przewage blokuja wejscie (R:R netto)', () => {
+  sb.feeOf = () => ({ comm: 0.001, conv: 0, spr: 0.002 });
+  sb.rateOf = () => 1;
+  const r = CORE.gateCheck(mkG(), sb.SYMBOLS[0], mkST(), TS_IN);
+  delete sb.feeOf; delete sb.rateOf;
+  assert.equal(r.ok, false); assert.match(r.reason, /koszty/);
+});

@@ -16,13 +16,20 @@
     riskPct: 0.5, maxPos: 2, dailyLossPct: 1.5, maxConsecLoss: 3, maxDayTrades: 6,
     atrSlMult: 1.2, tpR: 1.6, beR: 0.8, partialR: 1.0, partialFrac: 0.5,
     minStrengthOpen: 3, coolBars: 4, minHoldBars: 2, requireTrend: false, newsPadMin: 10,
-    scoreMin: 4, minNetRR: 1.15, orBars: 6, timeStopBars: 24, closeBufferMin: 45,
+    scoreMin: 4, minNetRR: 1.15, orBars: 6, timeStopBars: 24, closeBufferMin: 45, flatBeforeCloseMin: 10,
+    // Warunki daytradingowe (precyzja > liczba transakcji)
+    strictCore: true,       // otwieraj tylko, gdy RDZEN strategii daje score >= prog (nakladki "TradeNow"/"DT mode" nie obnizaja progu)
+    primeExtra: 1,          // poza oknami prime wymagany score o tyle wyzszy
+    minRvol: 0.6,           // min. wzgledny wolumen (ostatnie 3 swiece vs 20 wczesniejszych) dla akcji/ETF
+    marketFilter: true,     // akcje USA: kierunek zgodny z trendem 15m SPY
+    stopSwingBars: 8, stopMinAtr: 0.9, stopMaxAtr: 1.6, // stop za ostatnim swingiem, ale w widelkach ATR
     // Sesje w "czasie zimowym UTC" (= czas warszawski - 60 min), dzieki temu stale sa poprawne przez caly rok.
     sessions: {
       US: { open: 14 * 60 + 30, close: 21 * 60, prime: [[14 * 60 + 35, 16 * 60], [19 * 60, 20 * 60 + 30]] },
       PL: { open: 8 * 60, close: 16 * 60 + 50, prime: [[8 * 60 + 5, 10 * 60], [14 * 60, 16 * 60]] },
       EU: { open: 8 * 60, close: 16 * 60 + 30, prime: [[8 * 60 + 5, 10 * 60], [14 * 60, 16 * 60]] },
-      FX: { open: 0, close: 24 * 60 - 1, prime: [[7 * 60, 16 * 60], [13 * 60, 21 * 60]] }
+      // FX/zloto: handel dzienny tylko 08:00-21:00 PL (Londyn + NY), reszta = azjatycki szum i niska plynnosc
+      FX: { open: 7 * 60, close: 20 * 60, prime: [[7 * 60, 16 * 60], [13 * 60, 19 * 60]] }
     },
     // Okna newsow (te same godziny w czasie polskim przez caly rok: dane USA 8:30 ET = 14:30 PL itd.)
     newsWindows: [
@@ -73,24 +80,18 @@
     var ts = toTs(d);
     if (!weekday(ts)) return false;
     var s = PRO.sessions[mkt] || PRO.sessions.US, t = utcMin(ts);
-    if (mkt === 'FX') return true;
     return t >= s.open && t < s.close;
   }
   function sessionQuality(mkt, d) {
     var ts = toTs(d);
     if (!weekday(ts) || !inSession(mkt, ts)) return 0;
     var t = utcMin(ts), s = PRO.sessions[mkt] || PRO.sessions.US;
-    if (mkt !== 'FX' && t >= s.close - PRO.closeBufferMin) return 0;
-    if (mkt !== 'FX' && t < s.open + 5) return 0.3;
+    if (t >= s.close - PRO.closeBufferMin) return 0;
+    if (t < s.open + 5) return 0.3;
     if (newsBlocked(ts).blocked) return 0.15;
     var prime = s.prime || [];
     for (var i = 0; i < prime.length; i++) if (t >= prime[i][0] && t < prime[i][1]) return 1.0;
-    if (mkt === 'FX') {
-      if (t >= 13 * 60 && t < 16 * 60) return 1.0;
-      if ((t >= 7 * 60 && t < 16 * 60) || (t >= 13 * 60 && t < 21 * 60)) return 0.85;
-      return 0.4;
-    }
-    return 0.55;
+    return mkt === 'FX' ? 0.85 : 0.55;
   }
 
   // ================= WSKAZNIKI =================
@@ -191,6 +192,26 @@
     avg = n ? avg / n : r; return avg > 0 ? r / avg : 1;
   }
 
+  // wzgledny wolumen: srednia z 3 ostatnich swiec / srednia z 20 poprzednich (null = brak danych, np. FX)
+  function rvolOf(b) {
+    var n = b.length;
+    if (n < 24) return null;
+    var s3 = 0, s20 = 0, i;
+    for (i = n - 3; i < n; i++) s3 += b[i].v || 0;
+    for (i = n - 23; i < n - 3; i++) s20 += b[i].v || 0;
+    if (s20 <= 0) return null;
+    return (s3 / 3) / (s20 / 20);
+  }
+  // stop za ostatnim swingiem (struktura), ale w widelkach [stopMinAtr, stopMaxAtr] * ATR
+  function swingStopDist(b, side, a) {
+    var n = Math.min(PRO.stopSwingBars, b.length), c = b[b.length - 1].c, ext = side === 'LONG' ? Infinity : -Infinity;
+    for (var i = b.length - n; i < b.length; i++) {
+      if (side === 'LONG') { if (b[i].l < ext) ext = b[i].l; } else if (b[i].h > ext) ext = b[i].h;
+    }
+    var d = (side === 'LONG' ? c - ext : ext - c) + 0.1 * a;
+    return Math.min(PRO.stopMaxAtr * a, Math.max(PRO.stopMinAtr * a, d));
+  }
+
   // ================= SYGNAL (czysta funkcja) =================
   function evalCore(m, b, ts, opts) {
     opts = opts || {};
@@ -198,6 +219,7 @@
     ts = ts == null ? Date.now() : ts;
     var mkt = marketOf(m);
     var sq = sessionQuality(mkt, ts); if (sq < 0.35) sq = 0.35;
+    var need = PRO.scoreMin + (sq >= 0.9 ? 0 : PRO.primeExtra);
     var nb = newsBlocked(ts);
     var cl = b.map(function (x) { return x.c; });
     var c = cl[cl.length - 1], s20 = smaArr(cl, 20);
@@ -234,25 +256,37 @@
     if (mkt === 'FX') { if (trend < 2) scoreL--; if (trend > -2) scoreS--; }
     if (mkt !== 'FX' && !allowShort) scoreS = 0;
     if (r14 > 72) scoreL--; if (r14 < 28) scoreS--;
-    if (scoreL >= PRO.scoreMin && scoreL > scoreS) { g.side = 'LONG'; g.strength = Math.min(5, Math.max(1, Math.round(scoreL / 2))); g.why = whyL.slice(0, 4).join(' · '); }
-    else if (scoreS >= PRO.scoreMin && scoreS > scoreL && allowShort) { g.side = 'SHORT'; g.strength = Math.min(5, Math.max(1, Math.round(scoreS / 2))); g.why = whyS.slice(0, 4).join(' · '); }
-    else { g.side = 'WAIT'; g.strength = 0; g.why = 'brak konfluencji (L' + scoreL + '/S' + scoreS + ')'; }
+    if (scoreL >= need && scoreL > scoreS) { g.side = 'LONG'; g.strength = Math.min(5, Math.max(1, Math.round(scoreL / 2))); g.why = whyL.slice(0, 4).join(' · '); }
+    else if (scoreS >= need && scoreS > scoreL && allowShort) { g.side = 'SHORT'; g.strength = Math.min(5, Math.max(1, Math.round(scoreS / 2))); g.why = whyS.slice(0, 4).join(' · '); }
+    else { g.side = 'WAIT'; g.strength = 0; g.why = 'brak konfluencji (L' + scoreL + '/S' + scoreS + ', wymagane ' + need + ')'; }
     if (PRO.requireTrend) {
       if (g.side === 'LONG' && trend < 1) { g.side = 'WAIT'; g.strength = 0; g.why = 'veto: brak HTF up'; }
       if (g.side === 'SHORT' && trend > -1) { g.side = 'WAIT'; g.strength = 0; g.why = 'veto: brak HTF down'; }
     }
+    // --- warunki daytradingowe (weta: sygnal kandydat -> WAIT z konkretnym powodem) ---
+    var veto = '', rvol = (mkt === 'FX') ? null : rvolOf(b), marketTrend = null;
+    if (g.side !== 'WAIT' && rvol != null && rvol < PRO.minRvol) veto = 'niski wolumen (RVOL ' + rvol.toFixed(2) + ' < ' + PRO.minRvol + ')';
+    if (!veto && g.side !== 'WAIT' && PRO.marketFilter && mkt === 'US' && m.s !== 'SPY' && m.s !== 'QQQ' && opts.marketBars !== undefined) {
+      if (!opts.marketBars || opts.marketBars.length < 63) veto = 'brak danych SPY (filtr rynku)';
+      else {
+        marketTrend = htfTrend(opts.marketBars).trend;
+        if (g.side === 'LONG' && marketTrend <= -1) veto = 'rynek przeciwny: SPY 15m w dol';
+        if (g.side === 'SHORT' && marketTrend >= 1) veto = 'rynek przeciwny: SPY 15m w gore';
+      }
+    }
+    if (veto) { g.side = 'WAIT'; g.strength = 0; g.why = 'veto: ' + veto; }
     var hard = '';
     if (nb.blocked && nb.label !== 'weekend') hard = 'news blackout: ' + nb.label;
     else if (!inSession(mkt, ts)) hard = 'poza sesja';
-    else if (mkt !== 'FX') {
+    else {
       var sdef = PRO.sessions[mkt], t = utcMin(ts);
-      if (sdef && t >= sdef.close - PRO.closeBufferMin && t < sdef.close) hard = 'ostatnie 45 min sesji';
+      if (sdef && t >= sdef.close - PRO.closeBufferMin && t < sdef.close) hard = 'ostatnie ' + PRO.closeBufferMin + ' min sesji (tylko zarzadzanie pozycja)';
     }
     if (hard) { g.side = 'WAIT'; g.strength = 0; g.why = hard; scoreL = 0; scoreS = 0; } // zerujemy wyniki, by "miekkie" nakladki nie odwrocily blokady
     g.atr = a;
-    g._pro = { scoreL: scoreL, scoreS: scoreS, trend: trend, t15: ht.t15, t60: ht.t60, zone: zone, sessionQ: sq, mkt: mkt, news: nb,
-      vwap: vw, orHi: orr && orr.hi, orLo: orr && orr.lo, sessionBars: sess.length, hard: hard };
-    return g;
+    g.sd = g.side === 'WAIT' ? a * PRO.atrSlMult : swingStopDist(b, g.side, a);
+    g._pro = { scoreL: scoreL, scoreS: scoreS, need: need, trend: trend, t15: ht.t15, t60: ht.t60, zone: zone, sessionQ: sq, mkt: mkt, news: nb,
+      vwap: vw, orHi: orr && orr.hi, orLo: orr && orr.lo, sessionBars: sess.length, hard: hard, veto: veto, rvol: rvol, marketTrend: marketTrend };    return g;
   }
 
   // ================= WYKONANIE / ZARZADZANIE POZYCJA =================
@@ -273,13 +307,24 @@
   }
   function plog(msg, cls) { if (typeof global.log === 'function') global.log(msg, cls || 'mut'); }
 
-  // plan pozycji z kosztami (ta sama matematyka co sizePlan w aplikacji, ale z geometria PRO)
-  function sizePlanPro(m, price, atr, equity, cash) {
+  // opcje "zywe" dla evalCore: kierunek + dane SPY do filtra rynku (tylko gdy SPY ma swieza cene LIVE)
+  function liveOpts(m) {
+    var o = { allowShort: !!(global.CFG && global.CFG.allowShort) };
+    if (PRO.marketFilter && marketOf(m) === 'US' && m.s !== 'SPY' && m.s !== 'QQQ') {
+      var spy = global.ST && global.ST.series && global.ST.series.SPY;
+      var fresh = !global.BTX_LIVE || !global.BTX_LIVE.isFresh || global.BTX_LIVE.isFresh('SPY');
+      o.marketBars = (spy && fresh) ? spy : null;
+    }
+    return o;
+  }
+
+  // plan pozycji z kosztami (ta sama matematyka co sizePlan w aplikacji, ale z geometria PRO i stopem strukturalnym)
+  function sizePlanPro(m, price, atr, equity, cash, sdOverride) {
     var hasModel = typeof global.feeOf === 'function' && typeof global.rateOf === 'function';
     var rate = hasModel ? (global.rateOf(m) || 1) : 1;
     var f = hasModel ? global.feeOf(m) : { comm: 0, conv: 0, spr: 0 };
     var fx = marketOf(m) === 'FX', lev = fx ? ((global.CFG && global.CFG.fxLev) || 30) : 1, step = fx ? 1000 : 1;
-    var sd = (atr || price * 0.004) * PRO.atrSlMult;
+    var sd = sdOverride || (atr || price * 0.004) * PRO.atrSlMult;
     if (!(sd > 0)) return { ok: false, reason: 'ATR=0' };
     var riskAmt = equity * (PRO.riskPct / 100), unitRisk = sd * rate, reason = '';
     var q = Math.floor(riskAmt / unitRisk / step) * step;
@@ -292,51 +337,88 @@
     var netRR = (PRO.tpR * sd - costPU) / (sd + costPU);
     if (!reason && netRR < PRO.minNetRR) reason = 'koszty zjadaja przewage: R:R netto ' + netRR.toFixed(2) + ' < ' + PRO.minNetRR;
     return { ok: !reason, reason: reason, qty: q, sd: sd, rate: rate, lev: lev, margin: margin, feeIn: feeIn, feeOut: feeOut,
-      f: { comm: f.comm, conv: f.conv }, netRR: netRR };
+      f: { comm: f.comm, conv: f.conv }, netRR: netRR, riskAmt: q * unitRisk };
+  }
+
+  // jedno zrodlo prawdy: czy mozna teraz otworzyc pozycje? (uzywane przez openPos i panel "Plan")
+  function gateCheck(g, m, ST, ts) {
+    ts = ts == null ? Date.now() : ts;
+    if (!g || g.side === 'WAIT') return { ok: false, reason: 'brak sygnalu' };
+    if (!ST) return { ok: false, reason: 'brak stanu' };
+    if (ST.blocked) return { ok: false, reason: 'blokada dnia' };
+    var mk = marketOf(m), nb = newsBlocked(ts);
+    if (nb.blocked && nb.label !== 'weekend') return { ok: false, reason: 'blokada news: ' + nb.label };
+    if (!inSession(mk, ts) || sessionQuality(mk, ts) === 0) return { ok: false, reason: 'poza sesja / okno tylko-zarzadzanie' };
+    if (global.BTX_LIVE && global.BTX_LIVE.isFresh && !global.BTX_LIVE.isFresh(g.sym)) return { ok: false, reason: 'brak swiezej ceny LIVE' };
+    if ((g.strength || 0) < PRO.minStrengthOpen) return { ok: false, reason: 'sygnal za slaby' };
+    if (PRO.strictCore) {
+      var pr = g._pro;
+      if (!pr) return { ok: false, reason: 'brak scoringu rdzenia' };
+      if (pr.veto) return { ok: false, reason: 'veto: ' + pr.veto };
+      var sc = g.side === 'LONG' ? pr.scoreL : pr.scoreS, need = pr.need || PRO.scoreMin;
+      if (sc < need) return { ok: false, reason: 'rdzen: score ' + sc + ' < ' + need + ' (nakladka obnizyla prog)' };
+    }
+    if (ST.pos && ST.pos[g.sym]) return { ok: false, reason: 'pozycja juz otwarta' };
+    if (Object.keys(ST.pos || {}).length >= PRO.maxPos) return { ok: false, reason: 'limit pozycji (' + PRO.maxPos + ')' };
+    if ((ST.dayTrades || 0) >= PRO.maxDayTrades) return { ok: false, reason: 'limit transakcji dnia (' + PRO.maxDayTrades + ')' };
+    if ((ST.consecLoss || 0) >= PRO.maxConsecLoss) return { ok: false, reason: 'seria ' + PRO.maxConsecLoss + ' strat' };
+    if (ST.cool && ST.cool[g.sym] > 0) return { ok: false, reason: 'cooldown ' + ST.cool[g.sym] + ' swiec' };
+    var grp = corrGroup(m);
+    for (var k in (ST.pos || {})) {
+      var pm = symMeta(k) || { s: k };
+      if (corrGroup(pm) === grp && ST.pos[k].side === g.side) return { ok: false, reason: 'korelacja: ' + k + ' (' + grp + ') juz ' + g.side };
+    }
+    var sp = sizePlanPro(m, g.price, g.atr, ST.equity, ST.cash, g.sd);
+    if (!sp.ok) return { ok: false, reason: sp.reason, sp: sp };
+    return { ok: true, reason: '', sp: sp };
+  }
+
+  function hhmmPL(pseudoMin) { var x = (pseudoMin + 60 + 1440) % 1440; return ('0' + Math.floor(x / 60)).slice(-2) + ':' + ('0' + (x % 60)).slice(-2); }
+
+  function ticketText(g, sp, m, pr) {
+    var f2 = global.f2 || function (x) { return (+x).toFixed(2); }, long = g.side === 'LONG';
+    var tp = long ? g.price + PRO.tpR * sp.sd : g.price - PRO.tpR * sp.sd;
+    var p1 = long ? g.price + PRO.partialR * sp.sd : g.price - PRO.partialR * sp.sd;
+    var stop = long ? g.price - sp.sd : g.price + sp.sd;
+    var sdef = PRO.sessions[marketOf(m)] || PRO.sessions.US;
+    return ['BTX OTWARTO ' + g.side + ' ' + g.sym + ' x' + sp.qty + ' @ ' + f2(g.price),
+      'SL ' + f2(stop) + ' (-1R = ' + f2(sp.riskAmt) + ', ' + (sp.riskAmt / (global.ST.equity || 1) * 100).toFixed(2) + '% kapitalu)',
+      'Czesciowe 50% @ ' + f2(p1) + ' (+' + PRO.partialR + 'R), BE po +' + PRO.beR + 'R, TP ' + f2(tp) + ' (+' + PRO.tpR + 'R)',
+      'R:R netto po kosztach: ' + sp.netRR.toFixed(2) + ' | koszt wejscia ' + f2(sp.feeIn),
+      'Score ' + (long ? pr.scoreL : pr.scoreS) + '/' + pr.need + ' | HTF15m ' + pr.t15 + ' 60m ' + pr.t60 + (pr.marketTrend != null ? ' | SPY15m ' + pr.marketTrend : '') + (pr.rvol != null ? ' | RVOL ' + pr.rvol.toFixed(2) : ''),
+      'Powod: ' + g.why,
+      'Wyjscie najpozniej: ' + hhmmPL(sdef.close - PRO.flatBeforeCloseMin) + ' PL lub po ' + PRO.timeStopBars + ' swiecach'].join('\n');
   }
 
   function patchOpenPos() {
     if (typeof global.openPos !== 'function' || global.openPos.__pro) return;
     global.openPos = function (g) {
       applyCfg();
-      if (!g || g.side === 'WAIT') return;
-      var ST = global.ST; if (!ST || ST.blocked) return;
+      var ST = global.ST;
+      if (!g || g.side === 'WAIT' || !ST) return;
       var m = symMeta(g.sym) || { s: g.sym, mkt: g.mkt };
-      var mk = marketOf(m);
-      var nb = newsBlocked();
-      if (nb.blocked && nb.label !== 'weekend') { plog('PRO: blokada news (' + nb.label + ')'); return; }
-      if (!inSession(mk, Date.now()) || sessionQuality(mk, Date.now()) === 0) { plog('PRO: poza sesja/koniec sesji ' + mk + ' — pomijam ' + g.sym); return; }
-      if ((g.strength || 0) < PRO.minStrengthOpen) return;
-      if (ST.pos && ST.pos[g.sym]) return;
-      if (Object.keys(ST.pos || {}).length >= PRO.maxPos) return;
-      if ((ST.dayTrades || 0) >= PRO.maxDayTrades) return;
-      if ((ST.consecLoss || 0) >= PRO.maxConsecLoss) { ST.blocked = false; return; }
-      if (ST.cool && ST.cool[g.sym] > 0) return;
-      // straznik korelacji: akcje/ETF USA ruszaja sie razem -> max 1 pozycja na grupe i kierunek
-      var grp = corrGroup(m);
-      for (var k in (ST.pos || {})) {
-        var pm = symMeta(k);
-        if (pm && corrGroup(pm) === grp && ST.pos[k].side === g.side) { plog('PRO: korelacja — ' + k + ' (' + grp + ') juz otwarte ' + g.side + ', pomijam ' + g.sym); return; }
-      }
-      var sp = sizePlanPro(m, g.price, g.atr, ST.equity, ST.cash);
-      if (!sp.ok) {
-        ST.skip = ST.skip || {}; var key = g.sym + g.side;
-        if (ST.skip[key] !== sp.reason) { ST.skip[key] = sp.reason; plog('POMINIETO ' + g.side + ' ' + g.sym + ' — ' + sp.reason, 'i'); }
+      var gc = gateCheck(g, m, ST, Date.now());
+      ST.skip = ST.skip || {};
+      var key = g.sym + g.side;
+      if (!gc.ok) {
+        if (ST.skip[key] !== gc.reason) { ST.skip[key] = gc.reason; plog('POMINIETO ' + g.side + ' ' + g.sym + ' — ' + gc.reason, 'i'); }
         return;
       }
-      var long = g.side === 'LONG', sd = sp.sd;
+      ST.skip[key] = null;
+      var sp = gc.sp, long = g.side === 'LONG', sd = sp.sd;
       var stop = long ? g.price - sd : g.price + sd;
       var tgt = long ? g.price + PRO.tpR * sd : g.price - PRO.tpR * sd;
       var partial = long ? g.price + PRO.partialR * sd : g.price - PRO.partialR * sd;
       ST.dayTrades = (ST.dayTrades || 0) + 1;
       ST.pos[g.sym] = { sym: g.sym, side: g.side, qty: sp.qty, entry: g.price, stop: stop, target: tgt,
         partial: partial, partialDone: false, why: '[PRO] ' + g.why, bars: 0,
-        risk0: sd, be: false, at: new Date().toLocaleTimeString('pl-PL'),
-        rate: sp.rate, lev: sp.lev, margin: sp.margin, feeIn: sp.feeIn, f: sp.f };
+        risk0: sd, be: false, at: new Date().toLocaleTimeString('pl-PL'), openedAt: Date.now(),
+        rate: sp.rate, lev: sp.lev, margin: sp.margin, feeIn: sp.feeIn, f: sp.f, riskAmt: sp.riskAmt, netRR: sp.netRR };
       ST.cash -= sp.margin + sp.feeIn; ST.equity -= sp.feeIn; ST.feesTot = (ST.feesTot || 0) + sp.feeIn;
       var f2 = global.f2 || function (x) { return (+x).toFixed(2); };
       plog('OTWARCIE ' + g.side + ' ' + g.sym + ' x' + sp.qty + ' @ ' + f2(g.price) + ' | SL ' + f2(stop) + ' | pTP ' + f2(partial) +
         ' | TP ' + f2(tgt) + ' | oplata wejscia ' + f2(sp.feeIn) + ' | R:R netto ' + sp.netRR.toFixed(2) + ' — PRO ' + g.why, 'g');
+      try { if (g._pro && global.BTX_REPORT && global.BTX_REPORT.notify) global.BTX_REPORT.notify(ticketText(g, sp, m, g._pro)); } catch (e) {}
     };
     global.openPos.__pro = true;
   }
@@ -350,6 +432,16 @@
     };
     Object.keys(orig).forEach(function (k) { try { global.closePos[k] = orig[k]; } catch (e) {} });
     global.closePos.__proCool = true;
+  }
+  // dyscyplina daytradingu: zadnych pozycji przez noc ani po zamknieciu rynku
+  function flatCheck() {
+    var ST = global.ST; if (!ST || !ST.pos || typeof global.closePos !== 'function') return;
+    var ts = Date.now(), t = utcMin(ts);
+    Object.keys(ST.pos).forEach(function (sym) {
+      var m = symMeta(sym) || { s: sym }, mk = marketOf(m), sdef = PRO.sessions[mk] || PRO.sessions.US;
+      var closed = !inSession(mk, ts);
+      if (closed || t >= sdef.close - PRO.flatBeforeCloseMin) global.closePos(sym, closed ? 'flat poza sesja' : 'flat koniec sesji');
+    });
   }
   function managePartialAndBE() {
     var ST = global.ST; if (!ST || !ST.pos) return;
@@ -385,7 +477,7 @@
   function patchCycle() {
     if (typeof global.cycle !== 'function' || global.cycle.__proPart) return;
     var orig = global.cycle;
-    global.cycle = function () { var r = orig.apply(this, arguments); try { managePartialAndBE(); } catch (e) {} return r; };
+    global.cycle = function () { var r = orig.apply(this, arguments); try { managePartialAndBE(); flatCheck(); } catch (e) {} return r; };
     Object.keys(orig).forEach(function (k) { try { global.cycle[k] = orig[k]; } catch (e) {} });
     global.cycle.__proPart = true;
   }
@@ -393,7 +485,7 @@
     if (typeof global.evaluate !== 'function') return false;
     global.evaluate = function (m) {
       var ST = global.ST, b = ST && ST.series && ST.series[m.s];
-      return evalCore(m, b, Date.now(), { allowShort: !!(global.CFG && global.CFG.allowShort) });
+      return evalCore(m, b, Date.now(), liveOpts(m));
     };
     global.evaluate.__pro = true; return true;
   }
@@ -401,12 +493,13 @@
   global.BTX_STRATEGY_PRO = PRO;
   global.BTX_PRO = PRO;
   global.BTX_newsBlocked = newsBlocked;
-  global.BTX_TIME = { warsawOffsetMin: warsawOffsetMin, pseudoUtcMin: utcMin, isWeekday: weekday, local: local };
+  global.BTX_TIME = { warsawOffsetMin: warsawOffsetMin, pseudoUtcMin: utcMin, isWeekday: weekday, local: local, hhmmPL: hhmmPL };
   global.BTX_STRATEGY_CORE = {
     evalCore: evalCore, inSession: inSession, sessionQuality: sessionQuality, newsBlocked: newsBlocked, marketOf: marketOf,
     sessionSlice: sessionSlice, atrCalc: atrCalc, anchoredVwap: anchoredVwap, openingRange: openingRange,
     aggregate: aggregate, htfTrend: htfTrend, rsiCalc: rsiCalc, corrGroup: corrGroup, sizePlanPro: sizePlanPro,
-    sessIdOf: sessIdOf, SESS_START: SESS_START
+    sessIdOf: sessIdOf, SESS_START: SESS_START, gateCheck: gateCheck, liveOpts: liveOpts, rvolOf: rvolOf,
+    swingStopDist: swingStopDist, flatCheck: flatCheck, symMeta: symMeta, ticketText: ticketText
   };
 
   if (typeof document === 'undefined') return; // testy w Node: tylko czyste funkcje
@@ -417,9 +510,10 @@
       n++; applyCfg(); patchEvaluate(); patchOpenPos(); patchCoolOnClose(); patchCycle();
       if (n > 60) clearInterval(t);
     }, 400);
+    setInterval(function () { try { flatCheck(); } catch (e) {} }, 20000);
     try {
       var el = document.getElementById('limit-badge');
-      if (el) { el.textContent = 'PRO DT'; el.title = 'Daytrade: score>=4, SL 1.2ATR, TP 1.6R, HTF 15m/60m, VWAP+ORB od otwarcia sesji'; }
+      if (el) { el.textContent = 'PRO DT'; el.title = 'Daytrade: rdzen score>=4 (5 poza prime), HTF 15m/60m, VWAP+ORB sesji, RVOL, filtr SPY, stop strukturalny, flat przed zamknieciem'; }
     } catch (e) {}
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();

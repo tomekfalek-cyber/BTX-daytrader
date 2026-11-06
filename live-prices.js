@@ -112,6 +112,12 @@
       info[sym] = Object.assign(info[sym] || {}, { ok: false, err: 'brak klucza Twelve', errAt: now() });
       throw new Error('Brak klucza Twelve Data (Ustawienia)');
     }
+    // dedupe: nie marnuj limitu na symbol swiezo pobrany lub z zamknietego rynku (np. round-robin z pro-assistant)
+    var cur = info[sym];
+    if (cur && cur.ok && cur.fetchedAt) {
+      var m0 = symMeta(sym);
+      if (now() - cur.fetchedAt < 150000 || (m0 && !sessionOpen(m0.mkt))) return (global.ST && global.ST.series && global.ST.series[sym]) || [];
+    }
     checkLimits();
     var p = TD_MAP[sym] || { symbol: sym };
     var url = 'https://api.twelvedata.com/time_series?symbol=' + encodeURIComponent(p.symbol) +
