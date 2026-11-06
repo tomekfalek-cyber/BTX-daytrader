@@ -1,9 +1,10 @@
 /**
- * Handel bota — WSZYSTKIE otwarte pozycje + kapitał z portfela
+ * Handel bota — wszystkie pozycje, stabilny render (bez drgania)
  */
 (function (global) {
   var ROOT = 'btx-trade-hero';
   var STYLE = 'btx-trade-hero-css';
+  var lastHtml = '';
 
   function injectCss() {
     if (document.getElementById(STYLE)) return;
@@ -34,7 +35,6 @@
       '#' + ROOT + ' .th-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}',
       '#' + ROOT + ' .th-btn{border:0;cursor:pointer;border-radius:10px;padding:10px 14px;font-weight:700;font-size:12px}',
       '#' + ROOT + ' .th-btn.primary{background:linear-gradient(180deg,#e4002b,#b80020);color:#fff}',
-      '#' + ROOT + ' .th-btn.ghost{background:rgba(255,255,255,.05);color:#d5dee8;border:1px solid rgba(255,255,255,.1)}',
       '#' + ROOT + ' .th-empty{padding:18px 16px;color:#c5d0dc;font-size:13.5px;line-height:1.55}',
       '#' + ROOT + ' .th-foot{padding:10px 16px;border-top:1px solid rgba(255,255,255,.06);font-size:11px;color:#8b97a5}'
     ].join('');
@@ -44,18 +44,20 @@
   function f2(x) {
     if (typeof global.f2 === 'function') return global.f2(x);
     var n = Number(x);
-    if (!isFinite(n)) return '—';
+    if (!isFinite(n)) return '\u2014';
     return Math.abs(n) >= 100 ? n.toFixed(2) : (Math.abs(n) >= 1 ? n.toFixed(4) : n.toFixed(5));
   }
-  function money(x) {
-    var n = Number(x) || 0;
-    return n.toFixed(2) + ' PLN';
-  }
+  function money(x) { return (Number(x) || 0).toFixed(2) + ' PLN'; }
   function xtbSym(sym) {
     if (global.BTX_QCAP && global.BTX_QCAP.mapSym) return global.BTX_QCAP.mapSym(sym);
-    if (global.BTX_XTB_MAP && global.BTX_XTB_MAP.map) return global.BTX_XTB_MAP.map(sym);
     var m = { QQQ: 'US100', SPY: 'US500', 'XAU/USD': 'GOLD', ASML: 'ASML.NL', SAP: 'SAP.DE', 'SIE.DE': 'SIE.DE' };
     return m[sym] || (sym + '.US');
+  }
+  function setHTML(el, html) {
+    if (global.BTX_SET_HTML) return global.BTX_SET_HTML(el, html);
+    if (!el || el.innerHTML === html) return false;
+    el.innerHTML = html;
+    return true;
   }
 
   function portfolio() {
@@ -63,7 +65,7 @@
     var CFG = global.CFG || {};
     var equity = ST.equity != null ? ST.equity : (CFG.capital || 500);
     var cash = ST.cash != null ? ST.cash : equity;
-    return { equity: equity, cash: cash, capital: CFG.capital || equity };
+    return { equity: equity, cash: cash };
   }
 
   function lastPx(sym) {
@@ -83,19 +85,22 @@
     var qty = Number(p.qty) || 0;
     var px = lastPx(sym);
     if (px == null) px = entry;
-    var notional = Math.abs(entry * qty); // środki zaangażowane (nominał pozycji)
+    px = Math.round(px * 10000) / 10000;
+    var notional = Math.abs(entry * qty);
     var pf = portfolio();
     var pctPort = pf.equity > 0 ? (notional / pf.equity) * 100 : 0;
     var pnl = p.side === 'LONG' ? (px - entry) * qty : (entry - px) * qty;
+    pnl = Math.round(pnl * 100) / 100;
     var pnlPct = entry ? ((p.side === 'LONG' ? (px - entry) : (entry - px)) / entry) * 100 : 0;
+    pnlPct = Math.round(pnlPct * 100) / 100;
     var risk0 = Number(p.risk0) || (p.stop != null ? Math.abs(entry - p.stop) : entry * 0.004);
     var riskCash = risk0 * qty;
     var sl = p.stop != null ? p.stop : (p.side === 'SHORT' ? entry + risk0 : entry - risk0);
     var tp = p.target != null ? p.target : (p.side === 'SHORT' ? entry - 1.6 * risk0 : entry + 1.6 * risk0);
     return {
-      sym: sym, side: p.side, entry: entry, qty: qty, px: px, notional: notional, pctPort: pctPort,
-      pnl: pnl, pnlPct: pnlPct, riskCash: riskCash, sl: sl, tp: tp, why: p.why || '', bars: p.bars || 0,
-      mode: 'OPEN'
+      sym: sym, side: p.side, entry: entry, qty: qty, px: px, notional: notional,
+      pctPort: Math.round(pctPort * 10) / 10, pnl: pnl, pnlPct: pnlPct,
+      riskCash: riskCash, sl: sl, tp: tp, why: p.why || '', bars: p.bars || 0
     };
   }
 
@@ -108,16 +113,16 @@
   function copyText(pl) {
     var pf = portfolio();
     return [
-      'BTX → XTB',
+      'BTX \u2192 XTB',
       pl.side + ' ' + xtbSym(pl.sym) + ' (' + pl.sym + ')',
       'Size: ' + pl.qty,
-      'Wejście: ' + f2(pl.entry),
+      'Wej\u015bcie: ' + f2(pl.entry),
       'SL: ' + f2(pl.sl),
       'TP: ' + f2(pl.tp),
-      'Nominał (środki w pozycji): ' + money(pl.notional),
-      'Udział w portfelu: ' + pl.pctPort.toFixed(1) + '% (equity ' + money(pf.equity) + ')',
-      'Ryzyko ≈ ' + money(pl.riskCash),
-      'Powód: ' + String(pl.why || '').slice(0, 200)
+      'Nomina\u0142 (\u015brodki w pozycji): ' + money(pl.notional),
+      'Udzia\u0142 w portfelu: ' + pl.pctPort.toFixed(1) + '% (equity ' + money(pf.equity) + ')',
+      'Ryzyko \u2248 ' + money(pl.riskCash),
+      'Pow\u00f3d: ' + String(pl.why || '').slice(0, 200)
     ].join('\n');
   }
 
@@ -126,7 +131,7 @@
     var sign = pl.pnl >= 0 ? '+' : '';
     var pnlCls = pl.pnl >= 0 ? 'pos' : 'neg';
     var why = String(pl.why || '').replace(/</g, '');
-    if (why.length > 200) why = why.slice(0, 200) + '…';
+    if (why.length > 200) why = why.slice(0, 200) + '\u2026';
     return (
       '<div class="th-card" data-sym="' + pl.sym + '">' +
       '<div class="row1">' +
@@ -135,13 +140,13 @@
       '<span class="th-side ' + pnlCls + '" style="margin-left:auto">' + sign + money(pl.pnl) + ' (' + sign + pl.pnlPct.toFixed(2) + '%)</span>' +
       '</div>' +
       '<div class="th-metrics">' +
-      '<div class="th-metric"><span>Wejście</span><strong>' + f2(pl.entry) + '</strong></div>' +
-      '<div class="th-metric"><span>Ilość</span><strong>' + pl.qty + '</strong></div>' +
-      '<div class="th-metric"><span>Środki w pozycji</span><strong>' + money(pl.notional) + '</strong></div>' +
+      '<div class="th-metric"><span>Wej\u015bcie</span><strong>' + f2(pl.entry) + '</strong></div>' +
+      '<div class="th-metric"><span>Ilo\u015b\u0107</span><strong>' + pl.qty + '</strong></div>' +
+      '<div class="th-metric"><span>\u015arodki w pozycji</span><strong>' + money(pl.notional) + '</strong></div>' +
       '<div class="th-metric"><span>% portfela</span><strong>' + pl.pctPort.toFixed(1) + '%</strong></div>' +
       '<div class="th-metric"><span>Stop Loss</span><strong class="neg">' + f2(pl.sl) + '</strong></div>' +
       '<div class="th-metric"><span>Take Profit</span><strong class="pos">' + f2(pl.tp) + '</strong></div>' +
-      '<div class="th-metric"><span>Ryzyko ≈</span><strong>' + money(pl.riskCash) + '</strong></div>' +
+      '<div class="th-metric"><span>Ryzyko \u2248</span><strong>' + money(pl.riskCash) + '</strong></div>' +
       '<div class="th-metric"><span>Cena teraz</span><strong>' + f2(pl.px) + '</strong></div>' +
       '<div class="th-metric"><span>XTB</span><strong>' + xtbSym(pl.sym) + '</strong></div>' +
       '</div>' +
@@ -168,50 +173,54 @@
     return el;
   }
 
-  function render() {
-    var el = ensureHost();
-    if (!el) return;
-    var list = allOpen();
-    var pf = portfolio();
-
+  function buildHtml(list, pf) {
     if (!list.length) {
-      el.innerHTML =
-        '<div class="th-top">' +
-        '<div class="th-brand">Handel bota · Plan XTB</div>' +
-        '<div class="th-status">Portfel ' + money(pf.equity) + ' · gotówka ' + money(pf.cash) + '</div></div>' +
-        '<div class="th-empty"><b>Brak otwartych pozycji paper.</b><br>Gdy bot otworzy LONG/SHORT — tu zobaczysz wszystkie naraz, z kwotą środków i % portfela.</div>' +
-        '<div class="th-foot">Karta zawsze na górze Pulptu</div>';
-      return;
+      return '<div class="th-top">' +
+        '<div class="th-brand">Handel bota \u00b7 Plan XTB</div>' +
+        '<div class="th-status">Portfel ' + money(pf.equity) + '</div></div>' +
+        '<div class="th-empty"><b>Brak otwartych pozycji paper.</b></div>' +
+        '<div class="th-foot">STOP FOR DAY wy\u0142\u0105czony \u00b7 stabilny widok</div>';
     }
-
     var totalNom = list.reduce(function (s, p) { return s + p.notional; }, 0);
-    var html = '';
-    html += '<div class="th-top">';
-    html += '<div class="th-brand">Otwarte pozycje · kopiuj na XTB</div>';
-    html += '<div class="th-status">' + list.length + ' poz. · portfel ' + money(pf.equity) +
-      ' · w pozycjach ' + money(totalNom) + ' (' + (pf.equity ? (totalNom / pf.equity * 100).toFixed(1) : '0') + '%)</div>';
-    html += '</div>';
-    html += '<div class="th-list">';
+    var html = '<div class="th-top">';
+    html += '<div class="th-brand">Otwarte pozycje \u00b7 kopiuj na XTB</div>';
+    html += '<div class="th-status">' + list.length + ' poz. \u00b7 portfel ' + money(pf.equity) +
+      ' \u00b7 w pozycjach ' + money(totalNom) + ' (' + (pf.equity ? (totalNom / pf.equity * 100).toFixed(1) : '0') + '%)</div>';
+    html += '</div><div class="th-list">';
     list.forEach(function (pl, idx) { html += cardHtml(pl, idx); });
     html += '</div>';
-    html += '<div class="th-foot">„Środki w pozycji” = cena wejścia × ilość (nominał). „% portfela” = ten nominał / equity (np. przy 500 PLN).</div>';
-    el.innerHTML = html;
+    html += '<div class="th-foot">\u201e\u015arodki w pozycji\u201d = wej\u015bcie \u00d7 ilo\u015b\u0107. \u201e% portfela\u201d = nomina\u0142 / equity.</div>';
+    return html;
+  }
 
+  function bindCopy(el, list) {
     list.forEach(function (pl, idx) {
       var btn = el.querySelector('[data-copy="' + idx + '"]');
-      if (btn) {
+      if (btn && !btn.__bound) {
+        btn.__bound = true;
         btn.onclick = function () {
           var t = copyText(pl);
           if (navigator.clipboard && navigator.clipboard.writeText) {
             navigator.clipboard.writeText(t).then(function () {
               if (global.toast) global.toast('Skopiowano plan ' + pl.sym, 'ok');
             });
-          } else {
-            prompt('Skopiuj plan:', t);
-          }
+          } else prompt('Skopiuj plan:', t);
         };
       }
     });
+  }
+
+  function render() {
+    var el = ensureHost();
+    if (!el) return;
+    var list = allOpen();
+    var pf = portfolio();
+    var html = buildHtml(list, pf);
+    // nie przebudowuj DOM gdy nic istotnego si\u0119 nie zmieni\u0142o
+    if (html === lastHtml) return;
+    lastHtml = html;
+    setHTML(el, html);
+    bindCopy(el, list);
   }
 
   function boot() {
@@ -220,18 +229,9 @@
     document.querySelectorAll('button[data-tab], .nav button').forEach(function (btn) {
       if (btn.__thMulti) return;
       btn.__thMulti = true;
-      btn.addEventListener('click', function () { setTimeout(render, 50); setTimeout(render, 250); });
+      btn.addEventListener('click', function () { setTimeout(render, 80); });
     });
-    if (typeof global.render === 'function' && !global.render.__tradeHero) {
-      var orig = global.render;
-      global.render = function () {
-        var r = orig.apply(this, arguments);
-        try { render(); } catch (e) {}
-        return r;
-      };
-      global.render.__tradeHero = true;
-    }
-    setInterval(render, 2500);
+    setInterval(render, 8000);
   }
 
   global.BTX_TRADE_HERO = { render: render, allOpen: allOpen };
