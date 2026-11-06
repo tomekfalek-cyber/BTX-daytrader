@@ -217,7 +217,7 @@ test('scenariusze kosztowe: model aplikacji vs CFD vs brutto', () => {
   const bars = flatBars(T100, 140);
   bars[102] = { ...bars[102], l: 98.0 };
   const rs = [{ meta: META, bars, roundTripPct: 0.0012, spreadPct: 0, commPct: 0 }];
-  const sc = BT.scenarios(rs, { signalFn: SIG(100) });
+  const sc = BT.scenarios(rs, { signalFn: SIG(100), slipPct: 0 });
   assert.equal(sc.length, 3);
   assert.ok(Math.abs(sc[0].st.expectancy + 1.1) < 1e-9);
   assert.ok(Math.abs(sc[2].st.expectancy + 1) < 1e-9);
