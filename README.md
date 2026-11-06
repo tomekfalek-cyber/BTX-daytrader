@@ -1,5 +1,7 @@
 # BTX daytrader
 
+https://tomekfalek-cyber.github.io/BTX-daytrader/
+
 Paper / sygnalowy asystent daytradingu (akcje, ETF, FX) pod reczne XTB. Dziala z GitHub Pages.
 
 ## Szybki start
