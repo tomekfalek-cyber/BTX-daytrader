@@ -19,7 +19,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Permanent daytrade params (no swing leftovers)
+      - name: Permanent daytrade params + calm UI intervals
         run: |
           set -e
           for pair in "autonomy-pro.js|da57a27fea51194738a7c49034b964623d3a4d98" "pro-edge.js|91cae43a82045c562cb4d1ceb2f8cd6a0c88d3b5"; do
@@ -47,16 +47,24 @@ jobs:
                   ('newsPadMin: 30','newsPadMin: 10'),
                   ('scoreL >= 6','scoreL >= 4'),
                   ('scoreS >= 6','scoreS >= 4'),
+                  ('ST.blocked = true', 'ST.blocked = false /* stop-for-day off */'),
               ]:
                   t = t.replace(a,b)
               p.write_text(t, encoding='utf-8')
+          # Spowolnij agresywne setInterval (drganie UI)
           for name in Path('.').glob('*.js'):
               t = name.read_text(encoding='utf-8', errors='replace')
               o = t
-              t = t.replace('score >= 70', 'score >= 55').replace('score >= 63', 'score >= 55')
-              t = t.replace("if (CFG.maxTrades == null || CFG.maxTrades > 4) CFG.maxTrades = 4;", "if (CFG.maxTrades == null || CFG.maxTrades < 6) CFG.maxTrades = 6;")
-              if t != o: name.write_text(t, encoding='utf-8')
-          print('DT ok')
+              t = t.replace('setInterval(renderWhy, 4000)', 'setInterval(renderWhy, 12000)')
+              t = t.replace('setInterval(hide, 2000)', 'setInterval(hide, 15000)')
+              t = t.replace('setInterval(render, 4000)', 'setInterval(render, 10000)')
+              t = t.replace('setInterval(render, 2500)', 'setInterval(render, 8000)')
+              t = t.replace('setInterval(render, 3000)', 'setInterval(render, 10000)')
+              t = t.replace("score >= 70", "score >= 55").replace("score >= 63", "score >= 55")
+              if t != o:
+                  name.write_text(t, encoding='utf-8')
+                  print('calmed', name)
+          print('DT+stable ok')
           PY
 
       - name: Syntax check all client JS
@@ -110,16 +118,16 @@ jobs:
             for s in \
               symbols-canon.js universe-pro.js xtb-map-full.js eu-session.js session-profiles.js \
               live-hard-gate.js api-budget.js day-report.js \
-              auto-180.js strategy-pro.js daytrader-mode.js ai-ensemble.js export-csv.js \
+              auto-180.js strategy-pro.js daytrader-mode.js ui-stable.js ai-ensemble.js export-csv.js \
               scan-countdown.js ai-panel.js coach-ui.js pro-desk.js settings-fix.js \
               vpvr-session.js pro-upgrade-6.js learner-pack.js guide-7days.js macro-calendar.js \
               xtb-bridge.js chart-ta-lesson.js autonomy-pro.js xtb-api-connect.js \
               pro-assistant.js quality-cap.js quality-cap-eu-map.js ui-plain-polish.js pro-edge.js \
-              active-dt-mode.js dt-final-pack.js trade-hero.js trade-hero-multi.js positions-fix.js \
-              engine-hardening.js unblock-trading.js desk-compact.js ui-less-noise.js dt-canon.js
+              active-dt-mode.js dt-final-pack.js trade-hero.js positions-fix.js \
+              engine-hardening.js unblock-trading.js desk-compact.js ui-less-noise.js dt-canon.js ui-stable.js
             do
               if [ ! -f "$s" ]; then continue; fi
-              if ! grep -q "$s" "$f"; then
+              if ! grep -q "$s" "$f" 2>/dev/null; then
                 if grep -q '</body>' "$f"; then
                   sed -i "s|</body>|\\n<script src=\"$s\"></script>\\n</body>|" "$f"
                 fi
