@@ -116,7 +116,7 @@
     var p = TD_MAP[sym] || { symbol: sym };
     var url = 'https://api.twelvedata.com/time_series?symbol=' + encodeURIComponent(p.symbol) +
       (p.exchange ? '&exchange=' + encodeURIComponent(p.exchange) : '') +
-      '&interval=5min&outputsize=120&timezone=UTC&apikey=' + encodeURIComponent(key);
+      '&interval=5min&outputsize=400&timezone=UTC&apikey=' + encodeURIComponent(key);
     reqTimes.push(now());
     lastReq = now();
     bumpBudget();
@@ -159,6 +159,29 @@
     return bars;
   }
 
+  // Dluga historia do backtestu (nie rusza ST.series). Liczy sie do limitow/budzetu jak kazde zapytanie.
+  async function fetchHistory(sym, size) {
+    var key = getKey();
+    if (!key) throw new Error('Brak klucza Twelve Data (Ustawienia)');
+    checkLimits();
+    var p = TD_MAP[sym] || { symbol: sym };
+    var url = 'https://api.twelvedata.com/time_series?symbol=' + encodeURIComponent(p.symbol) +
+      (p.exchange ? '&exchange=' + encodeURIComponent(p.exchange) : '') +
+      '&interval=5min&outputsize=' + (size || 5000) + '&timezone=UTC&apikey=' + encodeURIComponent(key);
+    reqTimes.push(now()); lastReq = now(); bumpBudget();
+    var j = await (await fetch(url)).json();
+    if (!j || j.status === 'error' || !j.values || !j.values.length) {
+      if (j && (j.code === 429 || /per minute|credits/i.test(j.message || ''))) cooldownUntil = now() + 65000;
+      throw new Error('Twelve [' + sym + ']: ' + ((j && j.message) || 'brak danych'));
+    }
+    var bars = [];
+    for (var i = j.values.length - 1; i >= 0; i--) {
+      var v = j.values[i];
+      var b = { t: parseUtc(v.datetime), o: +v.open, h: +v.high, l: +v.low, c: +v.close, v: +(v.volume || 0) };
+      if (isFinite(b.t) && b.o > 0 && b.h > 0 && b.l > 0 && b.c > 0) bars.push(b);
+    }
+    return bars;
+  }
   // ---------- harmonogram ----------
   function providerIsTwelve() {
     var p = String((global.CFG && global.CFG.provider) || 'twelve');
@@ -319,7 +342,7 @@
   }
 
   global.BTX_LIVE = {
-    info: info, status: status, fetchTwelve: fetchTwelve, budget: budget,
+    info: info, status: status, fetchTwelve: fetchTwelve, fetchHistory: fetchHistory, getKey: getKey, budget: budget,
     isFresh: function (sym) { var m = symMeta(sym); return m ? status(m).ok : false; }
   };
 

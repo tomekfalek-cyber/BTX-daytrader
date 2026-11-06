@@ -18,12 +18,11 @@
   };
   var MAX_PER_CLUSTER = 1; // max otwartych z jednego motywu
   var HIGH_NEWS = [
-    { label: 'US CPI / inflacja (typowo)', min: 12 * 60 + 30, rank: 'HIGH' },
-    { label: 'US NFP / payrolls (typowo)', min: 12 * 60 + 30, rank: 'HIGH' },
-    { label: 'US data block 13:30 UTC', min: 13 * 60 + 30, rank: 'HIGH' },
-    { label: 'FOMC / Fed decision', min: 18 * 60, rank: 'HIGH' },
-    { label: 'FOMC presser', min: 18 * 60 + 30, rank: 'HIGH' },
-    { label: 'ECB decision (typowo)', min: 12 * 60 + 15, rank: 'HIGH' }
+    // minuty = czas polski minus 60 (stale caly rok, DST-safe): patrz BTX_TIME.pseudoUtcMin
+    { label: 'US CPI / NFP / dane 14:30 PL', min: 13 * 60 + 30, rank: 'HIGH' },
+    { label: 'FOMC 20:00 PL', min: 19 * 60, rank: 'HIGH' },
+    { label: 'FOMC konferencja 20:30 PL', min: 19 * 60 + 30, rank: 'HIGH' },
+    { label: 'ECB decyzja 14:15 PL', min: 13 * 60 + 15, rank: 'HIGH' }
   ];
   var PAD = 30;
 
@@ -123,8 +122,9 @@
 
   function highNewsNow() {
     var now = new Date();
-    var day = now.getUTCDay();
-    var t = now.getUTCHours() * 60 + now.getUTCMinutes();
+    var T = global.BTX_TIME;
+    var day = T ? T.local(now.getTime()).dow : now.getUTCDay();
+    var t = T ? T.pseudoUtcMin(now) : now.getUTCHours() * 60 + now.getUTCMinutes();
     var pl = now.toLocaleString('pl-PL', { timeZone: 'Europe/Warsaw', weekday: 'short', hour: '2-digit', minute: '2-digit' });
     var utc = now.toISOString().slice(11, 16) + ' UTC';
     if (day === 0 || day === 6) {

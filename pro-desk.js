@@ -82,10 +82,11 @@
       { label: 'EU/ECB 12:00 UTC', min: 12 * 60 },
       { label: 'EU/ECB 12:45 UTC', min: 12 * 60 + 45 }
     ];
-    var pad = (global.BTX_PRO && global.BTX_PRO.newsPadMin) || 30;
+    var pad = (global.BTX_PRO && global.BTX_PRO.newsPadMin) || 10;
     var now = new Date();
-    var day = now.getUTCDay();
-    var tmin = now.getUTCHours() * 60 + now.getUTCMinutes();
+    var T = global.BTX_TIME;
+    var day = T ? T.local(now.getTime()).dow : now.getUTCDay();
+    var tmin = T ? T.pseudoUtcMin(now) : now.getUTCHours() * 60 + now.getUTCMinutes();
     var isWeekend = (day === 0 || day === 6);
     var days = ['niedz.', 'pon.', 'wt.', 'śr.', 'czw.', 'pt.', 'sob.'];
     var utcStr = now.toISOString().slice(11, 16) + ' UTC';
