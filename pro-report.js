@@ -107,6 +107,8 @@
     if (s.best) L.push('Najlepsza: ' + s.best.sym + ' ' + sgn(s.best.pnl) + '   Najgorsza: ' + s.worst.sym + ' ' + sgn(s.worst.pnl));
     var syms = Object.keys(s.bySym).sort(function (a, b) { return s.bySym[b].net - s.bySym[a].net; });
     L.push('Wg symbolu: ' + syms.map(function (k) { return k + ' ' + sgn(s.bySym[k].net) + ' (' + s.bySym[k].n + ')'; }).join(' | '));
+    var sides = Object.keys(s.bySide);
+    if (sides.length) L.push('Wg kierunku: ' + sides.map(function (k) { return k + ' ' + sgn(s.bySide[k].net) + ' (' + s.bySide[k].n + ')'; }).join(' | '));
     var hrs = Object.keys(s.byHour).sort(function (a, b) { return a - b; });
     if (hrs.length) L.push('Wg godziny PL: ' + hrs.map(function (h) { return h + ':00 ' + sgn(s.byHour[h].net) + ' (' + s.byHour[h].n + ')'; }).join(' | '));
     if (s.n < 30) L.push('Uwaga: ' + s.n + ' transakcji to za mala proba, zeby ufac statystykom (cel: 30+).');

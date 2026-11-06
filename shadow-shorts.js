@@ -59,6 +59,7 @@
   function tick() {
     var C = global.BTX_STRATEGY_CORE, P = global.BTX_STRATEGY_PRO, T = global.BTX_TIME, ST = global.ST;
     if (!C || !P || !T || !ST || !ST.series) return;
+    if (P.allowShort) return;   // shorty sa handlowane naprawde - cien niepotrzebny
     var now = Date.now(), list = global.SYMBOLS || [], live = global.BTX_LIVE;
     // 1) rozlicz otwarte
     Object.keys(state.open).forEach(function (sym) {

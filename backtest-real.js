@@ -31,6 +31,7 @@
       .forEach(function (k) { P[k] = base[k]; });
     Object.keys(opts.params || {}).forEach(function (k) { P[k] = opts.params[k]; });
     var rt = opts.roundTripPct != null ? opts.roundTripPct : 0.0008;   // spread + prowizje, calosc na transakcje (ulamek nominalu)
+    var rtShort = opts.roundTripShortPct != null ? opts.roundTripShortPct : rt;   // short = CFD (bez konwersji walut)
     var slip = opts.slipPct != null ? opts.slipPct : 0.0002;           // poslizg na kazda strone
     var mkt = C.marketOf(meta), trades = [], n = bars.length;
     var pos = null, cool = 0, dayKey = null, dayTrades = 0, consec = 0, skippedCost = 0, skipRatio = 0;
@@ -39,7 +40,7 @@
     function finish(exitI, legs, why) {
       var gross = 0, i;
       for (i = 0; i < legs.length; i++) gross += legs[i].R * legs[i].w;
-      var costR = pos.entry * rt / pos.sd;
+      var costR = pos.entry * pos.rt / pos.sd;
       var R = gross - costR;
       trades.push({ t: bars[exitI].t, sym: meta.s, side: pos.side, qty: 1, entry: pos.entry, exit: legs[legs.length - 1].px,
         pnl: R, R: R, fees: costR, why: why, entryWhy: pos.why, bars: pos.bars });
@@ -97,10 +98,10 @@
       if (nxt.t - bar.t > 600000) continue;                    // luka w danych
       var side = g.side, sg = sgn(side), entry = nxt.o * (1 + sg * slip), sdv = g.sd || (g.atr || entry * 0.004) * P.atrSlMult;
       if (!(sdv > 0)) continue;
-      var costPU = entry * rt, netRR = (P.tpR * sdv - costPU) / (sdv + costPU);
+      var rtUse = side === 'SHORT' ? rtShort : rt, costPU = entry * rtUse, netRR = (P.tpR * sdv - costPU) / (sdv + costPU);
       if (netRR < P.minNetRR) { skippedCost++; skipRatio += costPU / sdv; continue; }
       pos = { side: side, entry: entry, sd: sdv, stop: entry - sg * sdv, target: entry + sg * P.tpR * sdv,
-        partial: entry + sg * P.partialR * sdv, partialDone: false, remaining: 1, be: false, bars: 0, legs: [], why: g.why || '' };
+        partial: entry + sg * P.partialR * sdv, partialDone: false, remaining: 1, be: false, bars: 0, legs: [], why: g.why || '', rt: rtUse };
       dayTrades++;
     }
     return { trades: trades, skippedCost: skippedCost, costToStop: skippedCost ? skipRatio / skippedCost : null };
@@ -117,7 +118,8 @@
     return VARIANTS.map(function (v) {
       var all = [], per = {};
       rowSets.forEach(function (rs) {
-        var o = Object.assign({}, opts, { params: v.p, roundTripPct: rs.roundTripPct != null ? rs.roundTripPct : (opts && opts.roundTripPct) });
+        var o = Object.assign({}, opts, { params: v.p, roundTripPct: rs.roundTripPct != null ? rs.roundTripPct : (opts && opts.roundTripPct),
+          roundTripShortPct: rs.spreadPct != null ? rs.spreadPct + 2 * (rs.commPct || 0) : undefined });
         var r = run(rs.bars, rs.meta, o);
         per[rs.meta.s] = r;
         all = all.concat(r.trades);
@@ -132,12 +134,13 @@
     var defs = [
       { name: 'Model aplikacji (CFG.fees)', rt: function (rs) { return rs.roundTripPct != null ? rs.roundTripPct : 0.0008; }, slip: opts.slipPct },
       { name: 'Konto USD / CFD (bez konwersji walut)', rt: function (rs) { return (rs.spreadPct != null ? rs.spreadPct : 0.0003) + 2 * (rs.commPct || 0); }, slip: opts.slipPct },
-      { name: 'BEZ kosztow (przewaga brutto)', rt: function () { return 0; }, slip: 0 }
+      { name: 'BEZ kosztow (przewaga brutto)', rt: function () { return 0; }, slip: 0, noCost: true }
     ];
     return defs.map(function (d) {
       var all = [], skipped = 0, ratio = 0, nr = 0;
       rowSets.forEach(function (rs) {
-        var r = run(rs.bars, rs.meta, Object.assign({}, opts, { params: {}, roundTripPct: d.rt(rs), slipPct: d.slip }));
+        var r = run(rs.bars, rs.meta, Object.assign({}, opts, { params: {}, roundTripPct: d.rt(rs), slipPct: d.slip,
+          roundTripShortPct: d.noCost ? 0 : (rs.spreadPct != null ? rs.spreadPct + 2 * (rs.commPct || 0) : undefined) }));
         all = all.concat(r.trades); skipped += r.skippedCost; if (r.costToStop != null) { ratio += r.costToStop; nr++; }
       });
       return { name: d.name, st: global.BTX_STATS.computeStats(all), skipped: skipped, costToStop: nr ? ratio / nr : null, rt: rowSets.length ? d.rt(rowSets[0]) : 0 };
@@ -208,7 +211,7 @@
       L.push('');
     }
     if (meta && meta.sides) {
-      L.push('LONG vs SHORT (koszty jak CFD; shorty w bocie wylaczone):');
+      L.push('LONG vs SHORT (oba z kosztami CFD — bez konwersji walut):');
       ['LONG', 'SHORT'].forEach(function (k) { var s = meta.sides[k]; L.push('  ' + k + ': N ' + s.n + ' · win ' + (s.winRate * 100).toFixed(0) + '% · PF ' + pf(s) + ' · E[R] ' + f2(s.expectancy)); });
       L.push('');
     }
@@ -278,12 +281,12 @@
     if (!rowSets.length) { out.textContent = 'Nie pobrano zadnych danych.\n' + notes.join('\n'); btn.disabled = false; return; }
     out.textContent = 'Liczenie ...';
     await sleep(30);
-    var res = global.BTX_BT.compare(rowSets, { allowShort: false, slipPct: 0.0002, marketBars: marketBars });
+    var res = global.BTX_BT.compare(rowSets, { allowShort: !!PRO().allowShort, slipPct: 0.0002, marketBars: marketBars });
     var tot = rowSets.reduce(function (a, r) { return a + r.bars.length; }, 0);
     var first = Math.min.apply(null, rowSets.map(function (r) { return r.bars[0].t; })), lastT = Math.max.apply(null, rowSets.map(function (r) { return r.bars[r.bars.length - 1].t; }));
     var cov = 'Dane: ' + rowSets.length + ' symboli, ' + tot + ' swiec, ' + new Date(first).toISOString().slice(0, 10) + ' .. ' + new Date(lastT).toISOString().slice(0, 10) +
       (notes.length ? '\nPominiete: ' + notes.join('; ') : '');
-    var scen = global.BTX_BT.scenarios(rowSets, { allowShort: false, slipPct: 0.0002, marketBars: marketBars });
+    var scen = global.BTX_BT.scenarios(rowSets, { allowShort: !!PRO().allowShort, slipPct: 0.0002, marketBars: marketBars });
     var sd2 = global.BTX_BT.sides(rowSets, { slipPct: 0.0002, marketBars: marketBars });
     var attr = global.BTX_BT.attribution(rowSets, { allowShort: false, marketBars: marketBars });
     out.textContent = format(res, { coverage: cov, scen: scen, sides: sd2, attrib: attr });

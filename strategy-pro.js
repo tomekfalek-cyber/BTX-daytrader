@@ -18,6 +18,7 @@
     minStrengthOpen: 3, coolBars: 4, minHoldBars: 2, requireTrend: false, newsPadMin: 10,
     scoreMin: 4, minNetRR: 1.15, orBars: 6, timeStopBars: 24, closeBufferMin: 45, flatBeforeCloseMin: 10,
     // Warunki daytradingowe (precyzja > liczba transakcji)
+    allowShort: true,       // shorty wlaczone (paper). Krotka sprzedaz = CFD: koszt bez konwersji walut, pozycje tylko intraday
     strictCore: true,       // otwieraj tylko, gdy RDZEN strategii daje score >= prog (nakladki "TradeNow"/"DT mode" nie obnizaja progu)
     primeExtra: 1,          // poza oknami prime wymagany score o tyle wyzszy
     minRvol: 0.6,           // min. wzgledny wolumen (ostatnie 3 swiece vs 20 wczesniejszych) dla akcji/ETF
@@ -310,7 +311,7 @@
 
   // opcje "zywe" dla evalCore: kierunek + dane SPY do filtra rynku (tylko gdy SPY ma swieza cene LIVE)
   function liveOpts(m) {
-    var o = { allowShort: !!(global.CFG && global.CFG.allowShort) };
+    var o = { allowShort: !!PRO.allowShort };
     if (PRO.marketFilter && marketOf(m) === 'US' && m.s !== 'SPY' && m.s !== 'QQQ') {
       var spy = global.ST && global.ST.series && global.ST.series.SPY;
       var fresh = !global.BTX_LIVE || !global.BTX_LIVE.isFresh || global.BTX_LIVE.isFresh('SPY');
@@ -320,10 +321,11 @@
   }
 
   // plan pozycji z kosztami (ta sama matematyka co sizePlan w aplikacji, ale z geometria PRO i stopem strukturalnym)
-  function sizePlanPro(m, price, atr, equity, cash, sdOverride) {
+  function sizePlanPro(m, price, atr, equity, cash, sdOverride, side) {
     var hasModel = typeof global.feeOf === 'function' && typeof global.rateOf === 'function';
     var rate = hasModel ? (global.rateOf(m) || 1) : 1;
     var f = hasModel ? global.feeOf(m) : { comm: 0, conv: 0, spr: 0 };
+    if (side === 'SHORT') f = { comm: f.comm, conv: 0, spr: f.spr };   // short = CFD: bez konwersji walut
     var fx = marketOf(m) === 'FX', lev = fx ? ((global.CFG && global.CFG.fxLev) || 30) : 1, step = fx ? 1000 : 1;
     var sd = sdOverride || (atr || price * 0.004) * PRO.atrSlMult;
     if (!(sd > 0)) return { ok: false, reason: 'ATR=0' };
@@ -369,7 +371,7 @@
       var pm = symMeta(k) || { s: k };
       if (corrGroup(pm) === grp && ST.pos[k].side === g.side) return { ok: false, reason: 'korelacja: ' + k + ' (' + grp + ') juz ' + g.side };
     }
-    var sp = sizePlanPro(m, g.price, g.atr, ST.equity, ST.cash, g.sd);
+    var sp = sizePlanPro(m, g.price, g.atr, ST.equity, ST.cash, g.sd, g.side);
     if (!sp.ok) return { ok: false, reason: sp.reason, sp: sp };
     return { ok: true, reason: '', sp: sp };
   }
@@ -507,6 +509,7 @@
 
   function boot() {
     applyCfg();
+    try { if (global.CFG) global.CFG.allowShort = !!PRO.allowShort; } catch (e) {}
     var n = 0, t = setInterval(function () {
       n++; applyCfg(); patchEvaluate(); patchOpenPos(); patchCoolOnClose(); patchCycle();
       if (n > 60) clearInterval(t);

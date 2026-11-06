@@ -261,3 +261,40 @@ test('cien SHORT: podsumowanie i werdykt (min. 30 rozliczonych)', () => {
   const bad = []; for (let i = 0; i < 40; i++) bad.push({ sym: 'A', R: i % 2 ? -1 : 0.8, exitT: i });
   assert.match(S.summary(bad).verdict, /brak przewagi/);
 });
+test('shorty wlaczone w trybie zywym', () => {
+  assert.equal(sb.BTX_STRATEGY_PRO.allowShort, true);
+  assert.equal(CORE.liveOpts({ s: 'EURUSD', mkt: 'FX' }).allowShort, true);
+});
+
+test('koszty: short = CFD (bez konwersji 0.5%), long na akcjach USA odrzucony przez koszty', () => {
+  sb.feeOf = () => ({ comm: 0, conv: 0.005, spr: 0.0003 });
+  sb.rateOf = () => 1;
+  const m = { s: 'NVDA', mkt: 'US' };
+  const lg = CORE.sizePlanPro(m, 100, 1, 10000, 10000, 1.2, 'LONG');
+  const sh = CORE.sizePlanPro(m, 100, 1, 10000, 10000, 1.2, 'SHORT');
+  delete sb.feeOf; delete sb.rateOf;
+  assert.equal(lg.ok, false); assert.match(lg.reason, /koszty/);
+  assert.equal(sh.ok, true); assert.ok(sh.netRR > 1.4, 'netRR=' + sh.netRR);
+});
+
+test('backtest SHORT: czesciowe + cel w jednej swiecy => 1.3R, kierunek SHORT', () => {
+  const bars = flatBars(T100, 140);
+  bars[102] = { ...bars[102], l: 97.0 };
+  const sig = (i) => (i === 100 ? { side: 'SHORT', strength: 5, atr: 1, why: 'test' } : null);
+  const r = BT.run(bars, META, { signalFn: sig, roundTripPct: 0, slipPct: 0 });
+  assert.equal(r.trades.length, 1); assert.equal(r.trades[0].side, 'SHORT');
+  assert.ok(Math.abs(r.trades[0].R - 1.3) < 1e-9, 'R=' + r.trades[0].R);
+});
+
+test('bramka: SHORT przechodzi z wynikiem scoreS, a korelacja dotyczy tego samego kierunku', () => {
+  const g = mkG({ side: 'SHORT', _pro: { scoreL: 0, scoreS: 5, need: 4, veto: '' } });
+  assert.equal(CORE.gateCheck(g, sb.SYMBOLS[0], mkST(), TS_IN).ok, true);
+  assert.match(CORE.gateCheck(g, sb.SYMBOLS[0], mkST({ pos: { TSLA: { side: 'SHORT' } } }), TS_IN).reason, /korelacja/);
+  assert.match(CORE.gateCheck({ ...g, _pro: { scoreL: 9, scoreS: 3, need: 4, veto: '' } }, sb.SYMBOLS[0], mkST(), TS_IN).reason, /rdzen/);
+});
+
+test('raport: podzial wyniku wg kierunku', () => {
+  const S = sb.BTX_STATS;
+  const txt = S.formatReport(S.computeStats([{ sym: 'A', side: 'LONG', pnl: 1, t: 1 }, { sym: 'B', side: 'SHORT', pnl: -2, t: 2 }]), 'T');
+  assert.match(txt, /Wg kierunku: LONG \+1\.00 \(1\) \| SHORT -2\.00 \(1\)/);
+});
