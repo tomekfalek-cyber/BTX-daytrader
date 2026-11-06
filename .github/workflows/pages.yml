@@ -51,7 +51,6 @@ jobs:
               ]:
                   t = t.replace(a,b)
               p.write_text(t, encoding='utf-8')
-          # Spowolnij agresywne setInterval (drganie UI)
           for name in Path('.').glob('*.js'):
               t = name.read_text(encoding='utf-8', errors='replace')
               o = t
@@ -63,8 +62,7 @@ jobs:
               t = t.replace("score >= 70", "score >= 55").replace("score >= 63", "score >= 55")
               if t != o:
                   name.write_text(t, encoding='utf-8')
-                  print('calmed', name)
-          print('DT+stable ok')
+          print('ok')
           PY
 
       - name: Syntax check all client JS
@@ -124,7 +122,8 @@ jobs:
               xtb-bridge.js chart-ta-lesson.js autonomy-pro.js xtb-api-connect.js \
               pro-assistant.js quality-cap.js quality-cap-eu-map.js ui-plain-polish.js pro-edge.js \
               active-dt-mode.js dt-final-pack.js trade-hero.js positions-fix.js \
-              engine-hardening.js unblock-trading.js desk-compact.js ui-less-noise.js dt-canon.js ui-stable.js
+              engine-hardening.js pro-daytrader-5.js unblock-trading.js desk-compact.js \
+              ui-less-noise.js dt-canon.js ui-stable.js
             do
               if [ ! -f "$s" ]; then continue; fi
               if ! grep -q "$s" "$f" 2>/dev/null; then
