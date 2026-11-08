@@ -1,31 +1,18 @@
 /**
  * Prawdziwe ceny LIVE (Twelve Data) — jedno zrodlo prawdy o swiezosci danych.
- *
- * Problemy, ktore naprawia:
- *  1) fetchTwelve zwracal undefined przy bledzie, a hardening/live-hard-gate i tak oznaczaly
- *     symbol jako LIVE -> bot handlowal na symulowanych cenach (bazowe ceny z SYMBOLS sa stare).
- *     Teraz blad = wyjatek, wiec nic nie jest oznaczane jako LIVE.
- *  2) Odswiezanie round-robin: 1 symbol na cykl (180 s) => kazdy symbol ~33 min po czasie.
- *     Teraz: harmonogram odswieza kazdy symbol co ~5 min (z limitem 8 zapytan/min i budzetem dziennym).
- *  3) Czas swiec: Twelve zwraca czas gieldy bez strefy, a przegladarka czytala go jako lokalny
- *     (przesuniecie o godziny). Teraz timezone=UTC.
- *  4) Brama LIVE przepuszczala WSZYSTKIE symbole, gdy jakikolwiek byl LIVE. Teraz kazdy symbol
- *     musi miec wlasna swieza cene, inaczej sygnal = WAIT.
- *  5) Widoczny znacznik swiezosci cen (lewy dolny rog) + szczegoly po kliknieciu.
  */
 (function (global) {
   'use strict';
   if (global.BTX_LIVE) return;
 
-  var FRESH_MS = 15 * 60 * 1000;        // max wiek pobrania, by cene uznac za LIVE
-  var BAR_MAX_AGE_MS = 30 * 60 * 1000;  // max wiek ostatniej swiecy, gdy sesja otwarta
-  var MIN_GAP_MS = 8600;                // >= 8.6 s miedzy zapytaniami (limit 8/min)
+  var FRESH_MS = 15 * 60 * 1000;
+  var BAR_MAX_AGE_MS = 30 * 60 * 1000;
+  var MIN_GAP_MS = 8600;
   var PER_MIN = 7;
-  var DAY_LIMIT = 780;                  // Twelve Basic: 800/dzien
+  var DAY_LIMIT = 780;
   var BUDGET_LS = 'btx_live_budget';
   var KEY_LS = 'btx_twelve_key';
 
-  // symbol w aplikacji -> parametry Twelve Data
   var TD_MAP = {
     'EURUSD': { symbol: 'EUR/USD' },
     'XAUUSD': { symbol: 'XAU/USD' },
@@ -35,13 +22,12 @@
   };
   var REFRESH_MIN = { US: 5, EU: 5, FX: 10 };
 
-  var info = {};          // sym -> { ok, price, barT, fetchedAt, err, errAt, permanent }
-  var reqTimes = [];      // czasy ostatnich zapytan
+  var info = {};
+  var reqTimes = [];
   var cooldownUntil = 0;
   var lastReq = 0;
   var busy = false;
 
-  // ---------- pomocnicze ----------
   function now() { return Date.now(); }
   function today() { return new Date().toISOString().slice(0, 10); }
 
@@ -99,7 +85,6 @@
     return Date.parse(s.replace(' ', 'T') + 'Z');
   }
 
-  // ---------- pobieranie ----------
   function checkLimits() {
     var t = now();
     reqTimes = reqTimes.filter(function (x) { return t - x < 60000; });
@@ -114,7 +99,6 @@
       info[sym] = Object.assign(info[sym] || {}, { ok: false, err: 'brak klucza Twelve', errAt: now() });
       throw new Error('Brak klucza Twelve Data (Ustawienia)');
     }
-    // dedupe: nie marnuj limitu na symbol swiezo pobrany lub z zamknietego rynku (np. round-robin z pro-assistant)
     var cur = info[sym];
     if (cur && cur.ok && cur.fetchedAt) {
       var m0 = symMeta(sym);
@@ -167,7 +151,6 @@
     return bars;
   }
 
-  // Dluga historia do backtestu (nie rusza ST.series). Liczy sie do limitow/budzetu jak kazde zapytanie.
   async function fetchHistory(sym, size) {
     var key = getKey();
     if (!key) throw new Error('Brak klucza Twelve Data (Ustawienia)');
@@ -190,7 +173,7 @@
     }
     return bars;
   }
-  // ---------- harmonogram ----------
+
   function providerIsTwelve() {
     var p = String((global.CFG && global.CFG.provider) || 'twelve');
     return p === 'twelve';
@@ -210,9 +193,9 @@
     var best = null, bestScore = -1;
     for (var i = 0; i < list.length; i++) {
       var m = list[i], inf = info[m.s];
-      if (inf && inf.permanent && t - inf.errAt < 6 * 3600000) continue;     // symbol niedostepny w planie
-      if (inf && !inf.ok && inf.errAt && t - inf.errAt < 60000) continue;    // krotki backoff po bledzie
-      if (!sessionOpen(m.mkt) && inf && inf.ok) continue;                    // rynek zamkniety, mamy ostatnie ceny
+      if (inf && inf.permanent && t - inf.errAt < 6 * 3600000) continue;
+      if (inf && !inf.ok && inf.errAt && t - inf.errAt < 60000) continue;
+      if (!sessionOpen(m.mkt) && inf && inf.ok) continue;
       var age = inf && inf.fetchedAt ? t - inf.fetchedAt : Infinity;
       if (age < refreshMs(m)) continue;
       var score = age === Infinity ? 1e12 : age;
@@ -232,12 +215,11 @@
     try {
       if (typeof global.fetchReal === 'function') await global.fetchReal(m.s);
       else await fetchTwelve(m.s);
-    } catch (e) { /* stan bledu jest w info[] */ }
+    } catch (e) {}
     busy = false;
     try { if (typeof global.render === 'function') global.render(); } catch (e2) {}
   }
 
-  // ---------- swiezosc / brama ----------
   function status(m) {
     var inf = info[m.s], t = now();
     if (!getKey()) return { ok: false, why: 'brak klucza Twelve' };
@@ -276,7 +258,7 @@
       var on = global.nextBar;
       global.nextBar = function (m, last) {
         var sym = m && (m.s || m.sym);
-        if (sym && info[sym] && info[sym].ok) return last; // nigdy nie doklejaj losowej swiecy do prawdziwych danych
+        if (sym && info[sym] && info[sym].ok) return last;
         return on.apply(this, arguments);
       };
       copyFlags(on, global.nextBar);
@@ -289,7 +271,6 @@
     global.fetchTwelve = fetchTwelve;
   }
 
-  // ---------- UI ----------
   var badge, panel;
   function ensureUi() {
     if (badge && document.body.contains(badge)) return;
@@ -309,7 +290,7 @@
   }
 
   function ago(ts) {
-    if (!ts) return '—';
+    if (!ts) return '\u2014';
     var m = Math.round((now() - ts) / 60000);
     return m < 1 ? '<1 min' : m + ' min';
   }
@@ -323,16 +304,16 @@
       if (s.ok) { okN++; oldest = Math.max(oldest, now() - inf.fetchedAt); }
       var open = sessionOpen(m.mkt);
       rows += '<tr><td style="padding:1px 8px 1px 0">' + m.s + '</td><td style="padding:1px 8px;text-align:right">' +
-        (inf.price ? inf.price.toFixed(inf.price < 10 ? 4 : 2) : '—') + '</td><td style="padding:1px 8px">' + ago(inf.fetchedAt) +
+        (inf.price ? inf.price.toFixed(inf.price < 10 ? 4 : 2) : '\u2014') + '</td><td style="padding:1px 8px">' + ago(inf.fetchedAt) +
         '</td><td style="padding:1px 0;color:' + (s.ok ? '#34d399' : (open ? '#f87171' : '#94a3b8')) + '">' +
-        (s.ok ? 'LIVE' : (open ? 'BRAK: ' : 'rynek zamkniety — ') + s.why) + '</td></tr>';
+        (s.ok ? 'LIVE' : (open ? 'BRAK: ' : 'rynek zamkniety \u2014 ') + s.why) + '</td></tr>';
     });
     var b = budget();
     var hasKey = !!getKey();
     var color = !hasKey ? '#7f1d1d' : (okN === 0 ? '#7f1d1d' : (okN < list.length ? '#78350f' : '#064e3b'));
     badge.style.background = color;
-    badge.textContent = !hasKey ? 'CENY: BRAK KLUCZA — symulacja' :
-      'CENY LIVE ' + okN + '/' + list.length + (okN ? ' · najstarsza ' + Math.round(oldest / 60000) + ' min' : '') + ' · API ' + b.n + '/' + DAY_LIMIT;
+    badge.textContent = !hasKey ? 'CENY: BRAK KLUCZA \u2014 symulacja' :
+      'CENY LIVE ' + okN + '/' + list.length + (okN ? ' \u00b7 najstarsza ' + Math.round(oldest / 60000) + ' min' : '') + ' \u00b7 API ' + b.n + '/' + DAY_LIMIT;
     if (panel.style.display !== 'none') {
       panel.innerHTML = '<table style="border-collapse:collapse">' + rows + '</table>' +
         '<div style="margin-top:6px;color:#94a3b8">Symbol bez swiezej ceny = sygnal WAIT (bot nie handluje na symulacji).</div>';
@@ -343,6 +324,13 @@
     setFetch();
     ensureUi();
     renderUi();
+    try {
+      if (!global.__BTX_SIGNAL_LOCK__ && !document.querySelector('script[src="signal-lock.js"]')) {
+        var sLock = document.createElement('script');
+        sLock.src = 'signal-lock.js';
+        (document.body || document.documentElement).appendChild(sLock);
+      }
+    } catch (e0) {}
     setTimeout(function () { setFetch(); installGuards(); }, 3000);
     setInterval(function () { if (wraps < 4) installGuards(); setFetch(); }, 7000);
     setInterval(tick, 3000);
