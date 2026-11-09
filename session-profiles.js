@@ -1,12 +1,47 @@
 /**
- * Profile sesji: RANO / US / ALL — zawsze widoczny na górze Pulptu
+ * Profile sesji: RANO (EU+FX) / US (US+FX) / ALL
+ * Auto: przed 15:30 PL → RANO, 15:30–22:00 → US
  */
 (function (global) {
   var LS = 'BTX_SESSION_PROFILE';
+  var LS_AUTO = 'BTX_SESSION_AUTO';
   var ROOT = 'btx-session-profile';
 
+  function warsaw() {
+    var fmt = new Intl.DateTimeFormat('en-GB', {
+      timeZone: 'Europe/Warsaw', hour: '2-digit', minute: '2-digit', hour12: false, weekday: 'short'
+    });
+    var map = {};
+    fmt.formatToParts(new Date()).forEach(function (p) { map[p.type] = p.value; });
+    return {
+      min: parseInt(map.hour, 10) * 60 + parseInt(map.minute, 10),
+      weekend: /Sat|Sun/i.test(map.weekday || ''),
+      label: (map.weekday || '') + ' ' + map.hour + ':' + map.minute
+    };
+  }
+
+  function suggestedProfile() {
+    var w = warsaw();
+    if (w.weekend) return 'ALL';
+    if (w.min >= 9 * 60 && w.min < 15 * 60 + 30) return 'RANO';
+    if (w.min >= 15 * 60 + 30 && w.min < 22 * 60) return 'US';
+    return 'ALL';
+  }
+
+  function autoOn() {
+    try { return localStorage.getItem(LS_AUTO) !== '0'; } catch (e) { return true; }
+  }
+  function setAuto(on) {
+    try { localStorage.setItem(LS_AUTO, on ? '1' : '0'); } catch (e) {}
+  }
+
   function getProfile() {
-    try { return localStorage.getItem(LS) || 'ALL'; } catch (e) { return 'ALL'; }
+    if (autoOn()) {
+      var s = suggestedProfile();
+      try { localStorage.setItem(LS, s); } catch (e) {}
+      return s;
+    }
+    try { return localStorage.getItem(LS) || suggestedProfile(); } catch (e) { return 'ALL'; }
   }
   function setProfile(p) {
     if (['RANO', 'US', 'ALL'].indexOf(p) < 0) p = 'ALL';
@@ -32,11 +67,6 @@
     return true;
   }
 
-  function filterSymbols(list) {
-    list = list || global.SYMBOLS || [];
-    return list.filter(function (m) { return allowedSym(m.s || m); });
-  }
-
   function patchSignals() {
     if (typeof global.signals !== 'function' || global.signals.__prof) return;
     var orig = global.signals;
@@ -58,102 +88,91 @@
     }
   }
 
+  function patchOpen() {
+    if (typeof global.openPos !== 'function' || global.openPos.__prof) return;
+    var orig = global.openPos;
+    global.openPos = function (g) {
+      if (g && g.sym && !allowedSym(g.sym)) {
+        if (global.log) global.log('Profil sesji: pominięto ' + g.sym + ' (profil ' + getProfile() + ')', 'mut');
+        return;
+      }
+      return orig.apply(this, arguments);
+    };
+    global.openPos.__prof = true;
+  }
+
   function ensureHost() {
     var el = document.getElementById(ROOT);
-    if (el && el.parentNode) return el;
-
-    el = document.createElement('div');
-    el.id = ROOT;
-    el.style.cssText = [
-      'display:block!important;visibility:visible!important;opacity:1!important;',
-      'margin:0 0 14px!important;padding:14px 16px;border-radius:14px;',
-      'border:2px solid #3b82f6!important;',
-      'background:linear-gradient(180deg,#1e3a5f,#0f172a)!important;',
-      'font-size:13px;color:#e2e8f0;position:relative;z-index:50;',
-      'box-shadow:0 8px 24px rgba(37,99,235,.3)'
-    ].join('');
-
     var pane = document.getElementById('pane-desk');
-    if (pane) {
+    if (!pane) return el;
+    if (!el) {
+      el = document.createElement('div');
+      el.id = ROOT;
+      el.style.cssText = 'display:block;margin:0 0 14px;padding:14px 16px;border-radius:14px;border:2px solid #3b82f6;background:linear-gradient(180deg,#1e3a5f,#0f172a);font-size:13px;color:#e2e8f0;z-index:50';
       if (pane.firstChild) pane.insertBefore(el, pane.firstChild);
       else pane.appendChild(el);
-      return el;
     }
-    var nav = document.querySelector('.nav');
-    if (nav && nav.parentNode) {
-      nav.parentNode.insertBefore(el, nav.nextSibling);
-      return el;
-    }
-    document.body.insertBefore(el, document.body.firstChild);
     return el;
   }
 
   function render() {
     var el = ensureHost();
     if (!el) return;
-    // trzymaj na samej górze pulpitu
-    var pane = document.getElementById('pane-desk');
-    if (pane && el.parentNode === pane && pane.firstChild !== el) {
-      pane.insertBefore(el, pane.firstChild);
-    }
-
     var p = getProfile();
-    var allowed = filterSymbols().map(function (m) { return m.s; }).join(', ');
-
-    function btn(name) {
-      var on = name === p;
-      return '<button type="button" id="btx-prof-' + name + '" style="' +
-        'cursor:pointer;border:0;border-radius:10px;padding:10px 16px;font-weight:800;font-size:13px;' +
-        (on ? 'background:#2563eb;color:#fff;' : 'background:rgba(255,255,255,.1);color:#cbd5e1;') +
-        '">' + name + (on ? ' \u2713' : '') + '</button>';
-    }
-
+    var w = warsaw();
+    var sug = suggestedProfile();
+    var desc = p === 'RANO' ? 'EU + FX (przed US)' : (p === 'US' ? 'US + FX (sesja amerykańska)' : 'Wszystkie instrumenty');
     el.innerHTML =
-      '<div style="font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#93c5fd;font-weight:800;margin-bottom:8px">Profil sesji</div>' +
-      '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px">' +
-      btn('RANO') + btn('US') + btn('ALL') +
-      '</div>' +
-      '<div><b>Aktywny: ' + p + '</b> \u2192 ' + (allowed || '\u2014') + '</div>' +
-      '<div style="margin-top:4px;font-size:11px;color:#94a3b8">RANO = EU+FX \u00b7 US = akcje US+FX \u00b7 ALL = wszystko</div>';
+      '<div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between">' +
+      '<div><b style="color:#93c5fd">Profil sesji</b> \u00b7 ' + w.label + ' PL<br><span style="color:#cbd5e1">' + desc + '</span></div>' +
+      '<div style="display:flex;flex-wrap:wrap;gap:6px">' +
+      ['RANO', 'US', 'ALL'].map(function (x) {
+        var on = p === x;
+        return '<button type="button" data-p="' + x + '" style="cursor:pointer;padding:8px 12px;border-radius:8px;border:0;font-weight:700;' +
+          (on ? 'background:#2563eb;color:#fff' : 'background:#334155;color:#e2e8f0') + '">' + x + '</button>';
+      }).join('') +
+      '</div></div>' +
+      '<div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;font-size:12px;color:#94a3b8">' +
+      '<label style="display:flex;gap:6px;align-items:center;cursor:pointer"><input type="checkbox" id="btx-sess-auto" ' + (autoOn() ? 'checked' : '') + '/> Auto (RANO do 15:30, potem US)</label>' +
+      '<span>Sugerowany teraz: <b style="color:#e2e8f0">' + sug + '</b></span></div>';
 
-    ['RANO', 'US', 'ALL'].forEach(function (name) {
-      var b = document.getElementById('btx-prof-' + name);
-      if (b) b.onclick = function () {
-        setProfile(name);
-        if (global.toast) global.toast('Profil sesji: ' + name, 'ok');
-        else alert('Profil sesji: ' + name);
+    el.querySelectorAll('button[data-p]').forEach(function (btn) {
+      btn.onclick = function () {
+        setAuto(false);
+        setProfile(btn.getAttribute('data-p'));
         render();
+        if (global.toast) global.toast('Profil: ' + btn.getAttribute('data-p') + ' (auto OFF)', 'ok');
       };
     });
+    var cb = document.getElementById('btx-sess-auto');
+    if (cb) cb.onchange = function () {
+      setAuto(!!cb.checked);
+      render();
+      if (global.toast) global.toast(cb.checked ? 'Auto profil ON' : 'Auto profil OFF', 'ok');
+    };
   }
 
   function boot() {
+    getProfile();
     patchSignals();
     patchRank();
+    patchOpen();
     render();
-    document.querySelectorAll('button[data-tab]').forEach(function (btn) {
-      if (btn.__profBound) return;
-      btn.__profBound = true;
-      btn.addEventListener('click', function () {
-        setTimeout(render, 40);
-        setTimeout(render, 250);
-      });
-    });
     setInterval(function () {
       patchSignals();
       patchRank();
-      render();
-    }, 2500);
+      patchOpen();
+      if (autoOn()) render();
+    }, 30000);
+    document.querySelectorAll('button[data-tab], .nav button').forEach(function (btn) {
+      if (btn.__sessP) return;
+      btn.__sessP = true;
+      btn.addEventListener('click', function () { setTimeout(render, 80); });
+    });
   }
 
-  global.BTX_PROFILE = {
-    get: getProfile,
-    set: setProfile,
-    allowedSym: allowedSym,
-    filterSymbols: filterSymbols
-  };
+  global.BTX_SESSION_PROFILE = { get: getProfile, set: setProfile, allowed: allowedSym, suggested: suggestedProfile, autoOn: autoOn };
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();
-  if (global.addEventListener) global.addEventListener('load', function () { setTimeout(boot, 80); });
 })(typeof window !== 'undefined' ? window : globalThis);
