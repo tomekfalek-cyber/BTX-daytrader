@@ -152,12 +152,30 @@
     };
   }
 
+  function loadExtras() {
+    try {
+      if (!document.querySelector('script[src="readiness.js"]')) {
+        var r = document.createElement('script');
+        r.src = 'readiness.js';
+        (document.body || document.documentElement).appendChild(r);
+      }
+    } catch (eR) {}
+    try {
+      if (!document.querySelector('script[src="pass-telegram-only.js"]')) {
+        var p = document.createElement('script');
+        p.src = 'pass-telegram-only.js';
+        (document.body || document.documentElement).appendChild(p);
+      }
+    } catch (eP) {}
+  }
+
   function boot() {
     getProfile();
     patchSignals();
     patchRank();
     patchOpen();
     render();
+    loadExtras();
     setInterval(function () {
       patchSignals();
       patchRank();
