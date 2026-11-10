@@ -1,6 +1,5 @@
 /**
- * Lekka poprawka: STOP FOR DAY off + status bez niszczenia UI.
- * BEZ MutationObserver / BEZ przepisywania całego panelu (to psuło guziki).
+ * STOP FOR DAY off — bez ruszania DOM (nie psuje przycisków).
  */
 (function (global) {
   'use strict';
@@ -19,36 +18,9 @@
     } catch (e) {}
   }
 
-  function softStatus() {
-    clearStop();
-    // Tylko tekst statusu — bez ruszania przycisków i layoutu
-    try {
-      var el = document.getElementById('btx-ops');
-      if (!el) return;
-      var st = el.querySelector('.st-block');
-      if (!st) return;
-      // Jeśli to tylko miękka blokada danych — pokaż PRACUJE
-      var sub = '';
-      el.querySelectorAll('.sub').forEach(function (s) { sub += ' ' + (s.textContent || ''); });
-      if (/Dane nie-LIVE|DEMO|STOP FOR DAY|Limity konta/i.test(st.textContent + sub) &&
-          !/Makro HIGH|News blackout/i.test(sub)) {
-        st.className = 'st-work';
-        st.textContent = 'PRACUJE';
-      }
-    } catch (e2) {}
-
-    var b = document.getElementById('limit-badge');
-    if (b && /BLOKADA|STOP FOR DAY/i.test(b.textContent || '')) {
-      b.textContent = 'STOP DAY: OFF';
-      try { b.style.color = 'var(--tx3,#94a3b8)'; } catch (e3) {}
-    }
-  }
-
   function boot() {
     clearStop();
-    softStatus();
-    // rzadko — nie walczy z renderem co klatkę
-    setInterval(softStatus, 8000);
+    setInterval(clearStop, 15000);
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
