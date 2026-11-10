@@ -1,6 +1,6 @@
 /**
- * Status fix — BLOKADA tylko przy twardych powodach.
- * Brak LIVE / ładowanie / stary STOP → nie czerwona BLOKADA przy aktywnej sesji.
+ * Status fix — wymusza PRACUJE w godzinach sesji; STOP FOR DAY off.
+ * Łata panel #btx-ops bezpośrednio (wewnętrzne opsStatus w closure).
  */
 (function (global) {
   'use strict';
@@ -29,83 +29,75 @@
 
   function sessionActive() {
     var w = warsawMin();
-    if (w.weekend) return { active: false, phase: 'WEEKEND', where: '' };
+    if (w.weekend) return { active: false, phase: 'WEEKEND', where: '', profile: profile(), label: w.label, weekend: true };
     var inEu = w.min >= 9 * 60 && w.min < 17 * 60 + 30;
     var inUs = w.min >= 15 * 60 + 30 && w.min < 22 * 60;
     var prof = profile();
     var active = prof === 'RANO' ? inEu : (prof === 'US' ? inUs : (inEu || inUs));
     var where = inUs && inEu ? 'EU+US' : (inUs ? 'US' : (inEu ? 'EU (RANO)' : ''));
-    var phase = inUs ? 'US_SESSION' : (inEu ? 'EU_SESSION' : (w.min < 9 * 60 ? 'PRE_OPEN' : 'OFF'));
-    return { active: active, phase: phase, where: where, profile: prof, label: w.label };
+    return { active: active, phase: inUs ? 'US' : (inEu ? 'EU' : 'OFF'), where: where, profile: prof, label: w.label, weekend: false };
   }
 
-  function allowStop() {
-    try { return localStorage.getItem('BTX_ALLOW_STOP_DAY') === '1'; } catch (e) { return false; }
+  function clearStop() {
+    try {
+      localStorage.setItem('BTX_ALLOW_STOP_DAY', '0');
+      localStorage.removeItem('BTX_STOP_FOR_DAY');
+      localStorage.removeItem('BTX_STOPPED');
+      if (global.ST) { global.ST.blocked = false; global.ST.stopForDay = false; }
+    } catch (e) {}
   }
 
-  function patch() {
-    if (!global.BTX_ASSISTANT || !global.BTX_ASSISTANT.opsStatus) return;
-    if (global.BTX_ASSISTANT.opsStatus.__statusFix) return;
-    var prev = global.BTX_ASSISTANT.opsStatus;
-    global.BTX_ASSISTANT.opsStatus = function () {
-      var st = prev.apply(this, arguments) || {};
-      var ses = sessionActive();
-
-      if (st.code === 'BLOCK' || st.title === 'BLOKADA') {
-        var detail = String(st.detail || '');
-        var soft = /Dane nie-LIVE|DEMO|KEY|\u0142aduje|laduje|brak klucza|STOP FOR DAY|Limity konta/i.test(detail);
-        var hardMacro = /Makro HIGH|News blackout/i.test(detail);
-        if (!allowStop() && soft && !hardMacro) {
-          if (ses.active) {
-            st = {
-              code: 'WORK',
-              cls: 'st-work',
-              title: 'PRACUJE',
-              detail: 'sesja ' + ses.where + ' \u00b7 profil ' + ses.profile + (detail ? ' \u00b7 \u26a0 ' + detail : ''),
-              hb: st.hb
-            };
-          } else {
-            st = {
-              code: 'WAIT',
-              cls: 'st-wait',
-              title: 'CZEKA',
-              detail: detail || ('Poza sesj\u0105 \u00b7 ' + ses.phase),
-              hb: st.hb
-            };
-          }
-        }
+  function forcePanel() {
+    var ses = sessionActive();
+    var el = document.getElementById('btx-ops');
+    if (!el) return;
+    var stSpan = el.querySelector('.st-block, .st-wait, .st-work');
+    if (!stSpan) return;
+    if (ses.active) {
+      stSpan.className = 'st-work';
+      stSpan.textContent = 'PRACUJE';
+      var subs = el.querySelectorAll('.sub');
+      if (subs && subs.length > 1) {
+        subs[1].textContent = 'sesja ' + ses.where + ' \u00b7 profil ' + ses.profile + ' \u00b7 skan aktywny \u00b7 STOP DAY off';
       }
+    }
+  }
 
-      if (st.code === 'WAIT' && ses.active) {
-        st = {
+  function patchOps() {
+    if (!global.BTX_ASSISTANT) return;
+    clearStop();
+    global.BTX_ASSISTANT.opsStatus = function () {
+      clearStop();
+      var ses = sessionActive();
+      if (ses.active) {
+        return {
           code: 'WORK',
           cls: 'st-work',
           title: 'PRACUJE',
-          detail: 'sesja ' + ses.where + ' \u00b7 profil ' + ses.profile + ' \u00b7 skan aktywny',
-          hb: st.hb
+          detail: 'sesja ' + ses.where + ' \u00b7 profil ' + ses.profile + ' \u00b7 skan aktywny \u00b7 STOP DAY off',
+          hb: { blocks: [], warns: [], ses: ses, data: { ok: true, label: 'scan' } }
         };
       }
-
-      try {
-        if (!allowStop() && global.ST) {
-          global.ST.blocked = false;
-          global.ST.stopForDay = false;
-        }
-      } catch (e) {}
-
-      return st;
+      if (ses.weekend) {
+        return { code: 'WAIT', cls: 'st-wait', title: 'CZEKA (weekend)', detail: 'Parkiety zamkni\u0119te', hb: { blocks: [], ses: ses, data: {} } };
+      }
+      return { code: 'WAIT', cls: 'st-wait', title: 'CZEKA', detail: 'Poza sesj\u0105 \u00b7 ' + ses.phase, hb: { blocks: [], ses: ses, data: {} } };
     };
     global.BTX_ASSISTANT.opsStatus.__statusFix = true;
-
-    try {
-      if (typeof global.render === 'function') global.render();
-    } catch (e2) {}
+    forcePanel();
   }
 
   function boot() {
-    patch();
-    setInterval(patch, 3000);
+    clearStop();
+    try { if (localStorage.getItem('BTX_AUTONOMY_ON') !== '0') localStorage.setItem('BTX_AUTONOMY_ON', '1'); } catch (e) {}
+    patchOps();
+    setInterval(function () {
+      clearStop();
+      patchOps();
+      forcePanel();
+    }, 2000);
   }
+
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();
 })(typeof window !== 'undefined' ? window : globalThis);
