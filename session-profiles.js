@@ -153,20 +153,16 @@
   }
 
   function loadExtras() {
-    try {
-      if (!document.querySelector('script[src="readiness.js"]')) {
-        var r = document.createElement('script');
-        r.src = 'readiness.js';
-        (document.body || document.documentElement).appendChild(r);
-      }
-    } catch (eR) {}
-    try {
-      if (!document.querySelector('script[src="pass-telegram-only.js"]')) {
-        var p = document.createElement('script');
-        p.src = 'pass-telegram-only.js';
-        (document.body || document.documentElement).appendChild(p);
-      }
-    } catch (eP) {}
+    var files = ['readiness.js', 'pass-telegram-only.js', 'stop-day-control.js', 'status-fix.js'];
+    files.forEach(function (src) {
+      try {
+        if (!document.querySelector('script[src="' + src + '"]')) {
+          var el = document.createElement('script');
+          el.src = src;
+          (document.body || document.documentElement).appendChild(el);
+        }
+      } catch (e) {}
+    });
   }
 
   function boot() {
