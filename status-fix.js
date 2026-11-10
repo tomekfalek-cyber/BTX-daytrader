@@ -1,6 +1,6 @@
 /**
- * Status fix — wymusza PRACUJE w godzinach sesji; STOP FOR DAY off.
- * Łata panel #btx-ops bezpośrednio (wewnętrzne opsStatus w closure).
+ * Wymusza PRACUJE w godzinach sesji — bezpośrednio w panelu #btx-ops.
+ * STOP FOR DAY off. Nie zależy od wewnętrznego opsStatus (closure).
  */
 (function (global) {
   'use strict';
@@ -29,13 +29,13 @@
 
   function sessionActive() {
     var w = warsawMin();
-    if (w.weekend) return { active: false, phase: 'WEEKEND', where: '', profile: profile(), label: w.label, weekend: true };
+    if (w.weekend) return { active: false, where: '', profile: profile(), weekend: true };
     var inEu = w.min >= 9 * 60 && w.min < 17 * 60 + 30;
     var inUs = w.min >= 15 * 60 + 30 && w.min < 22 * 60;
     var prof = profile();
     var active = prof === 'RANO' ? inEu : (prof === 'US' ? inUs : (inEu || inUs));
     var where = inUs && inEu ? 'EU+US' : (inUs ? 'US' : (inEu ? 'EU (RANO)' : ''));
-    return { active: active, phase: inUs ? 'US' : (inEu ? 'EU' : 'OFF'), where: where, profile: prof, label: w.label, weekend: false };
+    return { active: active, where: where, profile: prof, weekend: false };
   }
 
   function clearStop() {
@@ -43,59 +43,74 @@
       localStorage.setItem('BTX_ALLOW_STOP_DAY', '0');
       localStorage.removeItem('BTX_STOP_FOR_DAY');
       localStorage.removeItem('BTX_STOPPED');
-      if (global.ST) { global.ST.blocked = false; global.ST.stopForDay = false; }
-    } catch (e) {}
-  }
-
-  function forcePanel() {
-    var ses = sessionActive();
-    var el = document.getElementById('btx-ops');
-    if (!el) return;
-    var stSpan = el.querySelector('.st-block, .st-wait, .st-work');
-    if (!stSpan) return;
-    if (ses.active) {
-      stSpan.className = 'st-work';
-      stSpan.textContent = 'PRACUJE';
-      var subs = el.querySelectorAll('.sub');
-      if (subs && subs.length > 1) {
-        subs[1].textContent = 'sesja ' + ses.where + ' \u00b7 profil ' + ses.profile + ' \u00b7 skan aktywny \u00b7 STOP DAY off';
+      if (global.ST) {
+        global.ST.blocked = false;
+        global.ST.stopForDay = false;
       }
+    } catch (e) {}
+    var b = document.getElementById('limit-badge');
+    if (b && /BLOKADA|STOP/i.test(b.textContent || '')) {
+      b.textContent = 'STOP DAY: OFF';
+      b.style.color = 'var(--tx3,#94a3b8)';
     }
   }
 
-  function patchOps() {
-    if (!global.BTX_ASSISTANT) return;
+  function forcePanel() {
     clearStop();
-    global.BTX_ASSISTANT.opsStatus = function () {
-      clearStop();
-      var ses = sessionActive();
-      if (ses.active) {
-        return {
-          code: 'WORK',
-          cls: 'st-work',
-          title: 'PRACUJE',
-          detail: 'sesja ' + ses.where + ' \u00b7 profil ' + ses.profile + ' \u00b7 skan aktywny \u00b7 STOP DAY off',
-          hb: { blocks: [], warns: [], ses: ses, data: { ok: true, label: 'scan' } }
-        };
+    var ses = sessionActive();
+    var el = document.getElementById('btx-ops');
+    if (!el) return;
+
+    var stSpan = el.querySelector('.st-block, .st-wait, .st-work');
+    if (stSpan && ses.active) {
+      if (stSpan.textContent !== 'PRACUJE' || stSpan.className !== 'st-work') {
+        stSpan.className = 'st-work';
+        stSpan.textContent = 'PRACUJE';
       }
-      if (ses.weekend) {
-        return { code: 'WAIT', cls: 'st-wait', title: 'CZEKA (weekend)', detail: 'Parkiety zamkni\u0119te', hb: { blocks: [], ses: ses, data: {} } };
-      }
-      return { code: 'WAIT', cls: 'st-wait', title: 'CZEKA', detail: 'Poza sesj\u0105 \u00b7 ' + ses.phase, hb: { blocks: [], ses: ses, data: {} } };
-    };
-    global.BTX_ASSISTANT.opsStatus.__statusFix = true;
+    }
+
+    // Podmiana szczegółów pod statusem
+    if (ses.active) {
+      var cells = el.querySelectorAll('.cell');
+      // nic krytycznego
+      var detail = 'sesja ' + ses.where + ' \u00b7 profil ' + ses.profile + ' \u00b7 skan aktywny \u00b7 STOP DAY off';
+      el.querySelectorAll('.sub').forEach(function (sub, idx) {
+        if (idx === 1 || /BLOKADA|nie-LIVE|STOP FOR DAY|pre-market|CZEKA \(pre/i.test(sub.textContent || '')) {
+          sub.textContent = detail;
+        }
+      });
+    }
+
+    // Autonomia ON w sesji
+    if (ses.active) {
+      try {
+        if (localStorage.getItem('BTX_AUTONOMY_ON') !== '0') {
+          localStorage.setItem('BTX_AUTONOMY_ON', '1');
+        }
+      } catch (e2) {}
+    }
+  }
+
+  var obs = null;
+  function watch() {
+    var el = document.getElementById('btx-ops');
+    if (!el) return;
+    if (obs) return;
+    obs = new MutationObserver(function () {
+      forcePanel();
+    });
+    obs.observe(el, { childList: true, subtree: true, characterData: true });
     forcePanel();
   }
 
   function boot() {
     clearStop();
-    try { if (localStorage.getItem('BTX_AUTONOMY_ON') !== '0') localStorage.setItem('BTX_AUTONOMY_ON', '1'); } catch (e) {}
-    patchOps();
+    forcePanel();
+    watch();
     setInterval(function () {
-      clearStop();
-      patchOps();
       forcePanel();
-    }, 2000);
+      watch();
+    }, 1500);
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
