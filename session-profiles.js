@@ -61,6 +61,7 @@
   function allowedSym(sym) {
     var p = getProfile();
     var m = mktOf(sym);
+   
     if (p === 'ALL') return true;
     if (p === 'RANO') return m === 'EU' || m === 'FX' || m === 'PL';
     if (p === 'US') return m === 'US' || m === 'FX';
@@ -153,7 +154,7 @@
   }
 
   function loadExtras() {
-    var files = ['readiness.js', 'pass-telegram-only.js', 'stop-day-control.js', 'status-fix.js'];
+    var files = ['readiness.js', 'pass-telegram-only.js', 'stop-day-control.js', 'status-fix.js', 'why-zero.js', 'trade-path-boot.js'];
     files.forEach(function (src) {
       try {
         if (!document.querySelector('script[src="' + src + '"]')) {
