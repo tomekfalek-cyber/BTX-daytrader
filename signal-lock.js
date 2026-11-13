@@ -74,7 +74,7 @@
     if (!global.BTX_AUTONOMY || !global.BTX_AUTONOMY.gradeSetup) return;
     if (global.BTX_AUTONOMY.gradeSetup.__signalLock) return;
     var prev = global.BTX_AUTONOMY.gradeSetup;
-    global.BTX_AUTONOM.gradeSetup = function (g) {
+    global.BTX_AUTONOMY.gradeSetup = function (g) {
       var r = prev.apply(this, arguments);
       if (!r || !g) return r;
       var P = pro();
