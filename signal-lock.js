@@ -1,6 +1,5 @@
 /**
- * Signal lock — jedna ścieżka: live-prices → strategy-pro → autonomy
- * Odrzuca sygnały z nakładek soft (TradeNow / DT mode) gdy strictCore=true.
+ * Signal lock — soft LIVE (paper OK z serią świec), strictCore bez soft-nakładek.
  */
 (function (global) {
   'use strict';
@@ -29,9 +28,14 @@
       try {
         if (global.BTX_LIVE && typeof global.BTX_LIVE.isFresh === 'function') {
           if (!global.BTX_LIVE.isFresh(g.sym) && g.side !== 'WAIT') {
-            g.side = 'WAIT';
-            g.strength = 0;
-            g.why = (g.why ? g.why + ' \u00b7 ' : '') + 'brak \u015bwie\u017cej ceny LIVE';
+            var ser = global.ST && global.ST.series && global.ST.series[g.sym];
+            if (!ser || ser.length < 30) {
+              g.side = 'WAIT';
+              g.strength = 0;
+              g.why = (g.why ? g.why + ' \u00b7 ' : '') + 'brak świeżej ceny LIVE';
+            } else {
+              g.why = (g.why ? g.why + ' \u00b7 ' : '') + 'LIVE nieświeże (paper OK)';
+            }
           }
         }
       } catch (e) {}
@@ -49,13 +53,16 @@
     global.openPos = function (g) {
       var P = pro();
       if (g && P.strictCore && isSoftWhy(g.why)) {
-        if (global.log) global.log('SignalLock: blokada soft wej\u015bcia ' + (g.sym || ''), 'mut');
+        if (global.log) global.log('SignalLock: blokada soft wejścia ' + (g.sym || ''), 'mut');
         return;
       }
       if (g && global.BTX_LIVE && typeof global.BTX_LIVE.isFresh === 'function') {
         if (!global.BTX_LIVE.isFresh(g.sym)) {
-          if (global.log) global.log('SignalLock: brak LIVE ' + g.sym, 'mut');
-          return;
+          var ser2 = global.ST && global.ST.series && global.ST.series[g.sym];
+          if (!ser2 || ser2.length < 30) {
+            if (global.log) global.log('SignalLock: brak LIVE ' + g.sym, 'mut');
+            return;
+          }
         }
       }
       return prev.apply(this, arguments);
@@ -67,12 +74,12 @@
     if (!global.BTX_AUTONOMY || !global.BTX_AUTONOMY.gradeSetup) return;
     if (global.BTX_AUTONOMY.gradeSetup.__signalLock) return;
     var prev = global.BTX_AUTONOMY.gradeSetup;
-    global.BTX_AUTONOMY.gradeSetup = function (g) {
+    global.BTX_AUTONOM.gradeSetup = function (g) {
       var r = prev.apply(this, arguments);
       if (!r || !g) return r;
       var P = pro();
       if (P.strictCore && isSoftWhy(g.why)) {
-        return { pass: false, grade: 'REJECT', score: r.score || 0, reasons: ['strictCore: soft-nak\u0142adka'] };
+        return { pass: false, grade: 'REJECT', score: r.score || 0, reasons: ['strictCore: soft-nakładka'] };
       }
       return r;
     };
