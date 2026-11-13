@@ -1,6 +1,5 @@
 /**
  * Profile sesji: RANO (EU+FX) / US (US+FX) / ALL
- * Auto: przed 15:30 PL → RANO, 15:30–22:00 → US
  */
 (function (global) {
   var LS = 'BTX_SESSION_PROFILE';
@@ -61,7 +60,6 @@
   function allowedSym(sym) {
     var p = getProfile();
     var m = mktOf(sym);
-   
     if (p === 'ALL') return true;
     if (p === 'RANO') return m === 'EU' || m === 'FX' || m === 'PL';
     if (p === 'US') return m === 'US' || m === 'FX';
@@ -94,7 +92,7 @@
     var orig = global.openPos;
     global.openPos = function (g) {
       if (g && g.sym && !allowedSym(g.sym)) {
-        if (global.log) global.log('Profil sesji: pominięto ' + g.sym + ' (profil ' + getProfile() + ')', 'mut');
+        if (global.log) global.log('Profil sesji: pomini\u0119to ' + g.sym + ' (profil ' + getProfile() + ')', 'mut');
         return;
       }
       return orig.apply(this, arguments);
@@ -122,7 +120,7 @@
     var p = getProfile();
     var w = warsaw();
     var sug = suggestedProfile();
-    var desc = p === 'RANO' ? 'EU + FX (przed US)' : (p === 'US' ? 'US + FX (sesja amerykańska)' : 'Wszystkie instrumenty');
+    var desc = p === 'RANO' ? 'EU + FX (przed US)' : (p === 'US' ? 'US + FX (sesja ameryka\u0144ska)' : 'Wszystkie instrumenty');
     el.innerHTML =
       '<div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between">' +
       '<div><b style="color:#93c5fd">Profil sesji</b> \u00b7 ' + w.label + ' PL<br><span style="color:#cbd5e1">' + desc + '</span></div>' +
@@ -154,7 +152,7 @@
   }
 
   function loadExtras() {
-    var files = ['readiness.js', 'pass-telegram-only.js', 'stop-day-control.js', 'status-fix.js', 'why-zero.js', 'trade-path-boot.js'];
+    var files = ['readiness.js', 'pass-telegram-only.js', 'stop-day-control.js', 'status-fix.js', 'why-zero.js', 'trade-path-boot.js', 'currency-ui.js'];
     files.forEach(function (src) {
       try {
         if (!document.querySelector('script[src="' + src + '"]')) {
