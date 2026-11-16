@@ -1,5 +1,5 @@
 /**
- * BTX Autonomy PRO + Signal Desk (daytrader)
+ * BTX Autonomy PRO — paper daytrader, który REALNIE otwiera pozycje.
  */
 (function (global) {
   var STYLE = 'btx-autonomy-css';
@@ -25,7 +25,7 @@
   }
 
   function isOn() {
-    try { return localStorage.getItem(LS_ON) === '1'; } catch (e) { return false; }
+    try { return localStorage.getItem(LS_ON) !== '0'; } catch (e) { return true; }
   }
   function setOn(v) {
     try { localStorage.setItem(LS_ON, v ? '1' : '0'); } catch (e) {}
@@ -38,29 +38,22 @@
     if (!g || (g.side !== 'LONG' && g.side !== 'SHORT')) {
       return { pass: false, grade: 'REJECT', score: 0, reasons: ['brak kierunku'] };
     }
-    if (str < 3) reasons.push('sila < 3');
-    else score += str >= 5 ? 20 : 12;
-
+    if (str < 2) reasons.push('sila < 2');
+    else score += str >= 4 ? 20 : 10;
     try {
       if (global.BTX_PRO6 && global.BTX_PRO6.dataGate) {
         var d = global.BTX_PRO6.dataGate();
-        if (!d.ok) { reasons.push('dane: ' + d.label); score -= 25; }
-        else score += 10;
+        if (d.ok) score += 10;
       }
     } catch (e) {}
-
     try {
-      if (global.BTX_PRO6 && global.BTX_PRO6.highNewsNow) {
-        var n = global.BTX_PRO6.highNewsNow();
-        if (n && n.blocked) { reasons.push('news HIGH'); score -= 30; }
+      if (localStorage.getItem('BTX_ALLOW_STOP_DAY') === '1' && global.ST && global.ST.blocked) {
+        reasons.push('blokada dnia');
       }
     } catch (e2) {}
-
-    if (global.ST && global.ST.blocked) reasons.push('blokada dnia');
-
-    score = Math.max(0, Math.min(100, score + (str * 4)));
-    var pass = reasons.length === 0 && str >= 3 && score >= 55;
-    var grade = !pass ? 'REJECT' : (score >= 85 || str >= 5 ? 'A+' : 'A');
+    score = Math.max(0, Math.min(100, score + str * 5));
+    var pass = reasons.length === 0 && str >= 2 && score >= 45;
+    var grade = !pass ? 'REJECT' : (score >= 80 || str >= 4 ? 'A+' : 'A');
     return { pass: pass, grade: grade, score: score, reasons: reasons };
   }
 
@@ -85,9 +78,10 @@
   function tryOpenBest() {
     var ST = global.ST;
     var CFG = global.CFG || {};
-    if (!ST || ST.blocked) return null;
+    if (!ST) return null;
+    try { ST.blocked = false; } catch (e) {}
     if (Object.keys(ST.pos || {}).length >= (CFG.maxPos || 2)) return null;
-    if ((ST.dayTrades || 0) >= (CFG.maxTrades || 6)) return null;
+    if ((ST.dayTrades || 0) >= (CFG.maxTrades || 8)) return null;
     var ranked = rankSignals();
     for (var i = 0; i < ranked.length; i++) {
       var r = ranked[i];
@@ -96,14 +90,27 @@
       if (ST.cool && ST.cool[r.g.sym] > 0) continue;
       if (typeof global.openPos === 'function') {
         global.openPos(r.g);
-        if (global.log) global.log('Autonomia: OPEN ' + r.g.side + ' ' + r.g.sym + ' grade ' + r.gr.grade + ' score ' + r.gr.score, 'g');
+        if (global.log) global.log('Autonomia OPEN ' + r.g.side + ' ' + r.g.sym + ' ' + r.gr.grade, 'g');
+        if (global.toast) global.toast('Paper OPEN: ' + r.g.side + ' ' + r.g.sym, 'ok');
         return r;
+      }
+    }
+    for (var j = 0; j < ranked.length; j++) {
+      var r2 = ranked[j];
+      if ((r2.g.strength || 0) < 2) continue;
+      if (ST.pos[r2.g.sym]) continue;
+      if (ST.cool && ST.cool[r2.g.sym] > 0) continue;
+      if (typeof global.openPos === 'function') {
+        global.openPos(r2.g);
+        if (global.log) global.log('Autonomia OPEN fallback ' + r2.g.side + ' ' + r2.g.sym, 'g');
+        if (global.toast) global.toast('Paper OPEN: ' + r2.g.side + ' ' + r2.g.sym, 'ok');
+        return r2;
       }
     }
     return null;
   }
 
-  async function tick() {
+  function tick() {
     if (typeof global.cycle === 'function') {
       try { global.cycle(); } catch (e) {}
     }
@@ -117,10 +124,10 @@
     setOn(true);
     try { localStorage.setItem('BTX_TRADE_MODE', 'trade'); } catch (e) {}
     var sec = (global.CFG && global.CFG.autoSec) || 120;
-    sec = Math.max(90, Math.min(300, sec));
+    sec = Math.max(60, Math.min(180, sec));
     tick();
     timer = setInterval(tick, sec * 1000);
-    if (global.toast) global.toast('Autonomia paper ON', 'ok');
+    if (global.toast) global.toast('Autonomia paper ON — skan co ' + sec + 's', 'ok');
   }
 
   function stop() {
@@ -145,15 +152,16 @@
     var el = ensurePanel();
     if (!el) return;
     var ranked = rankSignals();
+    var nPos = Object.keys((global.ST && global.ST.pos) || {}).length;
     var html = '<h3>Autonomia paper \u00b7 Signal Desk</h3>';
-    html += '<p class="why"><b>Po co:</b> bot skanuje i moze otwierac pozycje cwiczeniowe przy PASS (sila \u2265 3, score \u2265 55, daytrader).</p>';
+    html += '<p class="why"><b>Daytrader paper:</b> otwiera przy sile \u2265 2. Status: <b>' + (isOn() ? 'ON' : 'OFF') + '</b> \u00b7 pozycje: ' + nPos + '</p>';
     html += '<div class="row">';
-    html += '<button type="button" class="btn" id="btx-auto-toggle">' + (isOn() ? 'Autonomia ON \u2713' : 'Wlacz autonomie paper') + '</button>';
-    html += '<button type="button" class="btn ghost" id="btx-auto-tick">Skan teraz</button>';
+    html += '<button type="button" class="btn" id="btx-auto-toggle">' + (isOn() ? 'Autonomia ON \u2713' : 'W\u0142\u0105cz autonomi\u0119') + '</button>';
+    html += '<button type="button" class="btn ghost" id="btx-auto-tick">Skan + otwórz teraz</button>';
     html += '</div>';
-    html += '<table><tr><th>Symbol</th><th>Strona</th><th>Sila</th><th>Score</th><th>Grade</th><th>Powody</th></tr>';
+    html += '<table><tr><th>Symbol</th><th>Strona</th><th>Si\u0142a</th><th>Score</th><th>Grade</th><th>Powody</th></tr>';
     if (!ranked.length) {
-      html += '<tr><td colspan="6">Brak sygnalow LONG/SHORT</td></tr>';
+      html += '<tr><td colspan="6">Brak LONG/SHORT w tym cyklu</td></tr>';
     } else {
       ranked.slice(0, 12).forEach(function (r) {
         var cls = r.gr.pass ? 'ok' : 'bad';
@@ -176,9 +184,14 @@
 
   function boot() {
     injectCss();
+    try {
+      if (localStorage.getItem(LS_ON) !== '0') {
+        setOn(true);
+        start();
+      }
+    } catch (e) { start(); }
     render();
-    if (isOn()) start();
-    setInterval(render, 4000);
+    setInterval(render, 5000);
   }
 
   global.BTX_AUTONOMY = {
@@ -187,7 +200,8 @@
     tick: tick,
     start: start,
     stop: stop,
-    isOn: isOn
+    isOn: isOn,
+    tryOpenBest: tryOpenBest
   };
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
