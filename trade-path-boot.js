@@ -1,5 +1,5 @@
 /**
- * Progi daytrade + autonomia ON.
+ * Ścieżka PRO daytrade — progi jakości + limity.
  */
 (function (global) {
   'use strict';
@@ -10,53 +10,29 @@
     try {
       var P = global.BTX_STRATEGY_PRO || global.BTX_PRO;
       if (P) {
-        P.scoreMin = 2;
+        P.scoreMin = 4;
         P.primeExtra = 0;
-        P.minRvol = 0.35;
-        P.minStrengthOpen = 2;
-        P.requireTrend = false;
+        P.minRvol = 0.5;
+        P.minStrengthOpen = 3;
+        P.minNetRR = 1.25;
+        P.riskPct = 0.35;
         P.strictCore = true;
       }
       if (global.CFG) {
-        global.CFG.maxTrades = Math.max(global.CFG.maxTrades || 0, 8);
-        global.CFG.maxPos = global.CFG.maxPos || 2;
+        global.CFG.risk = 0.35;
+        global.CFG.maxTrades = 4;
+        global.CFG.maxPos = 2;
+        global.CFG.dailyLoss = 1.0;
+        global.CFG.maxConsec = 2;
       }
+      localStorage.setItem('BTX_ALLOW_STOP_DAY', '1');
     } catch (e) {}
-  }
-
-  function ensureAuto() {
-    try {
-      if (localStorage.getItem('BTX_AUTONOMY_ON') !== '0') {
-        localStorage.setItem('BTX_AUTONOMY_ON', '1');
-        if (global.BTX_AUTONOMY && global.BTX_AUTONOMY.start && !global.BTX_AUTONOMY.__pathStarted) {
-          global.BTX_AUTONOMY.__pathStarted = true;
-          try { global.BTX_AUTONOMY.start(); } catch (e2) {}
-        }
-      }
-    } catch (e) {}
-  }
-
-  function softOpenGate() {
-    if (typeof global.openPos !== 'function' || global.openPos.__tradePath) return;
-    var prev = global.openPos;
-    global.openPos = function (g) {
-      try { if (global.ST) global.ST.blocked = false; } catch (e) {}
-      return prev.apply(this, arguments);
-    };
-    global.openPos.__tradePath = true;
   }
 
   function boot() {
     applyPro();
-    ensureAuto();
-    softOpenGate();
-    setInterval(function () {
-      applyPro();
-      ensureAuto();
-      softOpenGate();
-    }, 5000);
+    setInterval(applyPro, 8000);
   }
-
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();
 })(typeof window !== 'undefined' ? window : globalThis);

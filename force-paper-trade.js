@@ -1,5 +1,5 @@
 /**
- * FORCE PAPER TRADE — omija ciche blokady openPos (q<1, blocked, dataGate).
+ * Paper helper PRO — tylko ręczny przycisk, siła ≥ 3, risk 0.35%.
  */
 (function (global) {
   'use strict';
@@ -9,25 +9,6 @@
   function log(msg, k) {
     try { if (typeof global.log === 'function') global.log(msg, k || 'g'); } catch (e) {}
     try { if (global.toast) global.toast(msg, k === 'r' ? 'err' : 'ok'); } catch (e2) {}
-    try { console.log('[BTX-FORCE]', msg); } catch (e3) {}
-  }
-
-  function ensureState() {
-    var ST = global.ST, CFG = global.CFG;
-    if (!ST || !CFG) return null;
-    ST.blocked = false;
-    ST.pos = ST.pos || {};
-    ST.series = ST.series || {};
-    ST.cool = ST.cool || {};
-    ST.closed = ST.closed || [];
-    if (!(ST.equity > 0)) ST.equity = CFG.capital || 10000;
-    if (!(ST.cash > 0)) ST.cash = ST.equity;
-    if (!(ST.dayStart > 0)) ST.dayStart = ST.equity;
-    try {
-      localStorage.setItem('BTX_ALLOW_STOP_DAY', '0');
-      localStorage.setItem('BTX_AUTONOMY_ON', '1');
-    } catch (e) {}
-    return { ST: ST, CFG: CFG };
   }
 
   function lastPrice(sym) {
@@ -40,49 +21,38 @@
   }
 
   function paperOpen(g) {
-    var st = ensureState();
-    if (!st || !g) return false;
-    var ST = st.ST, CFG = st.CFG;
+    var ST = global.ST, CFG = global.CFG;
+    if (!ST || !CFG || !g) return false;
+    if (ST.blocked) { log('Limit dnia — nie otwieram', 'r'); return false; }
     if (g.side !== 'LONG' && g.side !== 'SHORT') return false;
+    if ((g.strength || 0) < 3) { log('Siła < 3 — za słaby setup PRO', 'r'); return false; }
     if (ST.pos[g.sym]) return false;
-    if (Object.keys(ST.pos).length >= (CFG.maxPos || 3)) return false;
-    if ((ST.dayTrades || 0) >= (CFG.maxTrades || 10)) return false;
+    if (Object.keys(ST.pos || {}).length >= (CFG.maxPos || 2)) return false;
+    if ((ST.dayTrades || 0) >= (CFG.maxTrades || 4)) return false;
 
     var price = +g.price || lastPrice(g.sym);
-    if (!(price > 0)) price = 100;
-    var atr = +g.atr || price * 0.004;
-    var sd = Math.max(price * 0.001, atr * 1.2);
-    var riskPct = (CFG.risk > 0 ? CFG.risk : 0.5) / 100;
-    var riskAmt = ST.equity * riskPct;
+    if (!(price > 0)) return false;
+    var atr = +g.atr || price * 0.003;
+    var sd = Math.max(price * 0.0015, atr * 1.2);
+    var riskAmt = (ST.equity || CFG.capital || 10000) * 0.0035;
     var q = Math.max(1, Math.floor(riskAmt / sd));
-    var maxNotional = ST.equity * 0.3;
-    if (q * price > maxNotional) q = Math.max(1, Math.floor(maxNotional / price));
+    var maxN = (ST.equity || 10000) * 0.15;
+    if (q * price > maxN) q = Math.max(1, Math.floor(maxN / price));
+    if (q < 1) return false;
 
     var stop = g.side === 'LONG' ? price - sd : price + sd;
-    var tgt = g.side === 'LONG' ? price + 2.2 * sd : price - 2.2 * sd;
-    var margin = Math.min(ST.cash * 0.5, riskAmt * 1.2);
-    if (margin > ST.cash) margin = Math.max(1, ST.cash * 0.2);
+    var tgt = g.side === 'LONG' ? price + 2.0 * sd : price - 2.0 * sd;
+    var margin = Math.min((ST.cash || riskAmt) * 0.25, riskAmt * 1.5);
 
     ST.dayTrades = (ST.dayTrades || 0) + 1;
     ST.pos[g.sym] = {
-      sym: g.sym,
-      side: g.side,
-      qty: q,
-      entry: price,
-      stop: stop,
-      target: tgt,
-      why: (g.why || 'paper-force') + ' [FORCE]',
-      bars: 0,
-      risk0: sd,
-      be: false,
-      at: new Date().toLocaleTimeString('pl-PL'),
-      openedAt: Date.now(),
-      margin: margin,
-      riskAmt: riskAmt,
-      paper: true
+      sym: g.sym, side: g.side, qty: q, entry: price, stop: stop, target: tgt,
+      why: (g.why || '') + ' [PRO paper]', bars: 0, risk0: sd, be: false,
+      at: new Date().toLocaleTimeString('pl-PL'), openedAt: Date.now(),
+      margin: margin, riskAmt: riskAmt, paper: true
     };
-    ST.cash -= margin;
-    log('OTWARCIE PAPER ' + g.side + ' ' + g.sym + ' x' + q + ' @ ' + price.toFixed(2) + ' | SL ' + stop.toFixed(2) + ' | TP ' + tgt.toFixed(2), 'g');
+    if (ST.cash > margin) ST.cash -= margin;
+    log('PRO OPEN ' + g.side + ' ' + g.sym + ' x' + q + ' risk~' + riskAmt.toFixed(2), 'g');
     try {
       if (typeof global.render === 'function') global.render();
       if (typeof global.save === 'function') global.save();
@@ -90,88 +60,19 @@
     return true;
   }
 
-  function pickSignal() {
+  function tryBestQuality() {
     var ST = global.ST;
-    if (!ST) return null;
-    var sig = (ST.sig || []).filter(function (g) {
-      return g && (g.side === 'LONG' || g.side !== 'WAIT' && (g.side === 'LONG' || g.side === 'SHORT'));
-    });
-    sig = (ST.sig || []).filter(function (g) { return g && (g.side === 'LONG' || g.side === 'SHORT'); });
-    sig.sort(function (a, b) { return (b.strength || 0) - (a.strength || 0); });
-    if (sig.length) return sig[0];
-
-    var list = global.SYMBOLS || [];
-    var best = null, bestScore = 0;
-    for (var i = 0; i < list.length; i++) {
-      var m = list[i];
-      var a = ST.series[m.s];
-      if (!a || a.length < 30) {
-        if (typeof global.initSeries === 'function') {
-          try { ST.series[m.s] = global.initSeries(m, 120); a = ST.series[m.s]; } catch (e) {}
-        }
-      }
-      if (!a || a.length < 25) continue;
-      var c0 = a[a.length - 1].c, c1 = a[a.length - 6].c, c2 = a[a.length - 12].c;
-      if (!(c0 > 0 && c1 > 0)) continue;
-      var mom = (c0 - c1) / c1;
-      var mom2 = (c1 - c2) / (c2 || c1);
-      var score = Math.abs(mom) * 100 + Math.abs(mom2) * 40;
-      var side = mom > 0.0008 ? 'LONG' : (mom < -0.0008 ? 'SHORT' : null);
-      if (!side) continue;
-      if (score > bestScore) {
-        bestScore = score;
-        best = {
-          sym: m.s,
-          side: side,
-          strength: Math.min(5, 2 + Math.floor(score / 3)),
-          price: c0,
-          atr: Math.abs(c0 - c1) || c0 * 0.003,
-          why: 'momentum paper ' + (mom * 100).toFixed(2) + '%'
-        };
-      }
-    }
-    return best;
-  }
-
-  function tryForce() {
-    var st = ensureState();
-    if (!st) return;
-    var ST = st.ST;
-    if (Object.keys(ST.pos).length > 0) return;
-
+    if (!ST || ST.blocked) return;
+    if (Object.keys(ST.pos || {}).length > 0) return;
     if (typeof global.cycle === 'function') {
       try { global.cycle(); } catch (e) {}
     }
-
-    var g = pickSignal();
-    if (!g) {
-      var m0 = (global.SYMBOLS || [])[0];
-      if (!m0) return;
-      g = {
-        sym: m0.s,
-        side: 'LONG',
-        strength: 2,
-        price: lastPrice(m0.s),
-        atr: lastPrice(m0.s) * 0.004,
-        why: 'bootstrap paper'
-      };
-    }
-    paperOpen(g);
-  }
-
-  function patchOpenPos() {
-    var prev = global.openPos;
-    global.openPos = function (g) {
-      ensureState();
-      var before = global.ST && global.ST.pos ? Object.keys(global.ST.pos).length : 0;
-      try {
-        if (typeof prev === 'function' && !prev.__forcePaper) prev.apply(this, arguments);
-      } catch (e) {}
-      var after = global.ST && global.ST.pos ? Object.keys(global.ST.pos).length : 0;
-      if (after > before) return;
-      if (g && (g.side === 'LONG' || g.side === 'SHORT')) paperOpen(g);
-    };
-    global.openPos.__forcePaper = true;
+    var sig = (ST.sig || []).filter(function (g) {
+      return g && (g.side === 'LONG' || g.side === 'SHORT') && (g.strength || 0) >= 3;
+    });
+    sig.sort(function (a, b) { return (b.strength || 0) - (a.strength || 0); });
+    if (sig.length) paperOpen(sig[0]);
+    else log('Brak setupu siła≥3 — czekam (PRO)', 'r');
   }
 
   function ensureBtn() {
@@ -179,34 +80,22 @@
     if (!pane || document.getElementById('btx-force-open-btn')) return;
     var d = document.createElement('div');
     d.id = 'btx-force-open-wrap';
-    d.style.cssText = 'margin:12px 0;padding:14px;border-radius:12px;border:2px solid #12c48b;background:rgba(18,196,139,.12);';
-    d.innerHTML = '<b style="color:#6ee7b7">Paper daytrader — wymuszenie</b>' +
-      '<div style="font-size:12px;color:#cbd5e1;margin:6px 0 10px">Przycisk otwiera pozycję paper (sizing od ryzyka).</div>' +
-      '<button type="button" id="btx-force-open-btn" style="cursor:pointer;padding:10px 14px;border:0;border-radius:8px;background:#12c48b;color:#062;font-weight:800">Otwórz pozycję paper TERAZ</button>';
+    d.style.cssText = 'margin:12px 0;padding:14px;border-radius:12px;border:1px solid rgba(18,196,139,.35);background:rgba(18,196,139,.08);';
+    d.innerHTML = '<b style="color:#6ee7b7">PRO paper</b>' +
+      '<div style="font-size:12px;color:#94a3b8;margin:6px 0 10px;line-height:1.45">' +
+      'Tylko setup siła ≥ 3. Ryzyko 0,35% / trade. Max 4 trade’y / dzień. Limit straty dnia 1%.</div>' +
+      '<button type="button" id="btx-force-open-btn" style="cursor:pointer;padding:10px 14px;border:0;border-radius:8px;background:#0d9488;color:#ecfdf5;font-weight:700">' +
+      'Otwórz najlepszy setup PRO (jeśli jest)</button>';
     pane.insertBefore(d, pane.firstChild);
-    document.getElementById('btx-force-open-btn').onclick = function () {
-      tryForce();
-      var n = Object.keys((global.ST && global.ST.pos) || {}).length;
-      log(n ? ('Pozycje paper: ' + n) : 'Brak SYMBOLS/ST', n ? 'g' : 'r');
-    };
+    document.getElementById('btx-force-open-btn').onclick = function () { tryBestQuality(); };
   }
 
   function boot() {
-    ensureState();
-    patchOpenPos();
     ensureBtn();
-    setTimeout(function () { patchOpenPos(); tryForce(); }, 3000);
-    setTimeout(tryForce, 10000);
-    setInterval(function () {
-      ensureState();
-      patchOpenPos();
-      ensureBtn();
-      var ST = global.ST;
-      if (ST && Object.keys(ST.pos || {}).length === 0) tryForce();
-    }, 120000);
+    setInterval(ensureBtn, 8000);
   }
 
-  global.BTX_FORCE_PAPER = { open: paperOpen, tryForce: tryForce };
+  global.BTX_FORCE_PAPER = { open: paperOpen, tryForce: tryBestQuality };
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();
