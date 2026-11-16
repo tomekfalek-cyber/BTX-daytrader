@@ -134,22 +134,20 @@
   }
 
   function loadExtras() {
-    // master fix MUSI być ostatni
     var files = [
       'readiness.js', 'pass-telegram-only.js', 'stop-day-control.js', 'status-fix.js',
-      'why-zero.js', 'trade-path-boot.js', 'currency-ui.js',
+      'why-zero.js', 'trade-path-boot.js', 'currency-ui.js', 'fix-learner-gate.js',
       'paper-open-engine.js', 'force-paper-trade.js', 'btx-master-fix.js'
     ];
     files.forEach(function (src) {
       try {
         if (!document.querySelector('script[src*="' + src + '"]')) {
           var el = document.createElement('script');
-          el.src = src + '?v=master2';
+          el.src = src + '?v=master3';
           (document.body || document.documentElement).appendChild(el);
         }
       } catch (e) {}
     });
-    // natychmiast: odblokuj tryby z localStorage (observe zabijał handel)
     try {
       localStorage.setItem('BTX_TRADE_MODE', 'trade');
       localStorage.setItem('BTX_ALLOW_STOP_DAY', '0');
