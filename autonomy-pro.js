@@ -1,5 +1,5 @@
 /**
- * BTX Autonomy PRO — paper daytrader, który REALNIE otwiera pozycje.
+ * Autonomia PRO — tylko jakościowe setupy (siła ≥ 3, score ≥ 60).
  */
 (function (global) {
   var STYLE = 'btx-autonomy-css';
@@ -25,7 +25,7 @@
   }
 
   function isOn() {
-    try { return localStorage.getItem(LS_ON) !== '0'; } catch (e) { return true; }
+    try { return localStorage.getItem(LS_ON) === '1'; } catch (e) { return false; }
   }
   function setOn(v) {
     try { localStorage.setItem(LS_ON, v ? '1' : '0'); } catch (e) {}
@@ -33,27 +33,34 @@
 
   function gradeSetup(g) {
     var reasons = [];
-    var score = 50;
+    var score = 40;
     var str = (g && g.strength) || 0;
     if (!g || (g.side !== 'LONG' && g.side !== 'SHORT')) {
       return { pass: false, grade: 'REJECT', score: 0, reasons: ['brak kierunku'] };
     }
-    if (str < 2) reasons.push('sila < 2');
-    else score += str >= 4 ? 20 : 10;
+    if (str < 3) reasons.push('siła < 3');
+    else score += str >= 5 ? 25 : (str >= 4 ? 18 : 10);
+
     try {
       if (global.BTX_PRO6 && global.BTX_PRO6.dataGate) {
         var d = global.BTX_PRO6.dataGate();
-        if (d.ok) score += 10;
+        if (d.ok) score += 12;
+        else { reasons.push('dane nie-LIVE'); score -= 15; }
       }
     } catch (e) {}
+
     try {
-      if (localStorage.getItem('BTX_ALLOW_STOP_DAY') === '1' && global.ST && global.ST.blocked) {
-        reasons.push('blokada dnia');
+      if (global.BTX_PRO6 && global.BTX_PRO6.highNewsNow) {
+        var n = global.BTX_PRO6.highNewsNow();
+        if (n && n.blocked) { reasons.push('news HIGH'); score -= 40; }
       }
     } catch (e2) {}
-    score = Math.max(0, Math.min(100, score + str * 5));
-    var pass = reasons.length === 0 && str >= 2 && score >= 45;
-    var grade = !pass ? 'REJECT' : (score >= 80 || str >= 4 ? 'A+' : 'A');
+
+    if (global.ST && global.ST.blocked) reasons.push('limit dnia');
+
+    score = Math.max(0, Math.min(100, score));
+    var pass = reasons.length === 0 && str >= 3 && score >= 60;
+    var grade = !pass ? 'REJECT' : (score >= 80 || str >= 5 ? 'A+' : 'A');
     return { pass: pass, grade: grade, score: score, reasons: reasons };
   }
 
@@ -73,15 +80,12 @@
     return out;
   }
 
-  function manageOpen() {}
-
   function tryOpenBest() {
     var ST = global.ST;
     var CFG = global.CFG || {};
-    if (!ST) return null;
-    try { ST.blocked = false; } catch (e) {}
+    if (!ST || ST.blocked) return null;
     if (Object.keys(ST.pos || {}).length >= (CFG.maxPos || 2)) return null;
-    if ((ST.dayTrades || 0) >= (CFG.maxTrades || 8)) return null;
+    if ((ST.dayTrades || 0) >= (CFG.maxTrades || 4)) return null;
     var ranked = rankSignals();
     for (var i = 0; i < ranked.length; i++) {
       var r = ranked[i];
@@ -90,21 +94,8 @@
       if (ST.cool && ST.cool[r.g.sym] > 0) continue;
       if (typeof global.openPos === 'function') {
         global.openPos(r.g);
-        if (global.log) global.log('Autonomia OPEN ' + r.g.side + ' ' + r.g.sym + ' ' + r.gr.grade, 'g');
-        if (global.toast) global.toast('Paper OPEN: ' + r.g.side + ' ' + r.g.sym, 'ok');
+        if (global.log) global.log('PRO autonomia OPEN ' + r.g.side + ' ' + r.g.sym + ' ' + r.gr.grade, 'g');
         return r;
-      }
-    }
-    for (var j = 0; j < ranked.length; j++) {
-      var r2 = ranked[j];
-      if ((r2.g.strength || 0) < 2) continue;
-      if (ST.pos[r2.g.sym]) continue;
-      if (ST.cool && ST.cool[r2.g.sym] > 0) continue;
-      if (typeof global.openPos === 'function') {
-        global.openPos(r2.g);
-        if (global.log) global.log('Autonomia OPEN fallback ' + r2.g.side + ' ' + r2.g.sym, 'g');
-        if (global.toast) global.toast('Paper OPEN: ' + r2.g.side + ' ' + r2.g.sym, 'ok');
-        return r2;
       }
     }
     return null;
@@ -114,7 +105,6 @@
     if (typeof global.cycle === 'function') {
       try { global.cycle(); } catch (e) {}
     }
-    manageOpen();
     if (isOn()) tryOpenBest();
     render();
   }
@@ -122,12 +112,10 @@
   function start() {
     stop();
     setOn(true);
-    try { localStorage.setItem('BTX_TRADE_MODE', 'trade'); } catch (e) {}
-    var sec = (global.CFG && global.CFG.autoSec) || 120;
-    sec = Math.max(60, Math.min(180, sec));
+    var sec = Math.max(120, Math.min(300, (global.CFG && global.CFG.autoSec) || 180));
     tick();
     timer = setInterval(tick, sec * 1000);
-    if (global.toast) global.toast('Autonomia paper ON — skan co ' + sec + 's', 'ok');
+    if (global.toast) global.toast('Autonomia PRO ON (tylko A/A+)', 'ok');
   }
 
   function stop() {
@@ -152,16 +140,15 @@
     var el = ensurePanel();
     if (!el) return;
     var ranked = rankSignals();
-    var nPos = Object.keys((global.ST && global.ST.pos) || {}).length;
-    var html = '<h3>Autonomia paper \u00b7 Signal Desk</h3>';
-    html += '<p class="why"><b>Daytrader paper:</b> otwiera przy sile \u2265 2. Status: <b>' + (isOn() ? 'ON' : 'OFF') + '</b> \u00b7 pozycje: ' + nPos + '</p>';
+    var html = '<h3>Autonomia PRO \u00b7 Signal Desk</h3>';
+    html += '<p class="why"><b>Dyscyplina:</b> tylko PASS (siła \u2265 3, score \u2265 60). Risk 0,35%. Max 4 trade\u2019y/dzie\u0144. Limit straty 1%.</p>';
     html += '<div class="row">';
-    html += '<button type="button" class="btn" id="btx-auto-toggle">' + (isOn() ? 'Autonomia ON \u2713' : 'W\u0142\u0105cz autonomi\u0119') + '</button>';
-    html += '<button type="button" class="btn ghost" id="btx-auto-tick">Skan + otwórz teraz</button>';
+    html += '<button type="button" class="btn" id="btx-auto-toggle">' + (isOn() ? 'Autonomia ON \u2713' : 'W\u0142\u0105cz autonomi\u0119 PRO') + '</button>';
+    html += '<button type="button" class="btn ghost" id="btx-auto-tick">Skan teraz</button>';
     html += '</div>';
     html += '<table><tr><th>Symbol</th><th>Strona</th><th>Si\u0142a</th><th>Score</th><th>Grade</th><th>Powody</th></tr>';
     if (!ranked.length) {
-      html += '<tr><td colspan="6">Brak LONG/SHORT w tym cyklu</td></tr>';
+      html += '<tr><td colspan="6">Brak LONG/SHORT — czekam na jako\u015b\u0107 (to normalne w PRO)</td></tr>';
     } else {
       ranked.slice(0, 12).forEach(function (r) {
         var cls = r.gr.pass ? 'ok' : 'bad';
@@ -184,14 +171,9 @@
 
   function boot() {
     injectCss();
-    try {
-      if (localStorage.getItem(LS_ON) !== '0') {
-        setOn(true);
-        start();
-      }
-    } catch (e) { start(); }
     render();
-    setInterval(render, 5000);
+    if (isOn()) start();
+    setInterval(render, 6000);
   }
 
   global.BTX_AUTONOMY = {
