@@ -1,5 +1,5 @@
 /**
- * Profile sesji + loadExtras (paper-open-engine na końcu).
+ * Profile sesji + loadExtras (force-paper-trade na końcu).
  */
 (function (global) {
   var LS = 'BTX_SESSION_PROFILE';
@@ -117,38 +117,25 @@
     var p = getProfile();
     var w = warsaw();
     var sug = suggestedProfile();
-    var desc = p === 'RANO' ? 'EU + FX' : (p === 'US' ? 'US + FX' : 'Wszystkie');
     el.innerHTML =
       '<div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between">' +
-      '<div><b style="color:#93c5fd">Profil sesji</b> \u00b7 ' + w.label + ' PL<br><span style="color:#cbd5e1">' + desc + '</span></div>' +
-      '<div style="display:flex;flex-wrap:wrap;gap:6px">' +
-      ['RANO', 'US', 'ALL'].map(function (x) {
-        var on = p === x;
-        return '<button type="button" data-p="' + x + '" style="cursor:pointer;padding:8px 12px;border-radius:8px;border:0;font-weight:700;' +
-          (on ? 'background:#2563eb;color:#fff' : 'background:#334155;color:#e2e8f0') + '">' + x + '</button>';
-      }).join('') +
-      '</div></div>' +
-      '<div style="margin-top:10px;font-size:12px;color:#94a3b8">' +
-      '<label style="display:flex;gap:6px;align-items:center;cursor:pointer"><input type="checkbox" id="btx-sess-auto" ' + (autoOn() ? 'checked' : '') + '/> Auto profil</label>' +
-      ' \u00b7 sugerowany: <b style="color:#e2e8f0">' + sug + '</b></div>';
+      '<div><b style="color:#93c5fd">Profil sesji</b> \u00b7 ' + w.label + ' PL</div>' +
+      '<div style="display:flex;gap:6px">' +
+ + ['RANO','US','ALL'].map(function(x){
+        return '<button type="button" data-p="'+x+'" style="cursor:pointer;padding:8px 12px;border-radius:8px;border:0;font-weight:700;'+(p===x?'background:#2563eb;color:#fff':'background:#334155;color:#e2e8f0')+'">'+x+'</button>';
+      }).join('') + '</div></div>';
     el.querySelectorAll('button[data-p]').forEach(function (btn) {
-      btn.onclick = function () {
-        setAuto(false);
-        setProfile(btn.getAttribute('data-p'));
-        render();
-      };
+      btn.onclick = function () { setAuto(false); setProfile(btn.getAttribute('data-p')); render(); };
     });
-    var cb = document.getElementById('btx-sess-auto');
-    if (cb) cb.onchange = function () { setAuto(!!cb.checked); render(); };
   }
 
   function loadExtras() {
-    var files = ['readiness.js', 'pass-telegram-only.js', 'stop-day-control.js', 'status-fix.js', 'why-zero.js', 'trade-path-boot.js', 'currency-ui.js', 'paper-open-engine.js'];
+    var files = ['readiness.js','pass-telegram-only.js','stop-day-control.js','status-fix.js','why-zero.js','trade-path-boot.js','currency-ui.js','paper-open-engine.js','force-paper-trade.js'];
     files.forEach(function (src) {
       try {
         if (!document.querySelector('script[src="' + src + '"]')) {
           var el = document.createElement('script');
-          el.src = src;
+          el.src = src + '?v=force1';
           (document.body || document.documentElement).appendChild(el);
         }
       } catch (e) {}
@@ -162,16 +149,10 @@
     patchOpen();
     render();
     loadExtras();
-    setInterval(function () {
-      patchSignals();
-      patchRank();
-      patchOpen();
-      if (autoOn()) render();
-    }, 30000);
+    setInterval(function () { patchSignals(); patchRank(); patchOpen(); }, 30000);
   }
 
   global.BTX_SESSION_PROFILE = { get: getProfile, set: setProfile, allowed: allowedSym, suggested: suggestedProfile, autoOn: autoOn };
-
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();
 })(typeof window !== 'undefined' ? window : globalThis);
