@@ -1,5 +1,5 @@
 /**
- * Ścieżka handlu paper — progi daytrade + autonomia ON.
+ * Progi daytrade + autonomia ON.
  */
 (function (global) {
   'use strict';
@@ -10,14 +10,16 @@
     try {
       var P = global.BTX_STRATEGY_PRO || global.BTX_PRO;
       if (P) {
-        P.scoreMin = 3;
+        P.scoreMin = 2;
         P.primeExtra = 0;
-        P.minRvol = 0.45;
+        P.minRvol = 0.35;
+        P.minStrengthOpen = 2;
+        P.requireTrend = false;
         P.strictCore = true;
       }
       if (global.CFG) {
-        if (global.CFG.maxTrades == null || global.CFG.maxTrades < 6) global.CFG.maxTrades = 6;
-        if (global.CFG.maxPos == null) global.CFG.maxPos = 2;
+        global.CFG.maxTrades = Math.max(global.CFG.maxTrades || 0, 8);
+        global.CFG.maxPos = global.CFG.maxPos || 2;
       }
     } catch (e) {}
   }
@@ -38,9 +40,7 @@
     if (typeof global.openPos !== 'function' || global.openPos.__tradePath) return;
     var prev = global.openPos;
     global.openPos = function (g) {
-      try {
-        if (global.ST) global.ST.blocked = false;
-      } catch (e) {}
+      try { if (global.ST) global.ST.blocked = false; } catch (e) {}
       return prev.apply(this, arguments);
     };
     global.openPos.__tradePath = true;
@@ -54,7 +54,7 @@
       applyPro();
       ensureAuto();
       softOpenGate();
-    }, 8000);
+    }, 5000);
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);

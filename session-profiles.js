@@ -1,5 +1,5 @@
 /**
- * Profile sesji: RANO (EU+FX) / US (US+FX) / ALL
+ * Profile sesji + loadExtras (paper-open-engine na końcu).
  */
 (function (global) {
   var LS = 'BTX_SESSION_PROFILE';
@@ -91,10 +91,7 @@
     if (typeof global.openPos !== 'function' || global.openPos.__prof) return;
     var orig = global.openPos;
     global.openPos = function (g) {
-      if (g && g.sym && !allowedSym(g.sym)) {
-        if (global.log) global.log('Profil sesji: pomini\u0119to ' + g.sym + ' (profil ' + getProfile() + ')', 'mut');
-        return;
-      }
+      if (g && g.sym && !allowedSym(g.sym)) return;
       return orig.apply(this, arguments);
     };
     global.openPos.__prof = true;
@@ -120,7 +117,7 @@
     var p = getProfile();
     var w = warsaw();
     var sug = suggestedProfile();
-    var desc = p === 'RANO' ? 'EU + FX (przed US)' : (p === 'US' ? 'US + FX (sesja ameryka\u0144ska)' : 'Wszystkie instrumenty');
+    var desc = p === 'RANO' ? 'EU + FX' : (p === 'US' ? 'US + FX' : 'Wszystkie');
     el.innerHTML =
       '<div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between">' +
       '<div><b style="color:#93c5fd">Profil sesji</b> \u00b7 ' + w.label + ' PL<br><span style="color:#cbd5e1">' + desc + '</span></div>' +
@@ -131,28 +128,22 @@
           (on ? 'background:#2563eb;color:#fff' : 'background:#334155;color:#e2e8f0') + '">' + x + '</button>';
       }).join('') +
       '</div></div>' +
-      '<div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;font-size:12px;color:#94a3b8">' +
-      '<label style="display:flex;gap:6px;align-items:center;cursor:pointer"><input type="checkbox" id="btx-sess-auto" ' + (autoOn() ? 'checked' : '') + '/> Auto (RANO do 15:30, potem US)</label>' +
-      '<span>Sugerowany teraz: <b style="color:#e2e8f0">' + sug + '</b></span></div>';
-
+      '<div style="margin-top:10px;font-size:12px;color:#94a3b8">' +
+      '<label style="display:flex;gap:6px;align-items:center;cursor:pointer"><input type="checkbox" id="btx-sess-auto" ' + (autoOn() ? 'checked' : '') + '/> Auto profil</label>' +
+      ' \u00b7 sugerowany: <b style="color:#e2e8f0">' + sug + '</b></div>';
     el.querySelectorAll('button[data-p]').forEach(function (btn) {
       btn.onclick = function () {
         setAuto(false);
         setProfile(btn.getAttribute('data-p'));
         render();
-        if (global.toast) global.toast('Profil: ' + btn.getAttribute('data-p') + ' (auto OFF)', 'ok');
       };
     });
     var cb = document.getElementById('btx-sess-auto');
-    if (cb) cb.onchange = function () {
-      setAuto(!!cb.checked);
-      render();
-      if (global.toast) global.toast(cb.checked ? 'Auto profil ON' : 'Auto profil OFF', 'ok');
-    };
+    if (cb) cb.onchange = function () { setAuto(!!cb.checked); render(); };
   }
 
   function loadExtras() {
-    var files = ['readiness.js', 'pass-telegram-only.js', 'stop-day-control.js', 'status-fix.js', 'why-zero.js', 'trade-path-boot.js', 'currency-ui.js'];
+    var files = ['readiness.js', 'pass-telegram-only.js', 'stop-day-control.js', 'status-fix.js', 'why-zero.js', 'trade-path-boot.js', 'currency-ui.js', 'paper-open-engine.js'];
     files.forEach(function (src) {
       try {
         if (!document.querySelector('script[src="' + src + '"]')) {
@@ -177,11 +168,6 @@
       patchOpen();
       if (autoOn()) render();
     }, 30000);
-    document.querySelectorAll('button[data-tab], .nav button').forEach(function (btn) {
-      if (btn.__sessP) return;
-      btn.__sessP = true;
-      btn.addEventListener('click', function () { setTimeout(render, 80); });
-    });
   }
 
   global.BTX_SESSION_PROFILE = { get: getProfile, set: setProfile, allowed: allowedSym, suggested: suggestedProfile, autoOn: autoOn };
