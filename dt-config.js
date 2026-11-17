@@ -60,8 +60,9 @@
       minHold: 2, timeStop: 36, autoSec: 300, allowShort: true,
       fxLev: 30,             // ESMA: majors 1:30
       slip: 0.003,           // % ceny na strone (~0.3 pipsa EURUSD). Bylo 0.03 => ~3 pipsy/strone = wiecej niz caly stop
-      scan: { US: false, EU: false, PL: false, FX: true },
-      rates: { USD: 3.7, JPY: 0.0245 }
+      scan: { US: true, EU: true, PL: false, FX: true },   // bot handluje tez akcjami/ETF US i EU (decyzja uzytkownika)
+      rates: { USD: 3.7, JPY: 0.0245, EUR: 4.25 },
+      fracStep: 0.01          // akcje ulamkowe (XTB): przy 500 PLN zadna akcja z listy nie miesci sie w calosci
     },
     fxFees: { comm: 0, conv: 0, spread: 0.012, slip: 0.003 } // % nominalu; XTB: spread 0.7-1.3 pipsa, bez prowizji i przewalutowania (CFD)
   };
@@ -88,8 +89,13 @@
       CFG.scan = merge({}, c.scan);
       if (force || CFG.slip == null || CFG.slip > 0.01) CFG.slip = c.slip;
       if (force || !CFG.rates) CFG.rates = merge({}, c.rates);
+      if (!CFG.rates.EUR) CFG.rates.EUR = c.rates.EUR;
+      CFG.fracStep = c.fracStep;
       CFG.fees = CFG.fees || {};
       if (force || !CFG.fees.FX) CFG.fees.FX = merge({}, PROFILE.fxFees);
+      // akcje EU: brakowalo wpisu kosztow (liczone jako 0) -> domyslnie jak US (przewalutowanie EUR->PLN, edytowalne w Ustawieniach)
+      if (!CFG.fees.US) CFG.fees.US = { comm: 0, conv: 0.5, spread: 0.03, slip: 0.02 };
+      if (!CFG.fees.EU) CFG.fees.EU = merge({}, CFG.fees.US);
       merge(CFG, o.cfg);
     }
     return { PRO: PRO, CFG: CFG };
@@ -137,6 +143,18 @@
     return true;
   }
 
+  // kurs EUR/PLN dla akcji EU (wczesniej rateOf zwracal 1 => EUR liczone jak PLN, ryzyko zanizone ~4x)
+  function patchRate() {
+    if (typeof global.rateOf !== 'function' || global.rateOf.__dtEur) return;
+    var orig = global.rateOf;
+    global.rateOf = function (m) {
+      if (m && m.mkt === 'EU') { var r = (global.CFG && global.CFG.rates) || {}; return +r.EUR || 4.25; }
+      return orig.apply(this, arguments);
+    };
+    Object.keys(orig).forEach(function (k) { try { global.rateOf[k] = orig[k]; } catch (e) {} });
+    global.rateOf.__dtEur = true;
+  }
+
   global.BTX_DT = { VERSION: VERSION, PROFILE: PROFILE, applyTo: applyTo, apply: apply, migrate: migrate };
 
   if (typeof document === 'undefined') return; // testy w Node: tylko czyste funkcje
@@ -144,10 +162,11 @@
   function boot() {
     apply();
     patchClose();
+    patchRate();
     // migracja po tym, jak inne moduly (universe-pro, hardening, live-prices) zrobia swoj boot
     setTimeout(function () { try { migrate(); } catch (e) { if (global.console) console.error('[BTX_DT] migrate', e); } apply(); }, 2500);
     setInterval(function () { apply(); patchClose(); }, 60000);
-    setInterval(patchClose, 5000);
+    setInterval(function () { patchClose(); patchRate(); }, 5000);
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 })(typeof window !== 'undefined' ? window : globalThis);

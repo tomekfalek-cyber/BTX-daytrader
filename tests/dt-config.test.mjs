@@ -28,7 +28,7 @@ test('profil DT: progi daytradingu ustawiane w jednym miejscu', () => {
   assert.equal(CFG.maxTrades, 8);
   assert.equal(CFG.dailyLoss, 2);
   assert.ok(CFG.slip <= 0.01, 'poslizg w % na strone: ' + CFG.slip);
-  assert.equal(JSON.stringify(CFG.scan), JSON.stringify({ US: false, EU: false, PL: false, FX: true }));
+  assert.equal(JSON.stringify(CFG.scan), JSON.stringify({ US: true, EU: true, PL: false, FX: true }));
   assert.equal(CFG.fees.FX.conv, 0);
 });
 
@@ -79,4 +79,26 @@ test('news: tylko okna danych USA, ECB/FOMC nie blokuja co dzien', () => {
   assert.equal(CORE.newsBlocked(U(2026, 11, 10, 13, 15)).blocked, false);  // ECB 14:15 PL — juz nie
   assert.equal(CORE.newsBlocked(U(2026, 11, 10, 19, 0)).blocked, false);   // FOMC 20:00 PL — juz nie
   assert.equal(CORE.newsBlocked(U(2026, 11, 10, 13, 40)).blocked, false);  // poza +-7 min
+});
+test('akcje US przy 500 PLN: ulamkowa pozycja miesci sie w koncie; przewalutowanie 0.5%/strone odrzuca wejscie kosztem', () => {
+  const CFG = {}; DT.applyTo(PRO, CFG, true);
+  assert.equal(CFG.fracStep, 0.01);
+  assert.equal(CFG.rates.EUR, 4.25);
+  assert.ok(CFG.fees.EU && CFG.fees.EU.conv === 0.5);
+  sb.CFG = CFG;
+  sb.SYMBOLS = [{ s: 'AAPL', mkt: 'US' }];
+  sb.rateOf = () => 3.7;
+  const g = { sym: 'AAPL', side: 'LONG', strength: 4, price: 230, atr: 0.5, sd: 1.2, _pro: { scoreL: 6, scoreS: 0, need: 4, veto: '' } };
+  const st = { equity: 500, cash: 500, pos: {}, cool: {}, dayTrades: 0, consecLoss: 0, dayStart: 500 };
+  const TS_US = U(2026, 11, 10, 16, 0); // 17:00 PL
+  // koszt realistyczny (konto PLN, USD->PLN 0.5%/strone) => odrzucone przez filtr R:R netto
+  sb.feeOf = () => ({ comm: 0, conv: 0.005, spr: 0.0003 });
+  assert.match(CORE.gateCheck(g, sb.SYMBOLS[0], st, TS_US).reason, /koszty/);
+  // konto walutowe USD (bez przewalutowania) => wejscie mozliwe, pozycja ulamkowa <= cash
+  sb.feeOf = () => ({ comm: 0, conv: 0, spr: 0.0003 });
+  const r = CORE.gateCheck(g, sb.SYMBOLS[0], st, TS_US);
+  assert.equal(r.ok, true, r.reason);
+  assert.ok(r.sp.qty > 0 && r.sp.qty < 1, 'qty ulamkowe: ' + r.sp.qty);
+  assert.ok(r.sp.qty * 230 * 3.7 <= 500, 'nie przekracza kapitalu');
+  delete sb.feeOf; delete sb.rateOf; delete sb.CFG;
 });

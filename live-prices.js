@@ -5,7 +5,7 @@
   'use strict';
   if (global.BTX_LIVE) return;
 
-  var FRESH_MS = 15 * 60 * 1000;
+  var FRESH_MS = 20 * 60 * 1000;
   var BAR_MAX_AGE_MS = 30 * 60 * 1000;
   var MIN_GAP_MS = 8600;
   var PER_MIN = 7;
@@ -23,7 +23,7 @@
     'SAP': { symbol: 'SAP', exchange: 'XETR' },
     'ASML': { symbol: 'ASML', exchange: 'Euronext' }
   };
-  var REFRESH_MIN = { US: 5, EU: 5, FX: 5 };   // daytrading: swieca 5 min = odswiezenie co 5 min (4 pary x 13 h x 12 = ~620 zapytan/dzien < 780)
+  var REFRESH_MIN = { US: 10, EU: 10, FX: 10 };   // 12 symboli: US 6.5h + EU 8.5h + FX 13h przy 10 min = ~620 zapytan/dzien (przy 5 min ~1240 > limit 780)   // daytrading: swieca 5 min = odswiezenie co 5 min (4 pary x 13 h x 12 = ~620 zapytan/dzien < 780)
 
   var info = {};
   var reqTimes = [];
@@ -185,8 +185,7 @@
   function refreshMs(m) {
     var base = (REFRESH_MIN[m.mkt] || 5) * 60000;
     var used = budget().n / DAY_LIMIT;
-    if (used > 0.85) return base * 4;
-    if (used > 0.6) return base * 2;
+    if (used > 0.9) return base * 2;
     return base;
   }
 

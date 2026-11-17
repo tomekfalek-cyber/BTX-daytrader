@@ -326,13 +326,15 @@
     var rate = hasModel ? (global.rateOf(m) || 1) : 1;
     var f = hasModel ? global.feeOf(m) : { comm: 0, conv: 0, spr: 0 };
     if (side === 'SHORT') f = { comm: f.comm, conv: 0, spr: f.spr };   // short = CFD: bez konwersji walut
-    var fx = marketOf(m) === 'FX', lev = fx ? ((global.CFG && global.CFG.fxLev) || 30) : 1, step = fx ? 1000 : 1;
+    var fx = marketOf(m) === 'FX', lev = fx ? ((global.CFG && global.CFG.fxLev) || 30) : 1, step = fx ? 1000 : ((global.CFG && global.CFG.fracStep) || 1);
     var sd = sdOverride || (atr || price * 0.004) * PRO.atrSlMult;
     if (!(sd > 0)) return { ok: false, reason: 'ATR=0' };
     var riskAmt = equity * (PRO.riskPct / 100), unitRisk = sd * rate, reason = '';
     var q = Math.floor(riskAmt / unitRisk / step) * step;
+    q = Math.round(q * 1e6) / 1e6;
     if (q < step) { q = step; if (q * unitRisk > riskAmt * 2.5) reason = 'minimalna pozycja (' + q + ') ryzykuje ' + (q * unitRisk).toFixed(2) + ' > limit ' + (riskAmt * 2.5).toFixed(2); }
     var maxQ = Math.floor(cash * lev / (price * rate) / step) * step; if (q > maxQ) q = maxQ;
+    q = Math.round(q * 1e6) / 1e6;
     if (q < step && !reason) reason = 'za malo wolnych srodkow';
     var notional = q * price * rate, margin = notional / lev;
     var feeIn = notional * (f.comm + f.conv + f.spr), feeOut = notional * (f.comm + f.conv);
