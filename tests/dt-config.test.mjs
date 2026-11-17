@@ -16,16 +16,21 @@ test('profil DT: progi daytradingu ustawiane w jednym miejscu', () => {
   const CFG = {};
   DT.applyTo(PRO, CFG, true);
   assert.equal(PRO.riskPct, 0.5);
-  assert.equal(PRO.maxDayTrades, 8);
+  assert.equal(PRO.maxDayTrades, 10);
   assert.equal(PRO.dailyLossPct, 2);
-  assert.equal(PRO.maxConsecLoss, 3);
+  assert.equal(PRO.maxConsecLoss, 4);
+  assert.equal(PRO.maxPos, 3);
+  assert.equal(PRO.minStrengthOpen, 2);
+  assert.equal(CFG.ccy, 'USD');
+  assert.equal(CFG.rates.USD, 1);
+  assert.equal(CFG.fees.US.conv, 0);
   assert.equal(PRO.partialFrac, 0);
   assert.equal(PRO.stopMinAtr, 1.5);
   assert.equal(PRO.stopMaxAtr, 2.5);
   assert.equal(PRO.timeStopBars, 36);
   assert.equal(PRO.newsWindows.length, 2);
   assert.equal(PRO.sessions.FX.close, 20 * 60);
-  assert.equal(CFG.maxTrades, 8);
+  assert.equal(CFG.maxTrades, 10);
   assert.equal(CFG.dailyLoss, 2);
   assert.ok(CFG.slip <= 0.01, 'poslizg w % na strone: ' + CFG.slip);
   assert.equal(JSON.stringify(CFG.scan), JSON.stringify({ US: true, EU: true, PL: false, FX: true }));
@@ -47,7 +52,7 @@ test('profil DT: 500 PLN, EURUSD przechodzi bramke (pozycja 0.01 lota, ryzyko < 
   delete sb.feeOf; delete sb.rateOf;
 });
 
-test('profil DT: dwie pary FX naraz dozwolone, trzecia nie; limit 8 transakcji', () => {
+test('profil DT: trzy pozycje naraz dozwolone, czwarta nie; limit 10 transakcji', () => {
   DT.applyTo(PRO, {}, true);
   sb.feeOf = () => ({ comm: 0, conv: 0, spr: 0.00012 });
   sb.rateOf = () => 3.7;
@@ -55,9 +60,10 @@ test('profil DT: dwie pary FX naraz dozwolone, trzecia nie; limit 8 transakcji',
   const g = { sym: 'GBPUSD', side: 'LONG', strength: 4, price: 1.27, atr: 0.0007, sd: 0.0014, _pro: { scoreL: 6, scoreS: 0, need: 4, veto: '' } };
   const base = { equity: 500, cash: 360, cool: {}, dayTrades: 3, consecLoss: 0, dayStart: 500 };
   assert.equal(CORE.gateCheck(g, sb.SYMBOLS[1], { ...base, pos: { EURUSD: { side: 'LONG' } } }, TS_FX).ok, true);
-  assert.match(CORE.gateCheck(g, sb.SYMBOLS[1], { ...base, pos: { EURUSD: { side: 'LONG' }, USDJPY: { side: 'SHORT' } } }, TS_FX).reason, /limit pozycji/);
-  assert.equal(CORE.gateCheck(g, sb.SYMBOLS[1], { ...base, pos: {}, dayTrades: 7 }, TS_FX).ok, true);
-  assert.match(CORE.gateCheck(g, sb.SYMBOLS[1], { ...base, pos: {}, dayTrades: 8 }, TS_FX).reason, /limit transakcji/);
+  assert.match(CORE.gateCheck(g, sb.SYMBOLS[1], { ...base, pos: { EURUSD: { side: 'LONG' }, USDJPY: { side: 'SHORT' }, AUDUSD: { side: 'LONG' } } }, TS_FX).reason, /limit pozycji/);
+  assert.equal(CORE.gateCheck(g, sb.SYMBOLS[1], { ...base, pos: { EURUSD: { side: 'LONG' }, USDJPY: { side: 'SHORT' } } }, TS_FX).ok, true);
+  assert.equal(CORE.gateCheck(g, sb.SYMBOLS[1], { ...base, pos: {}, dayTrades: 9 }, TS_FX).ok, true);
+  assert.match(CORE.gateCheck(g, sb.SYMBOLS[1], { ...base, pos: {}, dayTrades: 10 }, TS_FX).reason, /limit transakcji/);
   delete sb.feeOf; delete sb.rateOf;
 });
 
@@ -83,7 +89,7 @@ test('news: tylko okna danych USA, ECB/FOMC nie blokuja co dzien', () => {
 test('akcje US przy 500 PLN: ulamkowa pozycja miesci sie w koncie; przewalutowanie 0.5%/strone odrzuca wejscie kosztem', () => {
   const CFG = {}; DT.applyTo(PRO, CFG, true);
   assert.equal(CFG.fracStep, 0.01);
-  assert.equal(CFG.rates.EUR, 4.25);
+  assert.equal(CFG.rates.EUR, 1.08);
   assert.ok(CFG.fees.EU && CFG.fees.EU.conv === 0.5);
   sb.CFG = CFG;
   sb.SYMBOLS = [{ s: 'AAPL', mkt: 'US' }];
@@ -101,4 +107,11 @@ test('akcje US przy 500 PLN: ulamkowa pozycja miesci sie w koncie; przewalutowan
   assert.ok(r.sp.qty > 0 && r.sp.qty < 1, 'qty ulamkowe: ' + r.sp.qty);
   assert.ok(r.sp.qty * 230 * 3.7 <= 500, 'nie przekracza kapitalu');
   delete sb.feeOf; delete sb.rateOf; delete sb.CFG;
+});
+test('stop per rynek: akcje 0.9-1.6 ATR, FX 1.5-2.5 ATR', () => {
+  DT.applyTo(PRO, {}, true);
+  const bars = []; for (let i = 0; i < 20; i++) bars.push({ o: 100, h: 100.05, l: 99.95, c: 100 });
+  const fx = CORE.swingStopDist(bars, 'LONG', 1, 'FX'), us = CORE.swingStopDist(bars, 'LONG', 1, 'US');
+  assert.ok(Math.abs(fx - 1.5) < 1e-9, 'FX min 1.5 ATR: ' + fx);
+  assert.ok(Math.abs(us - 0.9) < 1e-9, 'US min 0.9 ATR: ' + us);
 });

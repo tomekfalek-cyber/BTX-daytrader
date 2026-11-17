@@ -3,21 +3,21 @@
  */
 (function (global) {
   'use strict';
-  var VERSION = 'dt25k-2026-11-17b';
+  var VERSION = 'dtusd-2026-11-17';
   var LS_VER = 'BTX_DT_PROFILE_VERSION';
   var LS_OVR = 'BTX_DT_OVERRIDES';
 
   var PROFILE = {
-    capital: 25000,
+    capital: 6800,   // USD (konto walutowe XTB; ~25 000 PLN)
     pro: {
       riskPct: 0.5,
-      maxPos: 2,
-      maxDayTrades: 8,
+      maxPos: 3,
+      maxDayTrades: 10,
       dailyLossPct: 2.0,
-      maxConsecLoss: 3,
+      maxConsecLoss: 4,
       scoreMin: 4,
       primeExtra: 0,
-      minStrengthOpen: 3,
+      minStrengthOpen: 2,   // score >= 4 (rdzen) wystarcza; backtest AAPL/EURUSD: str 2 daje 1.5-3 wejsc/dzien/instrument, str 3 ~polowe
       minNetRR: 1.1,
       strictCore: true,
       requireTrend: false,
@@ -26,11 +26,12 @@
       beR: 1.0,
       partialR: 99,
       partialFrac: 0,
-      coolBars: 3,
+      coolBars: 2,
       minHoldBars: 2,
       timeStopBars: 36,
       stopMinAtr: 1.5,
       stopMaxAtr: 2.5,
+      stopAtr: { US: [0.9, 1.6], EU: [0.9, 1.6], FX: [1.5, 2.5] },   // akcje/ETF: ciasny stop (backtest AAPL), FX: szerszy (spread vs ATR 5m ~3 pipsy)
       newsPadMin: 7,
       closeBufferMin: 30,
       flatBeforeCloseMin: 10
@@ -41,12 +42,12 @@
     ],
     fxSession: { open: 7 * 60, close: 20 * 60, prime: [[7 * 60, 11 * 60], [13 * 60 + 30, 17 * 60]] },
     cfg: {
-      risk: 0.5, maxPos: 2, maxTrades: 8, dailyLoss: 2, maxConsec: 3,
+      risk: 0.5, maxPos: 3, maxTrades: 10, dailyLoss: 2, maxConsec: 4, ccy: 'USD',
       minHold: 2, timeStop: 36, autoSec: 300, allowShort: true,
       fxLev: 30,
       slip: 0.003,
       scan: { US: true, EU: true, PL: false, FX: true },
-      rates: { USD: 3.7, JPY: 0.0245, EUR: 4.25 },
+      rates: { USD: 1, JPY: 0.0067, EUR: 1.08 },   // konto USD: 1 USD = 1; JPY i EUR w USD (EUR/JPY dla akcji EU i USDJPY liczone z cen LIVE, jesli sa)
       fracStep: 0.01
     },
     fxFees: { comm: 0, conv: 0, spread: 0.012, slip: 0.003 }
@@ -67,7 +68,7 @@
     }
     if (CFG) {
       var c = PROFILE.cfg;
-      ['risk', 'maxPos', 'maxTrades', 'dailyLoss', 'maxConsec', 'minHold', 'timeStop', 'autoSec', 'allowShort', 'fxLev'].forEach(function (k) { CFG[k] = c[k]; });
+      ['risk', 'maxPos', 'maxTrades', 'dailyLoss', 'maxConsec', 'minHold', 'timeStop', 'autoSec', 'allowShort', 'fxLev', 'ccy'].forEach(function (k) { CFG[k] = c[k]; });
       CFG.scan = merge({ US: true, EU: true, PL: false, FX: true }, c.scan || {});
       if (force || CFG.slip == null || CFG.slip > 0.01) CFG.slip = c.slip;
       if (force || !CFG.rates) CFG.rates = merge({}, c.rates);
@@ -77,6 +78,10 @@
       if (force || !CFG.fees.FX) CFG.fees.FX = merge({}, PROFILE.fxFees);
       if (!CFG.fees.US) CFG.fees.US = { comm: 0, conv: 0.5, spread: 0.03, slip: 0.02 };
       if (!CFG.fees.EU) CFG.fees.EU = merge({}, CFG.fees.US);
+      if (force) {   // konto USD: US bez przewalutowania; akcje EU (EUR->USD) 0.5%
+        CFG.fees.US = { comm: 0, conv: 0, spread: 0.03, slip: 0.02 };
+        CFG.fees.EU = { comm: 0, conv: 0.5, spread: 0.03, slip: 0.02 };
+      }
       merge(CFG, o.cfg);
       // zawsze aktywne rynki handlowe
       CFG.scan.US = true;
@@ -131,11 +136,35 @@
     if (typeof global.rateOf !== 'function' || global.rateOf.__dtEur) return;
     var orig = global.rateOf;
     global.rateOf = function (m) {
-      if (m && m.mkt === 'EU') { var r = (global.CFG && global.CFG.rates) || {}; return +r.EUR || 4.25; }
+      var C = global.CFG || {}, r = C.rates || {}, usd = C.ccy === 'USD';
+      function lastPx(sym) { var a = global.ST && global.ST.series && global.ST.series[sym]; return a && a.length ? a[a.length - 1].c : 0; }
+      if (m && m.mkt === 'EU') {
+        if (usd) { var e = lastPx('EURUSD'); if (e > 0.5 && e < 2) return e; }   // konto USD: EUR->USD z ceny LIVE
+        return +r.EUR || (usd ? 1.08 : 4.25);
+      }
+      if (usd && m && m.mkt === 'FX' && /JPY$/.test(m.s)) { var j = lastPx('USDJPY'); if (j > 50) return 1 / j; return +r.JPY || 0.0067; }
+      if (usd && m && m.mkt === 'US') return 1;
       return orig.apply(this, arguments);
     };
     Object.keys(orig).forEach(function (k) { try { global.rateOf[k] = orig[k]; } catch (e) {} });
     global.rateOf.__dtEur = true;
+  }
+
+  // konto USD: aplikacja ma na sztywno podpisy "PLN" — podmieniamy je na USD (same kwoty liczone sa juz w walucie konta)
+  function relabel() {
+    try {
+      if (!global.CFG || global.CFG.ccy !== 'USD' || !document.body) return;
+      var w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null), n, list = [];
+      while ((n = w.nextNode())) { var p = n.parentNode && n.parentNode.nodeName; if (p !== 'SCRIPT' && p !== 'STYLE' && p !== 'TEXTAREA' && /\bPLN\b/.test(n.nodeValue)) list.push(n); }
+      list.forEach(function (x) { x.nodeValue = x.nodeValue.replace(/\bPLN\b/g, 'USD'); });
+    } catch (e) {}
+  }
+  function patchRender() {
+    if (typeof global.render !== 'function' || global.render.__dtCcy) return;
+    var orig = global.render;
+    global.render = function () { var r = orig.apply(this, arguments); relabel(); return r; };
+    Object.keys(orig).forEach(function (k) { try { global.render[k] = orig[k]; } catch (e) {} });
+    global.render.__dtCcy = true;
   }
 
   global.BTX_DT = { VERSION: VERSION, PROFILE: PROFILE, applyTo: applyTo, apply: apply, migrate: migrate };
@@ -145,9 +174,10 @@
     apply();
     patchClose();
     patchRate();
+    patchRender();
     setTimeout(function () { try { migrate(); } catch (e) { if (global.console) console.error('[BTX_DT] migrate', e); } apply(); }, 2500);
     setInterval(function () { apply(); patchClose(); }, 60000);
-    setInterval(function () { patchClose(); patchRate(); }, 5000);
+    setInterval(function () { patchClose(); patchRate(); patchRender(); relabel(); }, 5000);
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -204,13 +204,14 @@
     return (s3 / 3) / (s20 / 20);
   }
   // stop za ostatnim swingiem (struktura), ale w widelkach [stopMinAtr, stopMaxAtr] * ATR
-  function swingStopDist(b, side, a) {
+  function swingStopDist(b, side, a, mkt) {
     var n = Math.min(PRO.stopSwingBars, b.length), c = b[b.length - 1].c, ext = side === 'LONG' ? Infinity : -Infinity;
     for (var i = b.length - n; i < b.length; i++) {
       if (side === 'LONG') { if (b[i].l < ext) ext = b[i].l; } else if (b[i].h > ext) ext = b[i].h;
     }
     var d = (side === 'LONG' ? c - ext : ext - c) + 0.1 * a;
-    return Math.min(PRO.stopMaxAtr * a, Math.max(PRO.stopMinAtr * a, d));
+    var rng = (PRO.stopAtr && PRO.stopAtr[mkt]) || [PRO.stopMinAtr, PRO.stopMaxAtr];   // widelki ATR per rynek (opcjonalne)
+    return Math.min(rng[1] * a, Math.max(rng[0] * a, d));
   }
 
   // ================= SYGNAL (czysta funkcja) =================
@@ -286,7 +287,7 @@
     }
     if (hard) { g.side = 'WAIT'; g.strength = 0; g.why = hard; scoreL = 0; scoreS = 0; } // zerujemy wyniki, by "miekkie" nakladki nie odwrocily blokady
     g.atr = a;
-    g.sd = g.side === 'WAIT' ? a * PRO.atrSlMult : swingStopDist(b, g.side, a);
+    g.sd = g.side === 'WAIT' ? a * PRO.atrSlMult : swingStopDist(b, g.side, a, mkt);
     g._pro = { scoreL: scoreL, scoreS: scoreS, need: need, trend: trend, t15: ht.t15, t60: ht.t60, zone: zone, sessionQ: sq, mkt: mkt, news: nb,
       vwap: vw, orHi: orr && orr.hi, orLo: orr && orr.lo, sessionBars: sess.length, hard: hard, veto: veto, rvol: rvol, marketTrend: marketTrend };    return g;
   }
