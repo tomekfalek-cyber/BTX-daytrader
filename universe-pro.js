@@ -1,14 +1,20 @@
 /**
- * BTX Universe PRO — daytrading 500 PLN: 4 pary FX (jedno zrodlo prawdy w runtime)
+ * BTX Universe PRO — daytrading XTB: akcje/ETF US+EU + FX
  */
 (function (global) {
   var UNI = [
-    // Profil DAYTRADING 500 PLN: pary FX (CFD) — koszt = tylko spread, dzwignia 1:30, pozycja od 0.01 lota (1000 szt.)
-    // Akcje US/EU i ETF usuniete z aktywnego skanu: przewalutowanie ~1% rundy + 1 akcja NVDA/META/ASML > 500 PLN; zloto: min. 1 oz > kapital.
-    { s: 'EURUSD', n: 'EUR/USD', t: 'FX', b: 1.08, v: 0.00035, mkt: 'FX', xtb: 'EURUSD' },
-    { s: 'GBPUSD', n: 'GBP/USD', t: 'FX', b: 1.27, v: 0.0004, mkt: 'FX', xtb: 'GBPUSD' },
-    { s: 'USDJPY', n: 'USD/JPY', t: 'FX', b: 150, v: 0.0004, mkt: 'FX', xtb: 'USDJPY' },
-    { s: 'AUDUSD', n: 'AUD/USD', t: 'FX', b: 0.65, v: 0.0004, mkt: 'FX', xtb: 'AUDUSD' }
+    { s: 'NVDA', n: 'NVIDIA', t: 'Akcja', b: 140, v: 0.0022, mkt: 'US', xtb: 'NVDA.US', ccy: 'USD' },
+    { s: 'TSLA', n: 'Tesla', t: 'Akcja', b: 250, v: 0.0024, mkt: 'US', xtb: 'TSLA.US', ccy: 'USD' },
+    { s: 'META', n: 'Meta Platforms', t: 'Akcja', b: 580, v: 0.0018, mkt: 'US', xtb: 'META.US', ccy: 'USD' },
+    { s: 'AAPL', n: 'Apple', t: 'Akcja', b: 230, v: 0.0014, mkt: 'US', xtb: 'AAPL.US', ccy: 'USD' },
+    { s: 'QQQ', n: 'Nasdaq 100 ETF', t: 'ETF', b: 480, v: 0.0012, mkt: 'US', xtb: 'US100', ccy: 'USD' },
+    { s: 'SPY', n: 'S&P 500 ETF', t: 'ETF', b: 560, v: 0.0009, mkt: 'US', xtb: 'US500', ccy: 'USD' },
+    { s: 'ASML', n: 'ASML Holding', t: 'Akcja', b: 700, v: 0.0018, mkt: 'EU', xtb: 'ASML.NL', ccy: 'EUR' },
+    { s: 'SAP', n: 'SAP SE', t: 'Akcja', b: 220, v: 0.0015, mkt: 'EU', xtb: 'SAP.DE', ccy: 'EUR' },
+    { s: 'SIE.DE', n: 'Siemens', t: 'Akcja', b: 180, v: 0.0014, mkt: 'EU', xtb: 'SIE.DE', ccy: 'EUR' },
+    { s: 'EURUSD', n: 'EUR/USD', t: 'FX', b: 1.08, v: 0.00035, mkt: 'FX', xtb: 'EURUSD', ccy: 'USD' },
+    { s: 'GBPUSD', n: 'GBP/USD', t: 'FX', b: 1.27, v: 0.0004, mkt: 'FX', xtb: 'GBPUSD', ccy: 'USD' },
+    { s: 'USDJPY', n: 'USD/JPY', t: 'FX', b: 150, v: 0.0004, mkt: 'FX', xtb: 'USDJPY', ccy: 'JPY' }
   ];
 
   function apply() {
@@ -24,14 +30,14 @@
     if (sel) {
       var cur = sel.value;
       sel.innerHTML = UNI.map(function (m) {
-        return '<option value="' + m.s + '">' + m.s + ' — ' + m.n + '</option>';
+        return '<option value="' + m.s + '">' + m.s + ' \u2014 ' + m.n + ' (' + (m.ccy || '') + ')</option>';
       }).join('');
       if (UNI.some(function (m) { return m.s === cur; })) sel.value = cur;
     }
     var uni = document.getElementById('uni');
     if (uni) {
       uni.innerHTML = UNI.map(function (m) {
-        return '<span class="tag">' + m.s + '</span> ' + m.n + ' · XTB ' + (m.xtb || m.s) + ' · ' + m.mkt;
+        return '<span class="tag">' + m.s + '</span> ' + m.n + ' \u00b7 ' + (m.ccy || '') + ' \u00b7 XTB ' + (m.xtb || m.s) + ' \u00b7 ' + m.mkt;
       }).join('<br>');
     }
     var note = document.getElementById('universe-note');
@@ -40,7 +46,7 @@
       if (host) {
         note = document.createElement('div');
         note.id = 'universe-note';
-        note.style.cssText = 'font-size:12px;margin:0 0 12px;padding:10px 12px;border-left:3px solid var(--red);background:rgba(228,0,43,.08);border-radius:0 10px 10px 0';
+        note.style.cssText = 'font-size:12px;margin:0 0 12px;padding:10px 12px;border-left:3px solid var(--green,#12c48b);background:rgba(18,196,139,.08);border-radius:0 10px 10px 0';
         var card = host.querySelector('.card');
         if (card) {
           var h2 = card.querySelector('h2');
@@ -50,7 +56,7 @@
       }
     }
     if (note) {
-      note.innerHTML = '<b>Uniwersum daytrading (500 PLN): 4 pary FX</b> · EURUSD GBPUSD USDJPY AUDUSD · sesja 08:00-21:00 PL';
+      note.innerHTML = '<b>Uniwersum daytrading XTB</b> \u00b7 US: NVDA TSLA META AAPL QQQ SPY \u00b7 EU: ASML SAP SIE \u00b7 FX: EURUSD GBPUSD USDJPY \u00b7 sesje wg profilu RANO/US/ALL';
     }
   }
 
