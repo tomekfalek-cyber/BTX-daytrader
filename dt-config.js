@@ -1,12 +1,9 @@
 /**
- * BTX DT-CONFIG — daytrading (profil: konto 25000 PLN paper, US/EU/FX, świece 5 min).
- *
- * Jedyne źródło progów: ten plik (start + co 60 s).
- * Ręczne korekty: localStorage 'BTX_DT_OVERRIDES' = {"pro":{"riskPct":0.4},"cfg":{"maxTrades":6}}
+ * BTX DT-CONFIG — daytrading (konto 25000 PLN paper, US/EU/FX, świece 5 min).
  */
 (function (global) {
   'use strict';
-  var VERSION = 'dt25k-2026-11-17';
+  var VERSION = 'dt25k-2026-11-17b';
   var LS_VER = 'BTX_DT_PROFILE_VERSION';
   var LS_OVR = 'BTX_DT_OVERRIDES';
 
@@ -56,7 +53,6 @@
   };
 
   function merge(dst, src) { Object.keys(src || {}).forEach(function (k) { dst[k] = src[k]; }); return dst; }
-
   function overrides() {
     try { return JSON.parse(global.localStorage.getItem(LS_OVR) || 'null') || {}; } catch (e) { return {}; }
   }
@@ -72,7 +68,7 @@
     if (CFG) {
       var c = PROFILE.cfg;
       ['risk', 'maxPos', 'maxTrades', 'dailyLoss', 'maxConsec', 'minHold', 'timeStop', 'autoSec', 'allowShort', 'fxLev'].forEach(function (k) { CFG[k] = c[k]; });
-      CFG.scan = merge({}, c.scan);
+      CFG.scan = merge({ US: true, EU: true, PL: false, FX: true }, c.scan || {});
       if (force || CFG.slip == null || CFG.slip > 0.01) CFG.slip = c.slip;
       if (force || !CFG.rates) CFG.rates = merge({}, c.rates);
       if (!CFG.rates.EUR) CFG.rates.EUR = c.rates.EUR;
@@ -82,6 +78,10 @@
       if (!CFG.fees.US) CFG.fees.US = { comm: 0, conv: 0.5, spread: 0.03, slip: 0.02 };
       if (!CFG.fees.EU) CFG.fees.EU = merge({}, CFG.fees.US);
       merge(CFG, o.cfg);
+      // zawsze aktywne rynki handlowe
+      CFG.scan.US = true;
+      CFG.scan.EU = true;
+      CFG.scan.FX = true;
     }
     return { PRO: PRO, CFG: CFG };
   }
@@ -112,6 +112,7 @@
     ls.setItem('BTX_TRADE_MODE', 'trade');
     ls.setItem('BTX_ALLOW_STOP_DAY', '0');
     ls.setItem('BTX_AUTONOMY_ON', '1');
+    ls.setItem('BTX_SESSION_PROFILE', 'ALL');
     applyTo(global.BTX_STRATEGY_PRO || global.BTX_PRO, global.CFG, true);
     global.CFG.capital = PROFILE.capital;
     if (typeof global.reset === 'function') global.reset();
@@ -120,7 +121,7 @@
       global.ST.dayStart = global.ST.equity;
     }
     try { if (typeof global.save === 'function') global.save(); } catch (e2) {}
-    try { if (typeof global.log === 'function') global.log('Profil DAYTRADING ' + VERSION + ': konto paper ' + PROFILE.capital + ' PLN', 'g'); } catch (e3) {}
+    try { if (typeof global.log === 'function') global.log('Profil ' + VERSION + ': paper ' + PROFILE.capital + ' PLN · skan US+EU+FX', 'g'); } catch (e3) {}
     try { if (typeof global.render === 'function') global.render(); } catch (e4) {}
     ls.setItem(LS_VER, VERSION);
     return true;
@@ -138,7 +139,6 @@
   }
 
   global.BTX_DT = { VERSION: VERSION, PROFILE: PROFILE, applyTo: applyTo, apply: apply, migrate: migrate };
-
   if (typeof document === 'undefined') return;
 
   function boot() {

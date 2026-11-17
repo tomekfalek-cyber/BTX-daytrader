@@ -1,5 +1,5 @@
 /**
- * Profile sesji + loadExtras (master fix na końcu).
+ * Profile sesji — domyślnie ALL (US+EU+FX według własnych godzin sesji).
  */
 (function (global) {
   var LS = 'BTX_SESSION_PROFILE';
@@ -20,10 +20,7 @@
   }
 
   function suggestedProfile() {
-    var w = warsaw();
-    if (w.weekend) return 'ALL';
-    if (w.min >= 9 * 60 && w.min < 15 * 60 + 30) return 'RANO';
-    if (w.min >= 15 * 60 + 30 && w.min < 22 * 60) return 'US';
+    // ALL: każdy instrument według własnej sesji (strategy-pro inSession)
     return 'ALL';
   }
 
@@ -39,7 +36,7 @@
       try { localStorage.setItem(LS, s); } catch (e) {}
       return s;
     }
-    try { return localStorage.getItem(LS) || suggestedProfile(); } catch (e) { return 'ALL'; }
+    try { return localStorage.getItem(LS) || 'ALL'; } catch (e) { return 'ALL'; }
   }
   function setProfile(p) {
     if (['RANO', 'US', 'ALL'].indexOf(p) < 0) p = 'ALL';
@@ -51,7 +48,7 @@
     for (var i = 0; i < list.length; i++) {
       if (list[i].s === sym) return list[i].mkt || 'US';
     }
-    if (/EUR|XAU|GOLD/.test(sym)) return 'FX';
+    if (/EUR|GBP|USDJPY|AUDUSD/.test(sym)) return 'FX';
     if (/ASML|SAP|SIE/.test(sym)) return 'EU';
     return 'US';
   }
@@ -117,7 +114,7 @@
     var w = warsaw();
     el.innerHTML =
       '<div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between">' +
-      '<div><b style="color:#93c5fd">Profil sesji</b> \u00b7 ' + w.label + ' PL</div>' +
+      '<div><b style="color:#93c5fd">Profil sesji</b> \u00b7 ' + w.label + ' PL \u00b7 ALL = US+EU+FX</div>' +
       '<div style="display:flex;gap:6px">' +
       ['RANO', 'US', 'ALL'].map(function (x) {
         var on = p === x;
@@ -136,24 +133,21 @@
   function loadExtras() {
     var files = [
       'readiness.js', 'pass-telegram-only.js', 'stop-day-control.js', 'status-fix.js',
-      'why-zero.js', 'currency-ui.js', 'fix-learner-gate.js', 'force-paper-trade.js'
-    ]; // usuniete: trade-path-boot / paper-open-engine / btx-master-fix (co 5-8 s nadpisywaly progi starymi wartosciami i ustawialy ST.blocked)
+      'why-zero.js', 'currency-ui.js', 'fix-learner-gate.js', 'force-paper-trade.js',
+      'force-all-markets.js'
+    ];
     files.forEach(function (src) {
       try {
         if (!document.querySelector('script[src*="' + src + '"]')) {
           var el = document.createElement('script');
-          el.src = src + '?v=master3';
+          el.src = src + '?v=allm1';
           (document.body || document.documentElement).appendChild(el);
         }
       } catch (e) {}
     });
     try {
+      localStorage.setItem('BTX_SESSION_PROFILE', 'ALL');
       localStorage.setItem('BTX_TRADE_MODE', 'trade');
-      localStorage.setItem('BTX_ALLOW_STOP_DAY', '0');
-      localStorage.setItem('BTX_AUTONOMY_ON', '1');
-      localStorage.removeItem('BTX_STOP_FOR_DAY');
-      localStorage.removeItem('BTX_STOPPED');
-      localStorage.removeItem('BTX_STOP_DAY');
     } catch (e2) {}
   }
 
