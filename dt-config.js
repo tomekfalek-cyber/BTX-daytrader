@@ -38,7 +38,11 @@
       partialFrac: 0,
       coolBars: 3,           // przerwa na symbolu po zamknieciu (swiece)
       minHoldBars: 2,
-      timeStopBars: 18,      // 18 swiec x 5 min = 90 min max w pozycji
+      timeStopBars: 36,      // 36 swiec x 5 min = max 3 h w pozycji (flat przed zamknieciem i tak wczesniej)
+      // stop szerszy niz domyslne 0.9-1.6 ATR: przy ATR(5m) EURUSD ~3 pipsy spread 1.3 pipsa zjadal ~0.5R/transakcje (backtest 12 dni: NET -0.38R przy
+      // tpR 2); przy 1.5-2.5 ATR koszt spada do ~0.25R, a sygnalow jest ~2.6/dzien/pare zamiast ~0.8 (reszte odrzucal filtr kosztow)
+      stopMinAtr: 1.5,
+      stopMaxAtr: 2.5,
       // --- czas ---
       newsPadMin: 7,
       closeBufferMin: 30,    // brak nowych wejsc w ostatnich 30 min sesji
@@ -53,7 +57,7 @@
     fxSession: { open: 7 * 60, close: 20 * 60, prime: [[7 * 60, 11 * 60], [13 * 60 + 30, 17 * 60]] }, // 08:00-21:00 PL; prime: Londyn 08-12, NY overlap 14:30-18:00
     cfg: {
       risk: 0.5, maxPos: 2, maxTrades: 8, dailyLoss: 2, maxConsec: 3,
-      minHold: 2, timeStop: 18, autoSec: 300, allowShort: true,
+      minHold: 2, timeStop: 36, autoSec: 300, allowShort: true,
       fxLev: 30,             // ESMA: majors 1:30
       slip: 0.003,           // % ceny na strone (~0.3 pipsa EURUSD). Bylo 0.03 => ~3 pipsy/strone = wiecej niz caly stop
       scan: { US: false, EU: false, PL: false, FX: true },

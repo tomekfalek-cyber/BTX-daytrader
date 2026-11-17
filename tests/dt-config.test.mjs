@@ -20,6 +20,9 @@ test('profil DT: progi daytradingu ustawiane w jednym miejscu', () => {
   assert.equal(PRO.dailyLossPct, 2);
   assert.equal(PRO.maxConsecLoss, 3);
   assert.equal(PRO.partialFrac, 0);
+  assert.equal(PRO.stopMinAtr, 1.5);
+  assert.equal(PRO.stopMaxAtr, 2.5);
+  assert.equal(PRO.timeStopBars, 36);
   assert.equal(PRO.newsWindows.length, 2);
   assert.equal(PRO.sessions.FX.close, 20 * 60);
   assert.equal(CFG.maxTrades, 8);
