@@ -1,20 +1,14 @@
 /**
- * BTX Universe PRO — 11 instrumentów (jedno źródło prawdy w runtime)
- * US 6 + EU 3 + FX 2
+ * BTX Universe PRO — daytrading 500 PLN: 4 pary FX (jedno zrodlo prawdy w runtime)
  */
 (function (global) {
   var UNI = [
-    { s: 'NVDA', n: 'NVIDIA', t: 'Akcja', b: 140, v: 0.0022, mkt: 'US', xtb: 'NVDA.US' },
-    { s: 'TSLA', n: 'Tesla', t: 'Akcja', b: 250, v: 0.0024, mkt: 'US', xtb: 'TSLA.US' },
-    { s: 'META', n: 'Meta Platforms', t: 'Akcja', b: 580, v: 0.0018, mkt: 'US', xtb: 'META.US' },
-    { s: 'AAPL', n: 'Apple', t: 'Akcja', b: 230, v: 0.0014, mkt: 'US', xtb: 'AAPL.US' },
-    { s: 'QQQ', n: 'Nasdaq 100 ETF', t: 'ETF', b: 480, v: 0.0012, mkt: 'US', xtb: 'US100' },
-    { s: 'SPY', n: 'S&P 500 ETF', t: 'ETF', b: 560, v: 0.0009, mkt: 'US', xtb: 'US500' },
-    { s: 'ASML', n: 'ASML Holding (EU)', t: 'Akcja', b: 700, v: 0.0018, mkt: 'EU', xtb: 'ASML.NL' },
-    { s: 'SAP', n: 'SAP SE (EU)', t: 'Akcja', b: 220, v: 0.0015, mkt: 'EU', xtb: 'SAP.DE' },
-    { s: 'SIE.DE', n: 'Siemens (EU)', t: 'Akcja', b: 180, v: 0.0014, mkt: 'EU', xtb: 'SIE.DE' },
+    // Profil DAYTRADING 500 PLN: pary FX (CFD) — koszt = tylko spread, dzwignia 1:30, pozycja od 0.01 lota (1000 szt.)
+    // Akcje US/EU i ETF usuniete z aktywnego skanu: przewalutowanie ~1% rundy + 1 akcja NVDA/META/ASML > 500 PLN; zloto: min. 1 oz > kapital.
     { s: 'EURUSD', n: 'EUR/USD', t: 'FX', b: 1.08, v: 0.00035, mkt: 'FX', xtb: 'EURUSD' },
-    { s: 'XAU/USD', n: 'Złoto (Gold)', t: 'FX', b: 2650, v: 0.0008, mkt: 'FX', xtb: 'GOLD' }
+    { s: 'GBPUSD', n: 'GBP/USD', t: 'FX', b: 1.27, v: 0.0004, mkt: 'FX', xtb: 'GBPUSD' },
+    { s: 'USDJPY', n: 'USD/JPY', t: 'FX', b: 150, v: 0.0004, mkt: 'FX', xtb: 'USDJPY' },
+    { s: 'AUDUSD', n: 'AUD/USD', t: 'FX', b: 0.65, v: 0.0004, mkt: 'FX', xtb: 'AUDUSD' }
   ];
 
   function apply() {
@@ -56,7 +50,7 @@
       }
     }
     if (note) {
-      note.innerHTML = '<b>Uniwersum: 11</b> · US: NVDA TSLA META AAPL QQQ SPY · <b>EU: ASML SAP SIE.DE</b> · FX: EURUSD XAU/USD';
+      note.innerHTML = '<b>Uniwersum daytrading (500 PLN): 4 pary FX</b> · EURUSD GBPUSD USDJPY AUDUSD · sesja 08:00-21:00 PL';
     }
   }
 

@@ -85,7 +85,7 @@
     var CFG = global.CFG || {};
     if (!ST || ST.blocked) return null;
     if (Object.keys(ST.pos || {}).length >= (CFG.maxPos || 2)) return null;
-    if ((ST.dayTrades || 0) >= (CFG.maxTrades || 4)) return null;
+    if ((ST.dayTrades || 0) >= (CFG.maxTrades || 8)) return null;
     var ranked = rankSignals();
     for (var i = 0; i < ranked.length; i++) {
       var r = ranked[i];
@@ -141,7 +141,7 @@
     if (!el) return;
     var ranked = rankSignals();
     var html = '<h3>Autonomia PRO \u00b7 Signal Desk</h3>';
-    html += '<p class="why"><b>Dyscyplina:</b> tylko PASS (siła \u2265 3, score \u2265 60). Risk 0,35%. Max 4 trade\u2019y/dzie\u0144. Limit straty 1%.</p>';
+    html += '<p class="why"><b>Dyscyplina:</b> tylko PASS (siła \u2265 3, score \u2265 60). Risk ' + ((global.BTX_PRO && global.BTX_PRO.riskPct) || 0.5) + '%. Max ' + ((global.BTX_PRO && global.BTX_PRO.maxDayTrades) || 8) + ' trade\u2019y/dzie\u0144. Limit straty ' + ((global.BTX_PRO && global.BTX_PRO.dailyLossPct) || 2) + '%.</p>';
     html += '<div class="row">';
     html += '<button type="button" class="btn" id="btx-auto-toggle">' + (isOn() ? 'Autonomia ON \u2713' : 'W\u0142\u0105cz autonomi\u0119 PRO') + '</button>';
     html += '<button type="button" class="btn ghost" id="btx-auto-tick">Skan teraz</button>';

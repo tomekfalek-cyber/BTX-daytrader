@@ -121,12 +121,15 @@
           if (!p || !b) return;
           var stp = p.stop, tgt = p.target;
           if (stp == null || tgt == null) return;
+          // swieca wejscia zawiera ruch sprzed wejscia -> tylko zamkniecie (bez falszywych stopow)
+          var onEntry = !!(p.openedAt && b.t <= p.openedAt);
+          var bLo = onEntry ? b.c : b.l, bHi = onEntry ? b.c : b.h, bOp = onEntry ? b.c : b.o;
           if (p.side === 'LONG') {
-            if (b.l <= stp) global.closePos(sym, p.be ? 'BE-stop' : 'stop', Math.min(stp, b.o));
-            else if (b.h >= tgt) global.closePos(sym, 'target', Math.max(tgt, b.o));
+            if (bLo <= stp) global.closePos(sym, p.be ? 'BE-stop' : 'stop', Math.min(stp, bOp));
+            else if (bHi >= tgt) global.closePos(sym, 'target', Math.max(tgt, bOp));
           } else if (p.side === 'SHORT') {
-            if (b.h >= stp) global.closePos(sym, p.be ? 'BE-stop' : 'stop', Math.max(stp, b.o));
-            else if (b.l <= tgt) global.closePos(sym, 'target', Math.min(tgt, b.o));
+            if (bHi >= stp) global.closePos(sym, p.be ? 'BE-stop' : 'stop', Math.max(stp, bOp));
+            else if (bLo <= tgt) global.closePos(sym, 'target', Math.min(tgt, bOp));
           }
         });
       } catch (e) {}

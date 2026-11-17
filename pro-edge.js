@@ -135,7 +135,10 @@
       var d = global.BTX_PRO6.dataGate();
       if (!d.ok) return { ok: false, label: d.label, stale: true };
     }
-    if (global.__BTX_LAST_DATA_ERR) return { ok: false, label: String(global.__BTX_LAST_DATA_ERR), stale: true };
+    // blad pobrania dowolnego symbolu nie moze blokowac wszystkich (liczy sie tylko swiezy, <10 min)
+    if (global.__BTX_LAST_DATA_ERR && global.__BTX_LAST_DATA_ERR_AT && Date.now() - global.__BTX_LAST_DATA_ERR_AT < 10 * 60000) {
+      return { ok: false, label: String(global.__BTX_LAST_DATA_ERR), stale: true };
+    }
     var t = global.__BTX_LAST_LIVE_TS || 0;
     if (t && Date.now() - t > 15 * 60 * 1000) return { ok: false, label: 'LIVE >15 min', stale: true };
     return { ok: true, label: 'dane OK', stale: false };

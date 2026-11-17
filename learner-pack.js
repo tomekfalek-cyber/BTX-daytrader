@@ -38,7 +38,7 @@
   }
 
   function modeGet() {
-    try { return localStorage.getItem(LS_MODE) || 'observe'; } catch (e) { return 'observe'; }
+    try { return localStorage.getItem(LS_MODE) || 'trade'; } catch (e) { return 'trade'; }
   }
   function modeSet(m) {
     try { localStorage.setItem(LS_MODE, m); } catch (e) {}
@@ -81,7 +81,12 @@
 
   function dayPnlAndStreak() {
     var ST = global.ST || {};
-    var closed = ST.closed || [];
+    // BUG (naprawiony): liczono WSZYSTKIE zamkniete transakcje w historii jako "dzis" -> po skumulowanej stracie >= limitu
+    // STOP FOR DAY wlaczal sie od razu kazdego kolejnego dnia. Teraz tylko transakcje z dzisiejszego dnia (PL); wpisy bez znacznika czasu sa pomijane.
+    var dayKey = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' });
+    var closed = (ST.closed || []).filter(function (x) {
+      return x && x.t && new Date(x.t).toLocaleDateString('en-CA', { timeZone: 'Europe/Warsaw' }) === dayKey;
+    });
     var dayPnl = 0, consecLoss = 0;
     // ostatnie trade'y — licz serię strat od najnowszych
     for (var i = 0; i < closed.length; i++) {

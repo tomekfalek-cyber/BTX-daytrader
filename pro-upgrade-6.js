@@ -13,18 +13,18 @@
   var CLUSTERS = {
     TECH: ['NVDA', 'TSLA', 'META', 'AAPL', 'QQQ'],
     INDEX: ['SPY', 'QQQ'],
-    FX: ['EURUSD', 'GBPUSD', 'USDJPY'],
+    FX: ['EURUSD', 'GBPUSD', 'USDJPY', 'AUDUSD'],
     GOLD: ['XAU/USD', 'XAUUSD', 'GOLD']
   };
-  var MAX_PER_CLUSTER = 1; // max otwartych z jednego motywu
+  var MAX_PER_CLUSTER = 2; // max otwartych z jednego motywu (FX: dwie pary naraz; limit kierunku nizej = max 2 w ta sama strone)
   var HIGH_NEWS = [
     // minuty = czas polski minus 60 (stale caly rok, DST-safe): patrz BTX_TIME.pseudoUtcMin
     { label: 'US CPI / NFP / dane 14:30 PL', min: 13 * 60 + 30, rank: 'HIGH' },
-    { label: 'FOMC 20:00 PL', min: 19 * 60, rank: 'HIGH' },
-    { label: 'FOMC konferencja 20:30 PL', min: 19 * 60 + 30, rank: 'HIGH' },
-    { label: 'ECB decyzja 14:15 PL', min: 13 * 60 + 15, rank: 'HIGH' }
+    // FOMC / ECB usuniete ze statycznej listy: to nie sa wydarzenia CODZIENNE, a blokowaly 13:45-14:45 i 19:30-21:00 PL kazdego dnia.
+    // Prawdziwe wydarzenia HIGH obsluguje macro-calendar.js (feed) + strategy-pro newsWindows.
+    { label: 'US dane 16:00 PL (ISM/JOLTS...)', min: 15 * 60, rank: 'HIGH' }
   ];
-  var PAD = 30;
+  var PAD = 8; // bylo 30 min (lacznie ~2.5 h blokady dziennie w oknie handlu)
 
   function injectCss() {
     if (document.getElementById(STYLE)) return;
@@ -107,7 +107,11 @@
     if (prov === 'alpaca' && cfg.alpKey && cfg.alpSec) live = true;
     if (prov === 'stooq') live = true; // EOD — słabe pod DT
 
+    // BUG (naprawiony): jeden blad pobrania DOWOLNEGO symbolu (np. limit 429) blokowal wejscia na WSZYSTKICH symbolach
+    // do nastepnego udanego pobrania. Swiezosc cen jest sprawdzana per symbol (BTX_LIVE.isFresh w gateCheck), wiec tu tylko starszy blad (>10 min nie liczy sie).
     var lastErr = global.__BTX_LAST_DATA_ERR || '';
+    if (lastErr && global.__BTX_LAST_DATA_ERR_AT && Date.now() - global.__BTX_LAST_DATA_ERR_AT > 10 * 60000) lastErr = '';
+    if (lastErr && global.BTX_LIVE && global.BTX_LIVE.isFresh && (global.SYMBOLS || []).some(function (m) { return global.BTX_LIVE.isFresh(m.s); })) lastErr = '';
     if (lastErr) {
       return { ok: false, mode: 'error', label: 'BŁĄD DANYCH', tip: String(lastErr).slice(0, 120), blockSignals: true };
     }
@@ -424,6 +428,7 @@
           return r;
         } catch (e) {
           global.__BTX_LAST_DATA_ERR = e.message || 'fetch error';
+          global.__BTX_LAST_DATA_ERR_AT = Date.now();
           throw e;
         }
       };

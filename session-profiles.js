@@ -136,9 +136,8 @@
   function loadExtras() {
     var files = [
       'readiness.js', 'pass-telegram-only.js', 'stop-day-control.js', 'status-fix.js',
-      'why-zero.js', 'trade-path-boot.js', 'currency-ui.js', 'fix-learner-gate.js',
-      'paper-open-engine.js', 'force-paper-trade.js', 'btx-master-fix.js'
-    ];
+      'why-zero.js', 'currency-ui.js', 'fix-learner-gate.js', 'force-paper-trade.js'
+    ]; // usuniete: trade-path-boot / paper-open-engine / btx-master-fix (co 5-8 s nadpisywaly progi starymi wartosciami i ustawialy ST.blocked)
     files.forEach(function (src) {
       try {
         if (!document.querySelector('script[src*="' + src + '"]')) {

@@ -215,17 +215,10 @@ details.gl p{margin-top:10px;line-height:1.75;color:var(--tx2);font-size:12.8px}
 <script src="strategy-pro.js"></script>
 <script>
 var SYMBOLS=[
-{s:'NVDA',n:'NVIDIA',t:'Akcja',b:140,v:0.0022,mkt:'US'},
-{s:'TSLA',n:'Tesla',t:'Akcja',b:250,v:0.0024,mkt:'US'},
-{s:'META',n:'Meta Platforms',t:'Akcja',b:580,v:0.0018,mkt:'US'},
-{s:'AAPL',n:'Apple',t:'Akcja',b:230,v:0.0014,mkt:'US'},
-{s:'QQQ',n:'Nasdaq 100 ETF',t:'ETF',b:480,v:0.0012,mkt:'US'},
-{s:'SPY',n:'S&P 500 ETF',t:'ETF',b:560,v:0.0009,mkt:'US'},
-{s:'ASML',n:'ASML Holding',t:'Akcja',b:700,v:0.0018,mkt:'EU'},
-{s:'SAP',n:'SAP SE',t:'Akcja',b:220,v:0.0015,mkt:'EU'},
-{s:'SIE.DE',n:'Siemens',t:'Akcja',b:180,v:0.0014,mkt:'EU'},
 {s:'EURUSD',n:'EUR/USD',t:'FX',b:1.08,v:0.00035,mkt:'FX'},
-{s:'XAU/USD',n:'Zloto (Gold)',t:'FX',b:2650,v:0.0008,mkt:'FX'}
+{s:'GBPUSD',n:'GBP/USD',t:'FX',b:1.27,v:0.0004,mkt:'FX'},
+{s:'USDJPY',n:'USD/JPY',t:'FX',b:150,v:0.0004,mkt:'FX'},
+{s:'AUDUSD',n:'AUD/USD',t:'FX',b:0.65,v:0.0004,mkt:'FX'}
 ];
 var CFG={capital:100000,risk:1,maxPos:4,allowShort:false};
 var ST={equity:100000,cash:100000,pos:{},closed:[],sig:[],log:[],eq:[],series:{},n:0,cool:{}};
@@ -711,8 +704,8 @@ function syncSettings(){
   var r=CFG.rates||{USD:3.7,JPY:0.0245}; sv('rate-usd',r.USD); sv('rate-jpy',r.JPY); sv('set-fxlev',CFG.fxLev||30);
 }
 function applySmallProfile(){
-  CFG.capital=500; CFG.risk=1; CFG.maxPos=2; CFG.allowShort=false; CFG.dailyLoss=3; CFG.maxTrades=6; CFG.maxConsec=3;
-  CFG.scan={US:false,PL:true,FX:true}; CFG.fees=defaultFees(); CFG.rates={USD:3.7,JPY:0.0245}; CFG.fxLev=30; CFG.autoSec=300; CFG.minHold=6; CFG.confirm=2; CFG.v5=1;
+  CFG.capital=500; CFG.risk=0.5; CFG.maxPos=2; CFG.allowShort=true; CFG.dailyLoss=2; CFG.maxTrades=8; CFG.maxConsec=3;
+  CFG.scan={US:false,EU:false,PL:false,FX:true}; CFG.fees=defaultFees(); CFG.rates={USD:3.7,JPY:0.0245}; CFG.fxLev=30; CFG.autoSec=300; CFG.minHold=6; CFG.confirm=2; CFG.v5=1;
   syncSettings(); reset();
 }
 syncSettings();
@@ -1680,4 +1673,5 @@ function btCsvRun(file){
 <script src="backtest-real.js"></script>
 <script src="daytrade-panel.js"></script>
 <script src="shadow-shorts.js"></script>
+<script src="dt-config.js"></script>
 </body></html>

@@ -79,8 +79,10 @@
     if (typeof global.fetchReal !== 'function' || global.fetchReal.__hard) return;
     var orig = global.fetchReal;
     global.fetchReal = async function (sym) {
-      var map = { EURUSD: 'EUR/USD', 'XAU/USD': 'XAU/USD', XAUUSD: 'XAU/USD' };
-      var req = map[sym] || sym;
+      // BUG (naprawiony): wczesniej EURUSD -> 'EUR/USD' szlo do fetchTwelve, ktory zapisywal dane i status LIVE pod kluczem 'EUR/USD',
+      // a bot czytal 'EURUSD' (symulacja, status "nie pobrano") -> EURUSD nigdy nie mial swiezej ceny, a scheduler pobieral go w kolko.
+      // Mapowanie symbol -> symbol Twelve robi live-prices.js (TD_MAP) i zapisuje pod kluczem bota.
+      var req = sym;
       var r = await orig.call(this, req);
       try {
         if (global.ST && global.ST.series && global.ST.series[req] && !global.ST.series[sym]) {
@@ -167,34 +169,12 @@
       if (!sessionOpenFixed(mkt)) return;
       var w = warsawParts();
       if (mkt === 'US' && w.min >= 21 * 60 + 30) return;
-      var riskCash = (ST.equity || CFG.capital || 0) * ((CFG.risk || 0.5) / 100);
-      var sd = (g.atr || g.price * 0.004) * 1.5;
-      if (sd <= 0) return;
-      var q = Math.floor(riskCash / sd);
-      if (q < 1) {
-        if (riskCash / sd < 0.85) return;
-        q = 1;
-      }
+      // Wczesniej tu nadpisywano rozmiar, stop (1.5xATR) i cel (3R) pozycji liczone przez strategy-pro
+      // (stop strukturalny, TP 1.5-2R, ksiegowosc marginu/FX) -> realna geometria nie miala nic wspolnego z backtestem.
+      // Teraz: tylko poslizg wejscia; stop/cel/wielkosc liczy WYLACZNIE strategy-pro.
       var entry = applySlip(g.price, g.side, true);
       var g2 = Object.assign({}, g, { price: entry });
-      var beforeKeys = Object.keys(ST.pos || {});
-      var ret = orig.call(this, g2);
-      var afterKeys = Object.keys(ST.pos || {});
-      var neu = afterKeys.filter(function (k) { return beforeKeys.indexOf(k) < 0; });
-      if (neu.length) {
-        var p = ST.pos[neu[0]];
-        if (p) {
-          if (p.qty > q && q >= 1) {
-            ST.cash += (p.qty - q) * p.entry;
-            p.qty = q;
-          }
-          p.entry = entry;
-          p.stop = g.side === 'LONG' ? entry - sd : entry + sd;
-          p.target = g.side === 'LONG' ? entry + 3 * sd : entry - 3 * sd;
-          p.risk0 = Math.abs(entry - p.stop);
-        }
-      }
-      return ret;
+      return orig.call(this, g2);
     };
     global.openPos.__hardOpen = true;
   }
@@ -248,12 +228,16 @@
         }
         var minH = CFG.minHold || 4;
         var inMin = p.bars < minH;
+        // swieca, w ktorej weszlismy, zawiera ruch sprzed wejscia -> na niej sprawdzamy tylko zamkniecie (inaczej falszywe stopy)
+        var onEntryBar = !!(p.openedAt && b.t <= p.openedAt);
+        var bLo = onEntryBar ? b.c : b.l, bHi = onEntryBar ? b.c : b.h;
+        var fillO = onEntryBar ? b.c : b.o;
         if (p.side === 'LONG') {
-          if (b.l <= stp0) { global.closePos(k, p.be ? 'BE-stop' : 'stop', Math.min(stp0, b.o)); continue; }
-          if (b.h >= p.target) { global.closePos(k, 'target', Math.max(p.target, b.o)); continue; }
+          if (bLo <= stp0) { global.closePos(k, p.be ? 'BE-stop' : 'stop', Math.min(stp0, fillO)); continue; }
+          if (bHi >= p.target) { global.closePos(k, 'target', Math.max(p.target, fillO)); continue; }
         } else {
-          if (b.h >= stp0) { global.closePos(k, p.be ? 'BE-stop' : 'stop', Math.max(stp0, b.o)); continue; }
-          if (b.l <= p.target) { global.closePos(k, 'target', Math.min(p.target, b.o)); continue; }
+          if (bHi >= stp0) { global.closePos(k, p.be ? 'BE-stop' : 'stop', Math.max(stp0, fillO)); continue; }
+          if (bLo <= p.target) { global.closePos(k, 'target', Math.min(p.target, fillO)); continue; }
         }
         if (!inMin && p.bars >= (CFG.timeStop || 60)) global.closePos(k, 'time-stop', b.c);
       }

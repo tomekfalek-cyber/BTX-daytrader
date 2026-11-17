@@ -15,12 +15,15 @@
 
   var TD_MAP = {
     'EURUSD': { symbol: 'EUR/USD' },
+    'GBPUSD': { symbol: 'GBP/USD' },
+    'USDJPY': { symbol: 'USD/JPY' },
+    'AUDUSD': { symbol: 'AUD/USD' },
     'XAUUSD': { symbol: 'XAU/USD' },
     'SIE.DE': { symbol: 'SIE', exchange: 'XETR' },
     'SAP': { symbol: 'SAP', exchange: 'XETR' },
     'ASML': { symbol: 'ASML', exchange: 'Euronext' }
   };
-  var REFRESH_MIN = { US: 5, EU: 5, FX: 10 };
+  var REFRESH_MIN = { US: 5, EU: 5, FX: 5 };   // daytrading: swieca 5 min = odswiezenie co 5 min (4 pary x 13 h x 12 = ~620 zapytan/dzien < 780)
 
   var info = {};
   var reqTimes = [];
@@ -196,6 +199,8 @@
       if (inf && inf.permanent && t - inf.errAt < 6 * 3600000) continue;
       if (inf && !inf.ok && inf.errAt && t - inf.errAt < 60000) continue;
       if (!sessionOpen(m.mkt) && inf && inf.ok) continue;
+      // poza oknem handlu strategii (FX 08:00-21:00 PL) nie wydajemy budzetu API (wczesniej: FX 01:00-23:00 -> budzet konczyl sie przed sesja USA)
+      try { var C0 = global.BTX_STRATEGY_CORE; if (C0 && inf && inf.ok && !C0.inSession(m.mkt || 'FX', t)) continue; } catch (e0) {}
       var age = inf && inf.fetchedAt ? t - inf.fetchedAt : Infinity;
       if (age < refreshMs(m)) continue;
       var score = age === Infinity ? 1e12 : age;

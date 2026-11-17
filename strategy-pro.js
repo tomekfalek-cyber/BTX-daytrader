@@ -349,6 +349,11 @@
     if (!g || g.side === 'WAIT') return { ok: false, reason: 'brak sygnalu' };
     if (!ST) return { ok: false, reason: 'brak stanu' };
     if (ST.blocked) return { ok: false, reason: 'blokada dnia' };
+    // limit dzienny liczony tu (jedno zrodlo prawdy) — flaga ST.blocked jest czyszczona przez nakladki UI, wiec nie mozna na niej polegac
+    if (PRO.dailyLossPct > 0 && ST.dayStart > 0 && ST.equity != null) {
+      var ddPct = (ST.equity - ST.dayStart) / ST.dayStart * 100;
+      if (ddPct <= -PRO.dailyLossPct) return { ok: false, reason: 'limit straty dnia (' + ddPct.toFixed(2) + '% <= -' + PRO.dailyLossPct + '%)' };
+    }
     var mk = marketOf(m), nb = newsBlocked(ts);
     if (nb.blocked && nb.label !== 'weekend') return { ok: false, reason: 'blokada news: ' + nb.label };
     if (!inSession(mk, ts) || sessionQuality(mk, ts) === 0) return { ok: false, reason: 'poza sesja / okno tylko-zarzadzanie' };
