@@ -1,5 +1,6 @@
 /**
- * Autonomia PRO — tylko jakościowe setupy (siła ≥ 3, score ≥ 60).
+ * Autonomia PRO — progi zsynchronizowane ze strategy / dt-config.
+ * Siła >= minStrengthOpen (domyślnie 2). LIVE sprawdza gateCheck przy openPos.
  */
 (function (global) {
   var STYLE = 'btx-autonomy-css';
@@ -31,21 +32,30 @@
     try { localStorage.setItem(LS_ON, v ? '1' : '0'); } catch (e) {}
   }
 
+  function minStr() {
+    var P = global.BTX_STRATEGY_PRO || global.BTX_PRO || {};
+    var n = P.minStrengthOpen != null ? +P.minStrengthOpen : 2;
+    return n > 0 ? n : 2;
+  }
+
   function gradeSetup(g) {
     var reasons = [];
-    var score = 40;
+    var score = 45;
     var str = (g && g.strength) || 0;
+    var need = minStr();
     if (!g || (g.side !== 'LONG' && g.side !== 'SHORT')) {
       return { pass: false, grade: 'REJECT', score: 0, reasons: ['brak kierunku'] };
     }
-    if (str < 3) reasons.push('siła < 3');
-    else score += str >= 5 ? 25 : (str >= 4 ? 18 : 10);
+    if (str < need) reasons.push('si\u0142a < ' + need);
+    else score += str >= 5 ? 25 : (str >= 4 ? 18 : (str >= 3 ? 12 : 8));
 
     try {
-      if (global.BTX_PRO6 && global.BTX_PRO6.dataGate) {
-        var d = global.BTX_PRO6.dataGate();
-        if (d.ok) score += 12;
-        else { reasons.push('dane nie-LIVE'); score -= 15; }
+      if (global.BTX_LIVE && global.BTX_LIVE.isFresh) {
+        if (global.BTX_LIVE.isFresh(g.sym)) score += 12;
+        else {
+          reasons.push('brak \u015bwie\u017cej ceny LIVE');
+          score -= 8;
+        }
       }
     } catch (e) {}
 
@@ -58,9 +68,19 @@
 
     if (global.ST && global.ST.blocked) reasons.push('limit dnia');
 
+    var why = (g.why || '') + '';
+    if (/ORB/i.test(why)) score += 5;
+
     score = Math.max(0, Math.min(100, score));
-    var pass = reasons.length === 0 && str >= 3 && score >= 60;
-    var grade = !pass ? 'REJECT' : (score >= 80 || str >= 5 ? 'A+' : 'A');
+    var hard = reasons.some(function (r) {
+      return r.indexOf('si') === 0 || r === 'limit dnia' || r === 'news HIGH' || r.indexOf('brak kierunku') === 0;
+    });
+    // si\u0142a: dopasuj do minStr (PL: "si\u0142a")
+    hard = reasons.some(function (r) {
+      return /si[l\u0142]a\s*</i.test(r) || r === 'limit dnia' || r === 'news HIGH' || r.indexOf('brak kierunku') === 0;
+    });
+    var pass = !hard && str >= need && score >= 50;
+    var grade = !pass ? 'REJECT' : (score >= 80 || str >= 5 ? 'A+' : (str >= 3 ? 'A' : 'B'));
     return { pass: pass, grade: grade, score: score, reasons: reasons };
   }
 
@@ -83,9 +103,10 @@
   function tryOpenBest() {
     var ST = global.ST;
     var CFG = global.CFG || {};
+    var P = global.BTX_STRATEGY_PRO || global.BTX_PRO || {};
     if (!ST || ST.blocked) return null;
-    if (Object.keys(ST.pos || {}).length >= (CFG.maxPos || 2)) return null;
-    if ((ST.dayTrades || 0) >= (CFG.maxTrades || 8)) return null;
+    if (Object.keys(ST.pos || {}).length >= (CFG.maxPos || P.maxPos || 3)) return null;
+    if ((ST.dayTrades || 0) >= (CFG.maxTrades || P.maxDayTrades || 10)) return null;
     var ranked = rankSignals();
     for (var i = 0; i < ranked.length; i++) {
       var r = ranked[i];
@@ -94,7 +115,7 @@
       if (ST.cool && ST.cool[r.g.sym] > 0) continue;
       if (typeof global.openPos === 'function') {
         global.openPos(r.g);
-        if (global.log) global.log('PRO autonomia OPEN ' + r.g.side + ' ' + r.g.sym + ' ' + r.gr.grade, 'g');
+        if (global.log) global.log('Autonomia OPEN ' + r.g.side + ' ' + r.g.sym + ' ' + r.gr.grade + ' s' + (r.g.strength || 0), 'g');
         return r;
       }
     }
@@ -112,10 +133,10 @@
   function start() {
     stop();
     setOn(true);
-    var sec = Math.max(120, Math.min(300, (global.CFG && global.CFG.autoSec) || 180));
+    var sec = Math.max(90, Math.min(300, (global.CFG && global.CFG.autoSec) || 180));
     tick();
     timer = setInterval(tick, sec * 1000);
-    if (global.toast) global.toast('Autonomia PRO ON (tylko A/A+)', 'ok');
+    if (global.toast) global.toast('Autonomia ON (si\u0142a \u2265 ' + minStr() + ')', 'ok');
   }
 
   function stop() {
@@ -140,15 +161,16 @@
     var el = ensurePanel();
     if (!el) return;
     var ranked = rankSignals();
+    var need = minStr();
     var html = '<h3>Autonomia PRO \u00b7 Signal Desk</h3>';
-    html += '<p class="why"><b>Dyscyplina:</b> tylko PASS (siła \u2265 3, score \u2265 60). Risk ' + ((global.BTX_PRO && global.BTX_PRO.riskPct) || 0.5) + '%. Max ' + ((global.BTX_PRO && global.BTX_PRO.maxDayTrades) || 8) + ' trade\u2019y/dzie\u0144. Limit straty ' + ((global.BTX_PRO && global.BTX_PRO.dailyLossPct) || 2) + '%.</p>';
+    html += '<p class="why"><b>Progi jak strategia:</b> si\u0142a \u2265 ' + need + ', \u015bcie\u017cka ORB dozwolona. LIVE sprawdza bramka przy otwarciu.</p>';
     html += '<div class="row">';
-    html += '<button type="button" class="btn" id="btx-auto-toggle">' + (isOn() ? 'Autonomia ON \u2713' : 'W\u0142\u0105cz autonomi\u0119 PRO') + '</button>';
+    html += '<button type="button" class="btn" id="btx-auto-toggle">' + (isOn() ? 'Autonomia ON \u2713' : 'W\u0142\u0105cz autonomi\u0119') + '</button>';
     html += '<button type="button" class="btn ghost" id="btx-auto-tick">Skan teraz</button>';
     html += '</div>';
     html += '<table><tr><th>Symbol</th><th>Strona</th><th>Si\u0142a</th><th>Score</th><th>Grade</th><th>Powody</th></tr>';
     if (!ranked.length) {
-      html += '<tr><td colspan="6">Brak LONG/SHORT — czekam na jako\u015b\u0107 (to normalne w PRO)</td></tr>';
+      html += '<tr><td colspan="6">Brak LONG/SHORT w sygnale \u2014 czekam (ORB / trend+RSI2)</td></tr>';
     } else {
       ranked.slice(0, 12).forEach(function (r) {
         var cls = r.gr.pass ? 'ok' : 'bad';
@@ -159,8 +181,8 @@
     }
     html += '</table>';
     el.innerHTML = html;
-    var t = document.getElementById('btx-auto-toggle');
-    if (t) t.onclick = function () {
+    var tg = document.getElementById('btx-auto-toggle');
+    if (tg) tg.onclick = function () {
       if (isOn()) { stop(); if (global.toast) global.toast('Autonomia OFF', 'info'); }
       else start();
       render();
