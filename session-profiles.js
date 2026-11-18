@@ -19,10 +19,7 @@
     };
   }
 
-  function suggestedProfile() {
-    // ALL: każdy instrument według własnej sesji (strategy-pro inSession)
-    return 'ALL';
-  }
+  function suggestedProfile() { return 'ALL'; }
 
   function autoOn() {
     try { return localStorage.getItem(LS_AUTO) !== '0'; } catch (e) { return true; }
@@ -134,13 +131,13 @@
     var files = [
       'readiness.js', 'pass-telegram-only.js', 'stop-day-control.js', 'status-fix.js',
       'why-zero.js', 'currency-ui.js', 'fix-learner-gate.js', 'force-paper-trade.js',
-      'force-all-markets.js'
+      'entry-path-boost.js', 'force-all-markets.js'
     ];
     files.forEach(function (src) {
       try {
         if (!document.querySelector('script[src*="' + src + '"]')) {
           var el = document.createElement('script');
-          el.src = src + '?v=allm1';
+          el.src = src + '?v=entry2';
           (document.body || document.documentElement).appendChild(el);
         }
       } catch (e) {}
@@ -148,6 +145,7 @@
     try {
       localStorage.setItem('BTX_SESSION_PROFILE', 'ALL');
       localStorage.setItem('BTX_TRADE_MODE', 'trade');
+      localStorage.setItem('BTX_AUTONOMY_ON', '1');
     } catch (e2) {}
   }
 
