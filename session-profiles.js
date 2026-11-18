@@ -1,5 +1,5 @@
 /**
- * Profile sesji — ALL + load APEX stack.
+ * Profile sesji — ALL + APEX stack + hygiene.
  */
 (function (global) {
   var LS = 'BTX_SESSION_PROFILE';
@@ -106,13 +106,14 @@
     var files = [
       'readiness.js', 'pass-telegram-only.js', 'stop-day-control.js', 'status-fix.js',
       'why-zero.js', 'currency-ui.js', 'fix-learner-gate.js', 'force-paper-trade.js',
-      'entry-path-boost.js', 'apex-daytrade.js', 'force-all-markets.js'
+      'entry-path-boost.js', 'apex-daytrade.js', 'force-all-markets.js',
+      'code-hygiene.js', 'engine-hardening-patch.js'
     ];
     files.forEach(function (src) {
       try {
         if (!document.querySelector('script[src*="' + src + '"]')) {
           var el = document.createElement('script');
-          el.src = src + '?v=apex1';
+          el.src = src + '?v=hyg1';
           (document.body || document.documentElement).appendChild(el);
         }
       } catch (e) {}
