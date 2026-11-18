@@ -1,58 +1,63 @@
 /**
- * BTX DT-CONFIG — daytrading (konto USD paper, US/EU/FX, świece 5 min).
- * Wersja entry: scoreMin 3, minStrength 2, minRvol 0.45, ORB path w entry-path-boost.
+ * BTX DT-CONFIG — APEX daytrading (mały portfel USD).
+ * risk 0.35%, TP 2R, max 2 poz., max 6/dzień, limit dnia 1.25%.
  */
 (function (global) {
   'use strict';
-  var VERSION = 'dtusd-2026-11-18-entry';
+  var VERSION = 'apex-2026-11-18';
   var LS_VER = 'BTX_DT_PROFILE_VERSION';
   var LS_OVR = 'BTX_DT_OVERRIDES';
 
   var PROFILE = {
     capital: 6800,
     pro: {
-      riskPct: 0.5,
-      maxPos: 3,
-      maxDayTrades: 10,
-      dailyLossPct: 2.0,
-      maxConsecLoss: 4,
+      riskPct: 0.35,
+      maxPos: 2,
+      maxDayTrades: 6,
+      dailyLossPct: 1.25,
+      maxConsecLoss: 3,
       scoreMin: 3,
-      primeExtra: 0,
+      primeExtra: 1,
       minStrengthOpen: 2,
-      minRvol: 0.45,
-      minNetRR: 1.1,
+      minRvol: 0.5,
+      minNetRR: 1.25,
       strictCore: true,
       requireTrend: false,
       allowShort: true,
-      tpR: 1.5,
+      tpR: 2.0,
       beR: 1.0,
       partialR: 99,
       partialFrac: 0,
-      coolBars: 2,
+      coolBars: 4,
       minHoldBars: 2,
-      timeStopBars: 36,
-      stopMinAtr: 1.5,
-      stopMaxAtr: 2.5,
-      stopAtr: { US: [0.9, 1.6], EU: [0.9, 1.6], FX: [1.5, 2.5] },
-      newsPadMin: 7,
-      closeBufferMin: 30,
-      flatBeforeCloseMin: 10
+      timeStopBars: 30,
+      stopMinAtr: 1.0,
+      stopMaxAtr: 2.0,
+      stopAtr: { US: [0.9, 1.5], EU: [0.9, 1.5], FX: [1.4, 2.2] },
+      newsPadMin: 10,
+      closeBufferMin: 25,
+      flatBeforeCloseMin: 12,
+      marketFilter: true,
+      orBars: 6
     },
     newsWindows: [
       { label: 'US dane 14:30 PL', min: 13 * 60 + 30 },
       { label: 'US dane 16:00 PL', min: 15 * 60 }
     ],
-    fxSession: { open: 7 * 60, close: 20 * 60, prime: [[7 * 60, 11 * 60], [13 * 60 + 30, 17 * 60]] },
+    fxSession: {
+      open: 7 * 60, close: 20 * 60,
+      prime: [[7 * 60 + 30, 11 * 60], [14 * 60 + 30, 17 * 60 + 30]]
+    },
     cfg: {
-      risk: 0.5, maxPos: 3, maxTrades: 10, dailyLoss: 2, maxConsec: 4, ccy: 'USD',
-      minHold: 2, timeStop: 36, autoSec: 180, allowShort: true,
-      fxLev: 30,
-      slip: 0.003,
+      risk: 0.35, maxPos: 2, maxTrades: 6, dailyLoss: 1.25, maxConsec: 3,
+      minHold: 2, timeStop: 30, autoSec: 120, allowShort: true,
+      fxLev: 30, slip: 0.004, ccy: 'USD',
       scan: { US: true, EU: true, PL: false, FX: true },
       rates: { USD: 1, JPY: 0.0067, EUR: 1.08 },
       fracStep: 0.01
     },
-    fxFees: { comm: 0, conv: 0, spread: 0.012, slip: 0.003 }
+    fxFees: { comm: 0, conv: 0, spread: 0.012, slip: 0.004 },
+    priority: ['SPY', 'QQQ', 'EURUSD', 'NVDA', 'AAPL', 'META', 'TSLA', 'GBPUSD', 'ASML', 'USDJPY', 'SAP', 'SIE.DE']
   };
 
   function merge(dst, src) { Object.keys(src || {}).forEach(function (k) { dst[k] = src[k]; }); return dst; }
@@ -66,22 +71,23 @@
       merge(PRO, PROFILE.pro);
       PRO.newsWindows = PROFILE.newsWindows.slice();
       if (PRO.sessions) PRO.sessions.FX = merge({}, PROFILE.fxSession);
-      merge(PRO, o.pro);
+      merge(PRO, o.pro || {});
     }
     if (CFG) {
       var c = PROFILE.cfg;
       ['risk', 'maxPos', 'maxTrades', 'dailyLoss', 'maxConsec', 'minHold', 'timeStop', 'autoSec', 'allowShort', 'fxLev'].forEach(function (k) { CFG[k] = c[k]; });
-      CFG.ccy = c.ccy || CFG.ccy;
-      CFG.scan = merge({ US: true, EU: true, PL: false, FX: true }, c.scan || {});
-      if (force || CFG.slip == null || CFG.slip > 0.01) CFG.slip = c.slip;
+      CFG.ccy = 'USD';
+      CFG.scan = { US: true, EU: true, PL: false, FX: true };
+      if (force || CFG.slip == null || CFG.slip > 0.02) CFG.slip = c.slip;
       if (force || !CFG.rates) CFG.rates = merge({}, c.rates);
-      CFG.fracStep = c.fracStep;
+      CFG.fracStep = 0.01;
       CFG.fees = CFG.fees || {};
       if (force || !CFG.fees.FX) CFG.fees.FX = merge({}, PROFILE.fxFees);
-      if (!CFG.fees.US) CFG.fees.US = { comm: 0, conv: 0, spread: 0.03, slip: 0.02 };
-      if (!CFG.fees.EU) CFG.fees.EU = { comm: 0, conv: 0.5, spread: 0.03, slip: 0.02 };
-      merge(CFG, o.cfg);
+      if (force || !CFG.fees.US) CFG.fees.US = { comm: 0, conv: 0, spread: 0.025, slip: 0.015 };
+      if (force || !CFG.fees.EU) CFG.fees.EU = { comm: 0, conv: 0.35, spread: 0.03, slip: 0.015 };
+      merge(CFG, o.cfg || {});
       CFG.scan.US = true; CFG.scan.EU = true; CFG.scan.FX = true;
+      CFG.ccy = 'USD';
     }
     return { PRO: PRO, CFG: CFG };
   }
@@ -108,7 +114,7 @@
     if (ls.getItem(LS_VER) === VERSION) return false;
     ['BTX_STOP_DAY', 'BTX_STOP_FOR_DAY', 'BTX_STOPPED', 'BTX_BLACKLIST_DAY'].forEach(function (k) { try { ls.removeItem(k); } catch (e) {} });
     ls.setItem('BTX_TRADE_MODE', 'trade');
-    ls.setItem('BTX_ALLOW_STOP_DAY', '0');
+    ls.setItem('BTX_ALLOW_STOP_DAY', '1');
     ls.setItem('BTX_AUTONOMY_ON', '1');
     ls.setItem('BTX_SESSION_PROFILE', 'ALL');
     applyTo(global.BTX_STRATEGY_PRO || global.BTX_PRO, global.CFG, true);
@@ -119,7 +125,7 @@
       global.ST.dayStart = global.ST.equity;
     }
     try { if (typeof global.save === 'function') global.save(); } catch (e2) {}
-    try { if (typeof global.log === 'function') global.log('Profil ' + VERSION + ': paper ' + PROFILE.capital + ' USD \u00b7 entry ORB+score3', 'g'); } catch (e3) {}
+    try { if (typeof global.log === 'function') global.log('APEX ' + VERSION + ': ' + PROFILE.capital + ' USD \u00b7 risk 0.35% \u00b7 TP 2R \u00b7 max 6/dzie\u0144', 'g'); } catch (e3) {}
     try { if (typeof global.render === 'function') global.render(); } catch (e4) {}
     ls.setItem(LS_VER, VERSION);
     return true;
@@ -161,9 +167,8 @@
     global.render.__dtCcy = true;
   }
 
-  global.BTX_DT = { VERSION: VERSION, PROFILE: PROFILE, applyTo: applyTo, apply: apply, migrate: migrate };
+  global.BTX_DT = { VERSION: VERSION, PROFILE: PROFILE, applyTo: applyTo, apply: apply, migrate: migrate, priority: PROFILE.priority };
   if (typeof document === 'undefined') return;
-
   function boot() {
     apply(); patchClose(); patchRate(); patchRender();
     setTimeout(function () { try { migrate(); } catch (e) {} apply(); }, 2500);

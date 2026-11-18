@@ -1,5 +1,5 @@
 /**
- * Profile sesji — domyślnie ALL (US+EU+FX według własnych godzin sesji).
+ * Profile sesji — ALL + load APEX stack.
  */
 (function (global) {
   var LS = 'BTX_SESSION_PROFILE';
@@ -18,15 +18,9 @@
       label: (map.weekday || '') + ' ' + map.hour + ':' + map.minute
     };
   }
-
   function suggestedProfile() { return 'ALL'; }
-
-  function autoOn() {
-    try { return localStorage.getItem(LS_AUTO) !== '0'; } catch (e) { return true; }
-  }
-  function setAuto(on) {
-    try { localStorage.setItem(LS_AUTO, on ? '1' : '0'); } catch (e) {}
-  }
+  function autoOn() { try { return localStorage.getItem(LS_AUTO) !== '0'; } catch (e) { return true; } }
+  function setAuto(on) { try { localStorage.setItem(LS_AUTO, on ? '1' : '0'); } catch (e) {} }
   function getProfile() {
     if (autoOn()) {
       var s = suggestedProfile();
@@ -39,47 +33,37 @@
     if (['RANO', 'US', 'ALL'].indexOf(p) < 0) p = 'ALL';
     try { localStorage.setItem(LS, p); } catch (e) {}
   }
-
   function mktOf(sym) {
     var list = (global.BTX_CANON && global.BTX_CANON.list) || (global.SYMBOLS || []);
-    for (var i = 0; i < list.length; i++) {
-      if (list[i].s === sym) return list[i].mkt || 'US';
-    }
+    for (var i = 0; i < list.length; i++) if (list[i].s === sym) return list[i].mkt || 'US';
     if (/EUR|GBP|USDJPY|AUDUSD/.test(sym)) return 'FX';
     if (/ASML|SAP|SIE/.test(sym)) return 'EU';
     return 'US';
   }
-
   function allowedSym(sym) {
-    var p = getProfile();
-    var m = mktOf(sym);
+    var p = getProfile(), m = mktOf(sym);
     if (p === 'ALL') return true;
     if (p === 'RANO') return m === 'EU' || m === 'FX' || m === 'PL';
     if (p === 'US') return m === 'US' || m === 'FX';
     return true;
   }
-
   function patchSignals() {
     if (typeof global.signals !== 'function' || global.signals.__prof) return;
     var orig = global.signals;
     global.signals = function () {
-      var out = orig.apply(this, arguments) || [];
-      return out.filter(function (g) { return g && allowedSym(g.sym); });
+      return (orig.apply(this, arguments) || []).filter(function (g) { return g && allowedSym(g.sym); });
     };
     global.signals.__prof = true;
   }
-
   function patchRank() {
     if (global.BTX_AUTONOMY && global.BTX_AUTONOMY.rankSignals && !global.BTX_AUTONOMY.rankSignals.__prof) {
       var orig = global.BTX_AUTONOMY.rankSignals;
       global.BTX_AUTONOMY.rankSignals = function () {
-        var ranked = orig.apply(this, arguments) || [];
-        return ranked.filter(function (r) { return r && r.g && allowedSym(r.g.sym); });
+        return (orig.apply(this, arguments) || []).filter(function (r) { return r && r.g && allowedSym(r.g.sym); });
       };
       global.BTX_AUTONOMY.rankSignals.__prof = true;
     }
   }
-
   function patchOpen() {
     if (typeof global.openPos !== 'function' || global.openPos.__prof) return;
     var orig = global.openPos;
@@ -89,7 +73,6 @@
     };
     global.openPos.__prof = true;
   }
-
   function ensureHost() {
     var el = document.getElementById(ROOT);
     var pane = document.getElementById('pane-desk');
@@ -103,15 +86,12 @@
     }
     return el;
   }
-
   function render() {
     var el = ensureHost();
     if (!el) return;
-    var p = getProfile();
-    var w = warsaw();
-    el.innerHTML =
-      '<div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between">' +
-      '<div><b style="color:#93c5fd">Profil sesji</b> \u00b7 ' + w.label + ' PL \u00b7 ALL = US+EU+FX</div>' +
+    var p = getProfile(), w = warsaw();
+    el.innerHTML = '<div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between">' +
+      '<div><b style="color:#93c5fd">Profil sesji</b> \u00b7 ' + w.label + ' PL \u00b7 ALL</div>' +
       '<div style="display:flex;gap:6px">' +
       ['RANO', 'US', 'ALL'].map(function (x) {
         var on = p === x;
@@ -119,25 +99,20 @@
           (on ? 'background:#2563eb;color:#fff' : 'background:#334155;color:#e2e8f0') + '">' + x + '</button>';
       }).join('') + '</div></div>';
     el.querySelectorAll('button[data-p]').forEach(function (btn) {
-      btn.onclick = function () {
-        setAuto(false);
-        setProfile(btn.getAttribute('data-p'));
-        render();
-      };
+      btn.onclick = function () { setAuto(false); setProfile(btn.getAttribute('data-p')); render(); };
     });
   }
-
   function loadExtras() {
     var files = [
       'readiness.js', 'pass-telegram-only.js', 'stop-day-control.js', 'status-fix.js',
       'why-zero.js', 'currency-ui.js', 'fix-learner-gate.js', 'force-paper-trade.js',
-      'entry-path-boost.js', 'force-all-markets.js'
+      'entry-path-boost.js', 'apex-daytrade.js', 'force-all-markets.js'
     ];
     files.forEach(function (src) {
       try {
         if (!document.querySelector('script[src*="' + src + '"]')) {
           var el = document.createElement('script');
-          el.src = src + '?v=entry2';
+          el.src = src + '?v=apex1';
           (document.body || document.documentElement).appendChild(el);
         }
       } catch (e) {}
@@ -148,21 +123,10 @@
       localStorage.setItem('BTX_AUTONOMY_ON', '1');
     } catch (e2) {}
   }
-
   function boot() {
-    getProfile();
-    patchSignals();
-    patchRank();
-    patchOpen();
-    render();
-    loadExtras();
-    setInterval(function () {
-      patchSignals();
-      patchRank();
-      patchOpen();
-    }, 30000);
+    getProfile(); patchSignals(); patchRank(); patchOpen(); render(); loadExtras();
+    setInterval(function () { patchSignals(); patchRank(); patchOpen(); }, 30000);
   }
-
   global.BTX_SESSION_PROFILE = { get: getProfile, set: setProfile, allowed: allowedSym, suggested: suggestedProfile, autoOn: autoOn };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();
