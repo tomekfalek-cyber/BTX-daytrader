@@ -1,5 +1,5 @@
 /**
- * Entry path boost: progi A + ścieżka ORB B (gdy strategy zwróci WAIT).
+ * Entry path boost: ORB path B gdy strategy zwróci WAIT. Nie obniża progów APEX.
  */
 (function (global) {
   'use strict';
@@ -9,10 +9,10 @@
   function applyPro() {
     var P = global.BTX_STRATEGY_PRO || global.BTX_PRO;
     if (!P) return;
-    P.scoreMin = Math.min(P.scoreMin != null ? P.scoreMin : 4, 3);
-    P.primeExtra = 0;
-    P.minStrengthOpen = Math.min(P.minStrengthOpen != null ? P.minStrengthOpen : 3, 2);
-    if (P.minRvol == null || P.minRvol > 0.45) P.minRvol = 0.45;
+    if (P.scoreMin == null) P.scoreMin = 3;
+    if (P.primeExtra == null) P.primeExtra = 1;
+    if (P.minStrengthOpen == null) P.minStrengthOpen = 2;
+    if (P.minRvol == null) P.minRvol = 0.5;
   }
 
   function sma(arr, n) {
@@ -60,21 +60,15 @@
     }
     var extHi = (c - hi) / a, extLo = (lo - c) / a;
     if (c > hi && c > s20 && trend >= 1 && extHi >= 0 && extHi <= 1.0) {
-      g.side = 'LONG';
-      g.strength = 2;
+      g.side = 'LONG'; g.strength = 2;
       g.why = 'ORB path \u00b7 HTF up \u00b7 wybicie zakresu otwarcia';
-      g.sym = g.sym || m.s;
-      g.price = c;
-      g.atr = a;
+      g.sym = g.sym || m.s; g.price = c; g.atr = a;
       if (!g._pro) g._pro = { scoreL: 3, scoreS: 0, need: 3, veto: '', t15: trend };
       else { g._pro.scoreL = Math.max(g._pro.scoreL || 0, 3); g._pro.need = Math.min(g._pro.need || 3, 3); g._pro.veto = ''; }
     } else if (allowShort && c < lo && c < s20 && trend <= -1 && extLo >= 0 && extLo <= 1.0) {
-      g.side = 'SHORT';
-      g.strength = 2;
+      g.side = 'SHORT'; g.strength = 2;
       g.why = 'ORB path \u00b7 HTF down \u00b7 wybicie zakresu otwarcia';
-      g.sym = g.sym || m.s;
-      g.price = c;
-      g.atr = a;
+      g.sym = g.sym || m.s; g.price = c; g.atr = a;
       if (!g._pro) g._pro = { scoreL: 0, scoreS: 3, need: 3, veto: '', t15: trend };
       else { g._pro.scoreS = Math.max(g._pro.scoreS || 0, 3); g._pro.need = Math.min(g._pro.need || 3, 3); g._pro.veto = ''; }
     }
@@ -95,8 +89,7 @@
           g._pro = {
             scoreL: g.side === 'LONG' ? Math.max(3, (g.strength || 2) * 2) : 0,
             scoreS: g.side === 'SHORT' ? Math.max(3, (g.strength || 2) * 2) : 0,
-            need: 3,
-            veto: ''
+            need: 3, veto: ''
           };
         }
       } catch (e) {}
@@ -106,10 +99,7 @@
     global.evaluate.__entryBoost = true;
   }
 
-  function boot() {
-    install();
-    setInterval(install, 4000);
-  }
+  function boot() { install(); setInterval(install, 4000); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();
 })(typeof window !== 'undefined' ? window : globalThis);
