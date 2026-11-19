@@ -1,14 +1,14 @@
 /**
- * Gate LIVE (daytrade): 20 min, nie blokuj całości gdy jest jakikolwiek LIVE
+ * LIVE gate — preferuj LIVE, ale nie blokuj calego daytradingu paper.
+ * Bez LIVE: sygnaly dzialaja na serii (paper), z nizsza pewnoscia.
  */
 (function (global) {
-  var MAX_AGE_MS = 20 * 60 * 1000;
+  var MAX_AGE_MS = 45 * 60 * 1000;
 
   function isSymLive(sym) {
     var ST = global.ST;
-    if (!ST) return false;
-    if (ST.liveSource && ST.liveSource[sym] && Date.now() - ST.liveSource[sym] < MAX_AGE_MS) return true;
-    return false;
+    if (!ST || !ST.liveSource || !ST.liveSource[sym]) return false;
+    return Date.now() - ST.liveSource[sym] < MAX_AGE_MS;
   }
 
   function anyLive() {
@@ -27,24 +27,28 @@
     global.__BTX_LAST_LIVE_TS = Date.now();
   }
 
-  function patchCycleNoSynth() {
-    if (typeof global.evaluate !== 'function' || global.evaluate.__liveGate) return;
+  function patchEvaluate() {
+    if (typeof global.evaluate !== 'function' || global.evaluate.__liveGate2) return;
     var orig = global.evaluate;
     global.evaluate = function (m) {
-      var sym = m && (m.s || m.sym);
-      if (sym && !isSymLive(sym) && !anyLive()) {
-        return {
-          sym: sym,
-          side: 'WAIT',
-          strength: 0,
-          price: (m && m.b) || 0,
-          why: 'Brak LIVE — brak sygnału',
-          liveBlocked: true
-        };
+      var g = orig.apply(this, arguments);
+      if (!g) return g;
+      var sym = g.sym || (m && m.s);
+      var live = sym && isSymLive(sym);
+      if (!live) {
+        g.liveBlocked = !anyLive();
+        if (g.side === 'LONG' || g.side === 'SHORT') {
+          // paper / seria — nie kasuj sygnalu, tylko oznacz
+          g.why = (g.why || '') + (g.why ? ' · ' : '') + (anyLive() ? 'seria (brak LIVE tego symbolu)' : 'paper/seria');
+          if ((g.strength || 0) > 2) g.strength = 2; // ostrozniej bez LIVE
+        }
+      } else {
+        g.liveOk = true;
       }
-      return orig.apply(this, arguments);
+      return g;
     };
-    global.evaluate.__liveGate = true;
+    try { Object.keys(orig).forEach(function (k) { global.evaluate[k] = orig[k]; }); } catch (e) {}
+    global.evaluate.__liveGate2 = true;
   }
 
   function patchFetch() {
@@ -59,12 +63,9 @@
   }
 
   function boot() {
-    patchCycleNoSynth();
+    patchEvaluate();
     patchFetch();
-    setInterval(function () {
-      patchCycleNoSynth();
-      patchFetch();
-    }, 5000);
+    setInterval(function () { patchEvaluate(); patchFetch(); }, 4000);
   }
 
   global.BTX_LIVE_GATE = { isSymLive: isSymLive, mark: markFromSeries, anyLive: anyLive };
