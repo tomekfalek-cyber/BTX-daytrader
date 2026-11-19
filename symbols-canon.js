@@ -36,7 +36,25 @@
   }
 
   function apply() {
-    try { global.SYMBOLS = LIST.map(toSym); } catch (e) {}
+    try {
+      global.SYMBOLS = LIST.map(toSym);
+      // uzupewnij selecty UI
+      ['chart-sym', 'ai-sym'].forEach(function (id) {
+        var sel = document.getElementById(id);
+        if (!sel) return;
+        var cur = sel.value;
+        var have = {};
+        for (var i = 0; i < sel.options.length; i++) have[sel.options[i].value] = true;
+        LIST.forEach(function (m) {
+          if (!have[m.s]) {
+            var o = document.createElement('option');
+            o.value = m.s; o.textContent = m.s + ' — ' + m.n;
+            sel.appendChild(o);
+          }
+        });
+        if (cur) sel.value = cur;
+      });
+    } catch (e) {}
   }
 
   global.BTX_CANON = {
