@@ -16,11 +16,11 @@
     riskPct: 0.5, maxPos: 2, dailyLossPct: 1.5, maxConsecLoss: 3, maxDayTrades: 6,
     atrSlMult: 1.2, tpR: 1.6, beR: 0.8, partialR: 1.0, partialFrac: 0.5,
     minStrengthOpen: 2, coolBars: 4, minHoldBars: 2, requireTrend: false, newsPadMin: 10,
-    scoreMin: 3, minNetRR: 1.15, orBars: 6, timeStopBars: 24, closeBufferMin: 45, flatBeforeCloseMin: 10,
+    scoreMin: 3, minNetRR: 1.15, orBars: 6, timeStopBars: 24, closeBufferMin: 15, flatBeforeCloseMin: 10,
     // Warunki daytradingowe (precyzja > liczba transakcji)
     allowShort: true,       // shorty wlaczone (paper). Krotka sprzedaz = CFD: koszt bez konwersji walut, pozycje tylko intraday
-    strictCore: true,       // otwieraj tylko, gdy RDZEN strategii daje score >= prog (nakladki "TradeNow"/"DT mode" nie obnizaja progu)
-    primeExtra: 1,          // poza oknami prime wymagany score o tyle wyzszy
+    strictCore: false,       // otwieraj tylko, gdy RDZEN strategii daje score >= prog (nakladki "TradeNow"/"DT mode" nie obnizaja progu)
+    primeExtra: 0,          // poza oknami prime wymagany score o tyle wyzszy
     minRvol: 0.45,           // min. wzgledny wolumen (ostatnie 3 swiece vs 20 wczesniejszych) dla akcji/ETF
     marketFilter: true,     // akcje USA: kierunek zgodny z trendem 15m SPY
     stopSwingBars: 8, stopMinAtr: 0.9, stopMaxAtr: 1.6, // stop za ostatnim swingiem, ale w widelkach ATR
@@ -270,11 +270,11 @@
     var veto = '', rvol = (mkt === 'FX') ? null : rvolOf(b), marketTrend = null;
     if (g.side !== 'WAIT' && rvol != null && rvol < PRO.minRvol) veto = 'niski wolumen (RVOL ' + rvol.toFixed(2) + ' < ' + PRO.minRvol + ')';
     if (!veto && g.side !== 'WAIT' && PRO.marketFilter && mkt === 'US' && m.s !== 'SPY' && m.s !== 'QQQ' && opts.marketBars !== undefined) {
-      if (!opts.marketBars || opts.marketBars.length < 63) veto = 'brak danych SPY (filtr rynku)';
-      else {
+      if (opts.marketBars && opts.marketBars.length >= 63) {
         marketTrend = htfTrend(opts.marketBars).trend;
-        if (g.side === 'LONG' && marketTrend <= -1) veto = 'rynek przeciwny: SPY 15m w dol';
-        if (g.side === 'SHORT' && marketTrend >= 1) veto = 'rynek przeciwny: SPY 15m w gore';
+        // tylko mocny trend przeciwny blokuje
+        if (g.side === 'LONG' && marketTrend <= -2) veto = 'rynek mocno przeciwny: SPY';
+        if (g.side === 'SHORT' && marketTrend >= 2) veto = 'rynek mocno przeciwny: SPY';
       }
     }
     if (veto) { g.side = 'WAIT'; g.strength = 0; g.why = 'veto: ' + veto; }
@@ -315,8 +315,8 @@
     var o = { allowShort: !!PRO.allowShort };
     if (PRO.marketFilter && marketOf(m) === 'US' && m.s !== 'SPY' && m.s !== 'QQQ') {
       var spy = global.ST && global.ST.series && global.ST.series.SPY;
-      var fresh = !global.BTX_LIVE || !global.BTX_LIVE.isFresh || global.BTX_LIVE.isFresh('SPY');
-      o.marketBars = (spy && fresh) ? spy : null;
+      // seria SPY wystarczy (paper/LIVE) — wczesniej brak LIVE SPY = veto wszystkich US
+      o.marketBars = (spy && spy.length >= 63) ? spy : null;
     }
     return o;
   }
