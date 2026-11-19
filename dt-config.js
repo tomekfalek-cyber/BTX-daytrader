@@ -19,9 +19,9 @@
       scoreMin: 3,
       primeExtra: 0,
       minStrengthOpen: 2,
-      minRvol: 0.45,
+      minRvol: 0.35,
       minNetRR: 1.25,
-      strictCore: true,
+      strictCore: false,
       requireTrend: false,
       allowShort: true,
       tpR: 2.0,
@@ -35,7 +35,7 @@
       stopMaxAtr: 2.0,
       stopAtr: { US: [0.9, 1.5], EU: [0.9, 1.5], FX: [1.4, 2.2] },
       newsPadMin: 10,
-      closeBufferMin: 25,
+      closeBufferMin: 15,
       flatBeforeCloseMin: 12,
       marketFilter: true,
       orBars: 6
@@ -57,7 +57,7 @@
       fracStep: 0.01
     },
     fxFees: { comm: 0, conv: 0, spread: 0.012, slip: 0.004 },
-    priority: ['SPY', 'QQQ', 'EURUSD', 'NVDA', 'AAPL', 'META', 'TSLA', 'GBPUSD', 'ASML', 'USDJPY', 'SAP', 'SIE.DE']
+    priority: ['SPY', 'QQQ', 'EURUSD', 'ANT', 'NVDA', 'AAPL', 'META', 'TSLA', 'GBPUSD', 'ASML', 'USDJPY', 'SAP', 'SIE.DE']
   };
 
   function merge(dst, src) { Object.keys(src || {}).forEach(function (k) { dst[k] = src[k]; }); return dst; }
