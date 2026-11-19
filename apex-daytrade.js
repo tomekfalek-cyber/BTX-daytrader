@@ -78,7 +78,7 @@
   function tryOpen() {
     if (!canTradeMore()) return null;
     var need = P().minStrengthOpen || 2;
-    if (!inPrimeRough()) need = Math.max(need, 3);
+    if (!inPrimeRough()) need = Math.max(need, 2);
     var ranked = rank();
     for (var i = 0; i < ranked.length; i++) {
       var r = ranked[i];
