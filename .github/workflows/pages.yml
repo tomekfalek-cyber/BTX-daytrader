@@ -34,9 +34,11 @@ jobs:
       - name: Wszystkie <script src> z index.html istnieja
         run: |
           fail=0
-          for s in $(grep -o '<script src="[^"]*"' index.html | sed 's/.*src="//;s/"$//'); do
+          for s in $(grep -oE '<script[^>]+src="[^"]+"' index.html | sed -E 's/.*src="//;s/"$//'); do
             case "$s" in http*) continue;; esac
-            if [ ! -f "$s" ]; then echo "BRAK $s"; fail=1; fi
+            # cache-bust ?v=... nie jest czescia nazwy pliku
+            f="${s%%\?*}"
+            if [ ! -f "$f" ]; then echo "BRAK $s (plik $f)"; fail=1; fi
           done
           exit $fail
       - name: Testy
