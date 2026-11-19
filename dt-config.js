@@ -17,9 +17,9 @@
       dailyLossPct: 1.25,
       maxConsecLoss: 3,
       scoreMin: 3,
-      primeExtra: 1,
+      primeExtra: 0,
       minStrengthOpen: 2,
-      minRvol: 0.5,
+      minRvol: 0.45,
       minNetRR: 1.25,
       strictCore: true,
       requireTrend: false,
@@ -114,7 +114,7 @@
     if (ls.getItem(LS_VER) === VERSION) return false;
     ['BTX_STOP_DAY', 'BTX_STOP_FOR_DAY', 'BTX_STOPPED', 'BTX_BLACKLIST_DAY'].forEach(function (k) { try { ls.removeItem(k); } catch (e) {} });
     ls.setItem('BTX_TRADE_MODE', 'trade');
-    ls.setItem('BTX_ALLOW_STOP_DAY', '1');
+    ls.setItem('BTX_ALLOW_STOP_DAY', '0');
     ls.setItem('BTX_AUTONOMY_ON', '1');
     ls.setItem('BTX_SESSION_PROFILE', 'ALL');
     applyTo(global.BTX_STRATEGY_PRO || global.BTX_PRO, global.CFG, true);
