@@ -215,10 +215,19 @@ details.gl p{margin-top:10px;line-height:1.75;color:var(--tx2);font-size:12.8px}
 <script src="strategy-pro.js"></script>
 <script>
 var SYMBOLS=[
-{s:'EURUSD',n:'EUR/USD',t:'FX',b:1.08,v:0.00035,mkt:'FX'},
-{s:'GBPUSD',n:'GBP/USD',t:'FX',b:1.27,v:0.0004,mkt:'FX'},
-{s:'USDJPY',n:'USD/JPY',t:'FX',b:150,v:0.0004,mkt:'FX'},
-{s:'AUDUSD',n:'AUD/USD',t:'FX',b:0.65,v:0.0004,mkt:'FX'}
+{s:'NVDA',n:'NVIDIA',t:'Akcja',b:140,v:0.0022,mkt:'US',ccy:'USD'},
+{s:'ANT',n:'Anthropic',t:'Akcja',b:83,v:0.0035,mkt:'US',ccy:'USD'},
+{s:'TSLA',n:'Tesla',t:'Akcja',b:250,v:0.0024,mkt:'US',ccy:'USD'},
+{s:'META',n:'Meta Platforms',t:'Akcja',b:580,v:0.0018,mkt:'US',ccy:'USD'},
+{s:'AAPL',n:'Apple',t:'Akcja',b:230,v:0.0014,mkt:'US',ccy:'USD'},
+{s:'QQQ',n:'Nasdaq 100 ETF',t:'ETF',b:480,v:0.0012,mkt:'US',ccy:'USD'},
+{s:'SPY',n:'S&P 500 ETF',t:'ETF',b:560,v:0.0009,mkt:'US',ccy:'USD'},
+{s:'ASML',n:'ASML Holding',t:'Akcja',b:700,v:0.0018,mkt:'EU',ccy:'EUR'},
+{s:'SAP',n:'SAP SE',t:'Akcja',b:220,v:0.0015,mkt:'EU',ccy:'EUR'},
+{s:'SIE.DE',n:'Siemens',t:'Akcja',b:180,v:0.0014,mkt:'EU',ccy:'EUR'},
+{s:'EURUSD',n:'EUR/USD',t:'FX',b:1.08,v:0.00035,mkt:'FX',ccy:'USD'},
+{s:'GBPUSD',n:'GBP/USD',t:'FX',b:1.27,v:0.0004,mkt:'FX',ccy:'USD'},
+{s:'USDJPY',n:'USD/JPY',t:'FX',b:150,v:0.0004,mkt:'FX',ccy:'JPY'}
 ];
 var CFG={capital:100000,risk:1,maxPos:4,allowShort:false};
 var ST={equity:100000,cash:100000,pos:{},closed:[],sig:[],log:[],eq:[],series:{},n:0,cool:{}};
@@ -1665,4 +1674,5 @@ function btCsvRun(file){
 <script src="apex-daytrade.js?v=hyg1"></script>
 <script src="code-hygiene.js?v=hyg1"></script>
 <script src="engine-hardening-patch.js?v=hyg1"></script>
+<script src="universe-sync.js?v=ant3"></script>
 </body></html>
