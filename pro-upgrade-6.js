@@ -116,7 +116,7 @@
       return { ok: false, mode: 'error', label: 'BŁĄD DANYCH', tip: String(lastErr).slice(0, 120), blockSignals: true };
     }
     if (!live || prov === 'demo' || (!key && prov === 'twelve')) {
-      return { ok: false, mode: 'demo', label: 'DEMO', tip: 'Brak LIVE Twelve — sygnały tylko edukacyjne, nie do XTB', blockSignals: true };
+      return { ok: true, mode: 'paper', label: 'PAPER', tip: 'Brak LIVE Twelve — paper trading OK (nie kopiuj na XTB bez LIVE)', blockSignals: false };
     }
     if (prov === 'stooq') {
       return { ok: false, mode: 'eod', label: 'EOD STOOQ', tip: 'Za wolne pod daytrading', blockSignals: true };
@@ -265,16 +265,12 @@
       g.pro6.blocked = blocks.length > 0;
       g.pro6.blockReasons = blocks;
       g.pro6.clusters = clusterOf(g.sym);
+      // paper: nie kasuj sygnalu — tylko dopisz powod
       if (g.pro6.blocked && (g.side === 'LONG' || g.side === 'SHORT')) {
-        // nie kasuj całkowicie — oznacz i obniż siłę / zmień na WAIT przy twardym gate danych
-        if (gate.blockSignals || news.blocked) {
-          g._sideBeforePro6 = g._sideBeforePro6 || g.side;
-          g.side = 'WAIT';
-          g.why = (g.why || '') + ' | BLOK: ' + blocks.join('; ');
-        } else if (corr && corr.blocked) {
-          g.strength = Math.min(g.strength || 0, 3);
-          g.why = (g.why || '') + ' | ' + corr.reason;
-        }
+        g.why = (g.why ? g.why + ' · ' : '') + (blocks[0] || 'uwaga');
+      }
+      if (corr && corr.blocked && (g.side === 'LONG' || g.side === 'SHORT')) {
+        g.strength = Math.min(g.strength || 0, 3);
       }
     });
   }
