@@ -26,7 +26,7 @@
     try {
       if (global.BTX_LIVE && global.BTX_LIVE.isFresh) {
         if (global.BTX_LIVE.isFresh(g.sym)) score += 12;
-        else { reasons.push('brak swiezej ceny LIVE'); score -= 10; }
+        else { reasons.push('brak LIVE (paper OK)'); score -= 4; }
       }
     } catch (e) {}
     if (global.ST && global.ST.blocked) reasons.push('limit dnia');
@@ -34,7 +34,7 @@
     if (global.BTX_APEX && global.BTX_APEX.qualityScore) score += Math.max(0, Math.min(20, Math.round((global.BTX_APEX.qualityScore(g) || 0) / 5)));
     score = Math.max(0, Math.min(100, score));
     var hard = reasons.some(function (r) { return r.indexOf('sila') === 0 || r === 'limit dnia' || r.indexOf('brak kierunku') === 0; });
-    var pass = !hard && str >= need && score >= 52;
+    var pass = !hard && str >= need && score >= 48;
     var grade = !pass ? 'REJECT' : (score >= 80 || str >= 5 ? 'A+' : (str >= 3 ? 'A' : 'B'));
     return { pass: pass, grade: grade, score: score, reasons: reasons };
   }
