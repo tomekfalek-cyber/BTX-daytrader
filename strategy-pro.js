@@ -21,7 +21,7 @@
     allowShort: true,       // shorty wlaczone (paper). Krotka sprzedaz = CFD: koszt bez konwersji walut, pozycje tylko intraday
     strictCore: false,       // otwieraj tylko, gdy RDZEN strategii daje score >= prog (nakladki "TradeNow"/"DT mode" nie obnizaja progu)
     primeExtra: 0,          // poza oknami prime wymagany score o tyle wyzszy
-    minRvol: 0.45,           // min. wzgledny wolumen (ostatnie 3 swiece vs 20 wczesniejszych) dla akcji/ETF
+    minRvol: 0.35,           // min. wzgledny wolumen (ostatnie 3 swiece vs 20 wczesniejszych) dla akcji/ETF
     marketFilter: true,     // akcje USA: kierunek zgodny z trendem 15m SPY
     stopSwingBars: 8, stopMinAtr: 0.9, stopMaxAtr: 1.6, // stop za ostatnim swingiem, ale w widelkach ATR
     // Sesje w "czasie zimowym UTC" (= czas warszawski - 60 min), dzieki temu stale sa poprawne przez caly rok.
