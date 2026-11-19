@@ -4,6 +4,7 @@
 (function (global) {
   var MAP = {
     NVDA: 'NVDA.US',
+    ANT: 'ANT.US',
     TSLA: 'TSLA.US',
     META: 'META.US',
     AAPL: 'AAPL.US',
@@ -13,6 +14,8 @@
     SAP: 'SAP.DE',
     'SIE.DE': 'SIE.DE',
     EURUSD: 'EURUSD',
+    GBPUSD: 'GBPUSD',
+    USDJPY: 'USDJPY',
     'XAU/USD': 'GOLD',
     XAUUSD: 'GOLD'
   };
@@ -24,7 +27,6 @@
   function apply() {
     if (global.BTX_QCAP) global.BTX_QCAP.mapSym = mapSym;
     if (global.BTX_CANON) global.BTX_CANON.mapXtb = mapSym;
-    // trade-hero używa BTX_QCAP.mapSym — OK
   }
 
   apply();

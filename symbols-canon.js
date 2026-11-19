@@ -1,11 +1,13 @@
 /**
  * Kanoniczna lista instrumentów BTX (daytrading XTB):
  * akcje/ETF US + EU + główne FX.
+ * ANT = Anthropic (Nasdaq IPO 2026-11-19).
  */
 (function (global) {
   'use strict';
   var LIST = [
     { s: 'NVDA', n: 'NVIDIA', t: 'Akcja', b: 140, v: 0.0022, mkt: 'US', ccy: 'USD', xtb: 'NVDA.US', td: 'NVDA' },
+    { s: 'ANT', n: 'Anthropic', t: 'Akcja', b: 83, v: 0.0035, mkt: 'US', ccy: 'USD', xtb: 'ANT.US', td: 'ANT' },
     { s: 'TSLA', n: 'Tesla', t: 'Akcja', b: 250, v: 0.0024, mkt: 'US', ccy: 'USD', xtb: 'TSLA.US', td: 'TSLA' },
     { s: 'META', n: 'Meta Platforms', t: 'Akcja', b: 580, v: 0.0018, mkt: 'US', ccy: 'USD', xtb: 'META.US', td: 'META' },
     { s: 'AAPL', n: 'Apple', t: 'Akcja', b: 230, v: 0.0014, mkt: 'US', ccy: 'USD', xtb: 'AAPL.US', td: 'AAPL' },
