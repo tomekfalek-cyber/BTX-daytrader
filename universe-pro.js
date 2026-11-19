@@ -1,9 +1,10 @@
 /**
- * BTX Universe PRO — daytrading XTB: akcje/ETF US+EU + FX
+ * BTX Universe PRO — daytrading XTB: akcje/ETF US+EU + FX (+ ANT IPO)
  */
 (function (global) {
   var UNI = [
     { s: 'NVDA', n: 'NVIDIA', t: 'Akcja', b: 140, v: 0.0022, mkt: 'US', xtb: 'NVDA.US', ccy: 'USD' },
+    { s: 'ANT', n: 'Anthropic', t: 'Akcja', b: 83, v: 0.0035, mkt: 'US', xtb: 'ANT.US', ccy: 'USD' },
     { s: 'TSLA', n: 'Tesla', t: 'Akcja', b: 250, v: 0.0024, mkt: 'US', xtb: 'TSLA.US', ccy: 'USD' },
     { s: 'META', n: 'Meta Platforms', t: 'Akcja', b: 580, v: 0.0018, mkt: 'US', xtb: 'META.US', ccy: 'USD' },
     { s: 'AAPL', n: 'Apple', t: 'Akcja', b: 230, v: 0.0014, mkt: 'US', xtb: 'AAPL.US', ccy: 'USD' },
@@ -56,7 +57,7 @@
       }
     }
     if (note) {
-      note.innerHTML = '<b>Uniwersum daytrading XTB</b> \u00b7 US: NVDA TSLA META AAPL QQQ SPY \u00b7 EU: ASML SAP SIE \u00b7 FX: EURUSD GBPUSD USDJPY \u00b7 sesje wg profilu RANO/US/ALL';
+      note.innerHTML = '<b>Uniwersum daytrading XTB</b> \u00b7 US: NVDA <b>ANT</b> TSLA META AAPL QQQ SPY \u00b7 EU: ASML SAP SIE \u00b7 FX: EURUSD GBPUSD USDJPY';
     }
   }
 
