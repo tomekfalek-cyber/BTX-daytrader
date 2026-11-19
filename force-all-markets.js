@@ -1,5 +1,5 @@
 /**
- * Wymusza skan i handel na wszystkich rynkach: US + EU + FX.
+ * Wymusza skan i handel na wszystkich rynkach: US + EU + FX (w tym ANT).
  */
 (function (global) {
   'use strict';
@@ -8,6 +8,7 @@
 
   var FULL = [
     { s: 'NVDA', n: 'NVIDIA', t: 'Akcja', b: 140, v: 0.0022, mkt: 'US', xtb: 'NVDA.US', ccy: 'USD' },
+    { s: 'ANT', n: 'Anthropic', t: 'Akcja', b: 83, v: 0.0035, mkt: 'US', xtb: 'ANT.US', ccy: 'USD' },
     { s: 'TSLA', n: 'Tesla', t: 'Akcja', b: 250, v: 0.0024, mkt: 'US', xtb: 'TSLA.US', ccy: 'USD' },
     { s: 'META', n: 'Meta Platforms', t: 'Akcja', b: 580, v: 0.0018, mkt: 'US', xtb: 'META.US', ccy: 'USD' },
     { s: 'AAPL', n: 'Apple', t: 'Akcja', b: 230, v: 0.0014, mkt: 'US', xtb: 'AAPL.US', ccy: 'USD' },
@@ -20,6 +21,18 @@
     { s: 'GBPUSD', n: 'GBP/USD', t: 'FX', b: 1.27, v: 0.0004, mkt: 'FX', xtb: 'GBPUSD', ccy: 'USD' },
     { s: 'USDJPY', n: 'USD/JPY', t: 'FX', b: 150, v: 0.0004, mkt: 'FX', xtb: 'USDJPY', ccy: 'JPY' }
   ];
+
+  function fillSelects() {
+    ['chart-sym', 'ai-sym'].forEach(function (id) {
+      var sel = document.getElementById(id);
+      if (!sel) return;
+      var cur = sel.value;
+      sel.innerHTML = FULL.map(function (m) {
+        return '<option value="' + m.s + '">' + m.s + ' — ' + m.n + ' (' + (m.ccy || '') + ')</option>';
+      }).join('');
+      if (FULL.some(function (m) { return m.s === cur; })) sel.value = cur;
+    });
+  }
 
   function apply() {
     try {
@@ -35,12 +48,13 @@
           }
         });
       }
+      fillSelects();
     } catch (e3) {}
   }
 
   function boot() {
     apply();
-    setInterval(apply, 15000);
+    setInterval(apply, 8000);
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();
