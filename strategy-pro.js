@@ -15,13 +15,13 @@
   var PRO = {
     riskPct: 0.5, maxPos: 2, dailyLossPct: 1.5, maxConsecLoss: 3, maxDayTrades: 6,
     atrSlMult: 1.2, tpR: 1.6, beR: 0.8, partialR: 1.0, partialFrac: 0.5,
-    minStrengthOpen: 3, coolBars: 4, minHoldBars: 2, requireTrend: false, newsPadMin: 10,
-    scoreMin: 4, minNetRR: 1.15, orBars: 6, timeStopBars: 24, closeBufferMin: 45, flatBeforeCloseMin: 10,
+    minStrengthOpen: 2, coolBars: 4, minHoldBars: 2, requireTrend: false, newsPadMin: 10,
+    scoreMin: 3, minNetRR: 1.15, orBars: 6, timeStopBars: 24, closeBufferMin: 45, flatBeforeCloseMin: 10,
     // Warunki daytradingowe (precyzja > liczba transakcji)
     allowShort: true,       // shorty wlaczone (paper). Krotka sprzedaz = CFD: koszt bez konwersji walut, pozycje tylko intraday
     strictCore: true,       // otwieraj tylko, gdy RDZEN strategii daje score >= prog (nakladki "TradeNow"/"DT mode" nie obnizaja progu)
     primeExtra: 1,          // poza oknami prime wymagany score o tyle wyzszy
-    minRvol: 0.6,           // min. wzgledny wolumen (ostatnie 3 swiece vs 20 wczesniejszych) dla akcji/ETF
+    minRvol: 0.45,           // min. wzgledny wolumen (ostatnie 3 swiece vs 20 wczesniejszych) dla akcji/ETF
     marketFilter: true,     // akcje USA: kierunek zgodny z trendem 15m SPY
     stopSwingBars: 8, stopMinAtr: 0.9, stopMaxAtr: 1.6, // stop za ostatnim swingiem, ale w widelkach ATR
     // Sesje w "czasie zimowym UTC" (= czas warszawski - 60 min), dzieki temu stale sa poprawne przez caly rok.
@@ -360,7 +360,14 @@
     var mk = marketOf(m), nb = newsBlocked(ts);
     if (nb.blocked && nb.label !== 'weekend') return { ok: false, reason: 'blokada news: ' + nb.label };
     if (!inSession(mk, ts) || sessionQuality(mk, ts) === 0) return { ok: false, reason: 'poza sesja / okno tylko-zarzadzanie' };
-    if (global.BTX_LIVE && global.BTX_LIVE.isFresh && !global.BTX_LIVE.isFresh(g.sym)) return { ok: false, reason: 'brak swiezej ceny LIVE' };
+    // Paper daytrading: LIVE preferowane, nie obligatoryjne (chyba ze BTX_REQUIRE_LIVE=1)
+    var requireLive = false;
+    try { requireLive = localStorage.getItem('BTX_REQUIRE_LIVE') === '1'; } catch (eL) {}
+    if (requireLive && global.BTX_LIVE && global.BTX_LIVE.isFresh && !global.BTX_LIVE.isFresh(g.sym)) {
+      return { ok: false, reason: 'brak swiezej ceny LIVE' };
+    }
+    // bez wymogu: wystarczy seria z cena
+    if (!requireLive && !(g.price > 0)) return { ok: false, reason: 'brak ceny' };
     if ((g.strength || 0) < PRO.minStrengthOpen) return { ok: false, reason: 'sygnal za slaby' };
     if (PRO.strictCore) {
       var pr = g._pro;
