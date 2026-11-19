@@ -120,7 +120,12 @@
         dd <= -lim ||
         (ST.dayTrades || 0) >= (CFG.maxTrades || 4) ||
         (ST.consecLoss || 0) >= (CFG.maxConsec || 3);
-      ST.blocked = blocked;
+      var allowStop = false;
+      try { allowStop = localStorage.getItem('BTX_ALLOW_STOP_DAY') === '1'; } catch (eS) {}
+      ST.blocked = allowStop ? blocked : false;
+      if (!allowStop && blocked && global.log) {
+        /* limity widoczne, ale bez twardej blokady gdy STOP DAY off */
+      }
       var b = document.getElementById('limit-badge');
       if (b && global.fp) {
         b.textContent = blocked ? 'BLOKADA DNIA' : ('limit OK · ' + global.fp(dd));
@@ -244,13 +249,8 @@
       var sg = typeof global.signals === 'function' ? global.signals() : [];
       ST.sig = sg;
       var ranked = sg.filter(function (x) { return x.side !== 'WAIT'; }).sort(function (a, b) { return b.strength - a.strength; });
-      for (var q = 0; q < ranked.length; q++) {
-        var g = ranked[q];
-        if (ST.pos[g.sym]) continue;
-        if (ST.cool && ST.cool[g.sym] > 0) continue;
-        if (Object.keys(ST.pos).length >= (CFG.maxPos || 2)) break;
-        if (typeof global.openPos === 'function') global.openPos(g);
-      }
+      ST.sigRanked = ranked;
+      // Wejscia tylko autonomia/APEX — nie slepy open tutaj
       ST.eq = ST.eq || [];
       ST.eq.push(ST.equity);
       if (ST.eq.length > 400) ST.eq.shift();
