@@ -107,7 +107,7 @@
       'readiness.js', 'pass-telegram-only.js', 'stop-day-control.js', 'status-fix.js',
       'why-zero.js', 'currency-ui.js', 'fix-learner-gate.js', 'force-paper-trade.js',
       'entry-path-boost.js', 'apex-daytrade.js', 'force-all-markets.js',
-      'code-hygiene.js', 'universe-sync.js', 'engine-hardening-patch.js'
+      'code-hygiene.js', 'universe-sync.js', 'daytrade-boost.js', 'engine-hardening-patch.js'
     ];
     files.forEach(function (src) {
       try {
