@@ -1,5 +1,5 @@
 /**
- * Signal lock — soft LIVE (paper OK z serią świec), strictCore bez soft-nakładek.
+ * Signal lock — TYLKO oslabia soft-nakladki; NIE blokuje paper/LIVE.
  */
 (function (global) {
   'use strict';
@@ -13,37 +13,31 @@
   }
 
   function patchEvaluate() {
-    if (typeof global.evaluate !== 'function') return;
-    if (global.evaluate.__signalLock) return;
+    if (typeof global.evaluate !== 'function' || global.evaluate.__signalLock) return;
     var prev = global.evaluate;
     global.evaluate = function (m) {
       var g = prev.apply(this, arguments);
       if (!g) return g;
       var P = pro();
-      if (P.strictCore && isSoftWhy(g.why)) {
-        g.side = 'WAIT';
-        g.strength = 0;
-        g.why = 'strictCore: odrzucono soft-nakładkę';
-      }
-      try {
-        if (global.BTX_LIVE && typeof global.BTX_LIVE.isFresh === 'function') {
-          if (!global.BTX_LIVE.isFresh(g.sym) && g.side !== 'WAIT') {
-            var ser = global.ST && global.ST.series && global.ST.series[g.sym];
-            if (!ser || ser.length < 30) {
-              g.side = 'WAIT';
-              g.strength = 0;
-              g.why = (g.why ? g.why + ' \u00b7 ' : '') + 'brak świeżej ceny LIVE';
-            } else {
-              g.why = (g.why ? g.why + ' \u00b7 ' : '') + 'LIVE nieświeże (paper OK)';
-            }
-          }
+      // strictCore: odrzucaj tylko ewidentnie "soft" nakladki, nie zabijaj zwyklych sygnalow
+      if (P.strictCore && isSoftWhy(g.why) && (g.side === 'LONG' || g.side === 'SHORT')) {
+        var need = P.scoreMin != null ? P.scoreMin : 3;
+        var sc = g._pro ? (g.side === 'LONG' ? g._pro.scoreL : g._pro.scoreS) : (g.strength || 0) * 2;
+        if (sc < need) {
+          g.side = 'WAIT';
+          g.strength = 0;
+          g.why = 'strictCore: soft setup ponizej progu';
         }
-      } catch (e) {}
+      }
+      // LIVE: tylko oznacz, NIE kasuj
+      if (g.side !== 'WAIT' && global.BTX_LIVE && typeof global.BTX_LIVE.isFresh === 'function') {
+        if (!global.BTX_LIVE.isFresh(g.sym)) {
+          g.why = (g.why ? g.why + ' · ' : '') + 'LIVE nieświeże (paper OK)';
+        }
+      }
       return g;
     };
-    Object.keys(prev).forEach(function (k) {
-      try { global.evaluate[k] = prev[k]; } catch (e) {}
-    });
+    try { Object.keys(prev).forEach(function (k) { global.evaluate[k] = prev[k]; }); } catch (e) {}
     global.evaluate.__signalLock = true;
   }
 
@@ -51,52 +45,17 @@
     if (typeof global.openPos !== 'function' || global.openPos.__signalLock) return;
     var prev = global.openPos;
     global.openPos = function (g) {
-      var P = pro();
-      if (g && P.strictCore && isSoftWhy(g.why)) {
-        if (global.log) global.log('SignalLock: blokada soft wejścia ' + (g.sym || ''), 'mut');
-        return;
-      }
-      if (g && global.BTX_LIVE && typeof global.BTX_LIVE.isFresh === 'function') {
-        if (!global.BTX_LIVE.isFresh(g.sym)) {
-          var ser2 = global.ST && global.ST.series && global.ST.series[g.sym];
-          if (!ser2 || ser2.length < 30) {
-            if (global.log) global.log('SignalLock: brak LIVE ' + g.sym, 'mut');
-            return;
-          }
-        }
-      }
+      // nie blokuj open z powodu LIVE
       return prev.apply(this, arguments);
     };
     global.openPos.__signalLock = true;
   }
 
-  function patchAutonomy() {
-    if (!global.BTX_AUTONOMY || !global.BTX_AUTONOMY.gradeSetup) return;
-    if (global.BTX_AUTONOMY.gradeSetup.__signalLock) return;
-    var prev = global.BTX_AUTONOMY.gradeSetup;
-    global.BTX_AUTONOMY.gradeSetup = function (g) {
-      var r = prev.apply(this, arguments);
-      if (!r || !g) return r;
-      var P = pro();
-      if (P.strictCore && isSoftWhy(g.why)) {
-        return { pass: false, grade: 'REJECT', score: r.score || 0, reasons: ['strictCore: soft-nakładka'] };
-      }
-      return r;
-    };
-    global.BTX_AUTONOMY.gradeSetup.__signalLock = true;
-  }
-
   function boot() {
     patchEvaluate();
     patchOpenPos();
-    patchAutonomy();
-    setInterval(function () {
-      patchEvaluate();
-      patchOpenPos();
-      patchAutonomy();
-    }, 5000);
+    setInterval(function () { patchEvaluate(); patchOpenPos(); }, 4000);
   }
-
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();
 })(typeof window !== 'undefined' ? window : globalThis);
