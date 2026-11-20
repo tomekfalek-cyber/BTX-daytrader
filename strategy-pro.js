@@ -15,8 +15,8 @@
   var PRO = {
     riskPct: 0.35, maxPos: 2, dailyLossPct: 1.25, maxConsecLoss: 3, maxDayTrades: 6,
     atrSlMult: 1.2, tpR: 2.0, beR: 1.0, partialR: 99, partialFrac: 0,
-    minStrengthOpen: 2, coolBars: 4, minHoldBars: 2, requireTrend: false, newsPadMin: 10,
-    scoreMin: 3, minNetRR: 1.2, orBars: 6, timeStopBars: 30, closeBufferMin: 15, flatBeforeCloseMin: 12,
+    minStrengthOpen: 2, coolBars: 2, minHoldBars: 2, requireTrend: false, newsPadMin: 10,
+    scoreMin: 3, minNetRR: 1.2, orBars: 6, timeStopBars: 24, closeBufferMin: 15, flatBeforeCloseMin: 12,
     // Warunki daytradingowe (precyzja > liczba transakcji)
     allowShort: true,       // shorty wlaczone (paper). Krotka sprzedaz = CFD: koszt bez konwersji walut, pozycje tylko intraday
     strictCore: false,       // otwieraj tylko, gdy RDZEN strategii daje score >= prog (nakladki "TradeNow"/"DT mode" nie obnizaja progu)
@@ -323,44 +323,102 @@
 
   // plan pozycji z kosztami (ta sama matematyka co sizePlan w aplikacji, ale z geometria PRO i stopem strukturalnym)
   function sizePlanPro(m, price, atr, equity, cash, sdOverride, side) {
+    // TWARDY SIZING: margin+fee nigdy > wolne cash; max 25% equity / poz.; suma margin <= 80% equity
     var hasModel = typeof global.feeOf === 'function' && typeof global.rateOf === 'function';
     var rate = hasModel ? (global.rateOf(m) || 1) : 1;
-    if (!(rate > 0)) rate = 1;
+    if (!(rate > 0) || !isFinite(rate)) rate = 1;
     var f = hasModel ? global.feeOf(m) : { comm: 0, conv: 0, spr: 0 };
-    if (side === 'SHORT') f = { comm: f.comm, conv: 0, spr: f.spr };   // short = CFD: bez konwersji walut
-    var fx = marketOf(m) === 'FX', lev = fx ? ((global.CFG && global.CFG.fxLev) || 30) : 1;
-    // akcje/ETF: ułamki OK, ale krok nie może dawać gigantycznych pozycji
+    if (side === 'SHORT') f = { comm: f.comm, conv: 0, spr: f.spr };
+    var fx = marketOf(m) === 'FX';
+    var lev = fx ? Math.min(20, (global.CFG && global.CFG.fxLev) || 20) : 1;
     var step = fx ? 1000 : Math.min(1, Math.max(0.01, (global.CFG && global.CFG.fracStep) || 0.01));
-    var sd = sdOverride || (atr || price * 0.004) * PRO.atrSlMult;
-    if (!(sd > 0) || !(price > 0)) return { ok: false, reason: 'ATR/cena=0' };
-    equity = +equity || 0; cash = +cash || 0;
-    if (cash <= 0 || equity <= 0) return { ok: false, reason: 'brak kapitalu' };
-    var riskAmt = equity * ((PRO.riskPct || 0.35) / 100), unitRisk = sd * rate, reason = '';
-    if (!(unitRisk > 0)) return { ok: false, reason: 'unitRisk=0' };
+    price = +price; equity = +equity; cash = +cash;
+    if (!(price > 0) || !(equity > 0) || !(cash > 0)) return { ok: false, reason: 'brak kapitalu/ceny', qty: 0, margin: 0 };
+    var sd = sdOverride || (atr || price * 0.004) * (PRO.atrSlMult || 1.2);
+    if (!(sd > 0) || !isFinite(sd)) return { ok: false, reason: 'ATR=0', qty: 0, margin: 0 };
+
+    // wolne srodki juz zajete przez otwarte pozycje (jesli cash nie odliczony)
+    var used = 0;
+    try {
+      var ST = global.ST, pos = ST && ST.pos;
+      if (pos) {
+        Object.keys(pos).forEach(function (k) {
+          var p = pos[k];
+          if (!p) return;
+          if (p.margin != null && p.margin > 0) used += +p.margin;
+          else if (p.qty && p.entry) used += (+p.qty) * (+p.entry) * (+p.rate || 1) / (+p.lev || 1);
+        });
+      }
+    } catch (eU) {}
+    var freeCash = Math.max(0, Math.min(cash, equity - used * 0.0)); // cash jest zrodlem prawdy
+    // dodatkowo nie pozwol zeby used+nowa > 0.8*equity
+    var roomEquity = Math.max(0, equity * 0.80 - used);
+    freeCash = Math.min(freeCash, cash);
+    if (freeCash < 1) return { ok: false, reason: 'brak wolnego cash', qty: 0, margin: 0 };
+
+    var riskAmt = equity * ((PRO.riskPct || 0.35) / 100);
+    var unitRisk = sd * rate;
+    if (!(unitRisk > 0)) return { ok: false, reason: 'unitRisk=0', qty: 0, margin: 0 };
+
     var q = Math.floor(riskAmt / unitRisk / step) * step;
-    q = Math.round(q * 1e6) / 1e6;
-    // NIE forsuj minimalnej pozycji jesli przekracza ryzyko/saldo
-    if (q < step) { q = 0; reason = 'za male saldo na min. krok'; }
-    // max po saldzie (margin) + max 35% equity na jedna pozycje (akcje bez dzwigni)
-    var maxMargin = Math.min(cash * 0.98, equity * (fx ? 0.5 : 0.35));
+    if (q < step) q = 0;
+
+    // max margin tej pozycji: min(25% equity, 90% freeCash, roomEquity)
+    var maxMargin = Math.min(equity * 0.25, freeCash * 0.90, roomEquity > 0 ? roomEquity : freeCash * 0.90);
+    if (!(maxMargin > 0)) return { ok: false, reason: 'brak limitu margin', qty: 0, margin: 0 };
+
     var maxQ = Math.floor(maxMargin * lev / (price * rate) / step) * step;
     if (q > maxQ) q = maxQ;
-    q = Math.round(q * 1e6) / 1e6;
-    if (q < step && !reason) reason = 'za malo wolnych srodkow';
-    var notional = q * price * rate, margin = notional / lev;
-    if (margin > cash * 0.98) {
-      q = Math.floor((cash * 0.98) * lev / (price * rate) / step) * step;
-      q = Math.round(q * 1e6) / 1e6;
-      notional = q * price * rate; margin = notional / lev;
-      if (q < step) reason = 'za malo wolnych srodkow';
+    q = Math.round(q * 1e8) / 1e8;
+
+    var notional = q * price * rate;
+    var margin = notional / lev;
+    var feeIn = notional * ((f.comm || 0) + (f.conv || 0) + (f.spr || 0));
+    var feeOut = notional * ((f.comm || 0) + (f.conv || 0));
+
+    // jesli margin+fee > freeCash — obetnij qty
+    if (margin + feeIn > freeCash * 0.98) {
+      var budget = freeCash * 0.98;
+      // margin + fee ≈ notional/lev + notional*feeRate = notional * (1/lev + feeRate)
+      var feeRate = (f.comm || 0) + (f.conv || 0) + (f.spr || 0);
+      var perUnit = price * rate * (1 / lev + feeRate);
+      if (!(perUnit > 0)) return { ok: false, reason: 'perUnit=0', qty: 0, margin: 0 };
+      q = Math.floor(budget / perUnit / step) * step;
+      q = Math.round(q * 1e8) / 1e8;
+      notional = q * price * rate;
+      margin = notional / lev;
+      feeIn = notional * feeRate;
+      feeOut = notional * ((f.comm || 0) + (f.conv || 0));
     }
-    var feeIn = notional * (f.comm + f.conv + f.spr), feeOut = notional * (f.comm + f.conv);
-    var costPU = price * (2 * (f.comm + f.conv) + f.spr);
-    var netRR = (PRO.tpR * sd - costPU) / (sd + costPU);
-    if (!reason && netRR < PRO.minNetRR) reason = 'koszty zjadaja przewage: R:R netto ' + netRR.toFixed(2) + ' < ' + PRO.minNetRR;
-    return { ok: !reason, reason: reason, qty: q, sd: sd, rate: rate, lev: lev, margin: margin, feeIn: feeIn, feeOut: feeOut,
-      f: { comm: f.comm, conv: f.conv }, netRR: netRR, riskAmt: q * unitRisk };
+
+    var reason = '';
+    if (q < step) reason = 'za malo wolnych srodkow na min. krok';
+    var costPU = price * (2 * ((f.comm || 0) + (f.conv || 0)) + (f.spr || 0));
+    var netRR = (PRO.tpR * sd - costPU) / (sd + costPU + 1e-12);
+    if (!reason && netRR < (PRO.minNetRR || 1.15)) reason = 'koszty zjadaja przewage: R:R netto ' + netRR.toFixed(2);
+
+    // final hard reject
+    if (!reason && (margin + feeIn > freeCash + 1e-6)) reason = 'margin+fee > cash';
+    if (!reason && (used + margin > equity * 0.85 + 1e-6)) reason = 'suma pozycji > 85% equity';
+
+    return {
+      ok: !reason && q >= step,
+      reason: reason,
+      qty: q,
+      sd: sd,
+      rate: rate,
+      lev: lev,
+      margin: margin,
+      feeIn: feeIn,
+      feeOut: feeOut,
+      notional: notional,
+      freeCash: freeCash,
+      f: { comm: f.comm || 0, conv: f.conv || 0, spr: f.spr || 0 },
+      riskAmt: riskAmt,
+      netRR: netRR
+    };
   }
+
 
   // jedno zrodlo prawdy: czy mozna teraz otworzyc pozycje? (uzywane przez openPos i panel "Plan")
   function gateCheck(g, m, ST, ts) {
