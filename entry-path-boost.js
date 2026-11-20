@@ -12,7 +12,7 @@
     if (P.scoreMin == null) P.scoreMin = 3;
     if (P.primeExtra == null) P.primeExtra = 0;
     if (P.minStrengthOpen == null) P.minStrengthOpen = 2;
-    if (P.minRvol == null) P.minRvol = 0.5;
+    if (P.minRvol == null) P.minRvol = 0.35;
   }
 
   function sma(arr, n) {
