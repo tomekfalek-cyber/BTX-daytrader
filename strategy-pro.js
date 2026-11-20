@@ -13,10 +13,10 @@
  */
 (function (global) {
   var PRO = {
-    riskPct: 0.5, maxPos: 2, dailyLossPct: 1.5, maxConsecLoss: 3, maxDayTrades: 6,
-    atrSlMult: 1.2, tpR: 1.6, beR: 0.8, partialR: 1.0, partialFrac: 0.5,
+    riskPct: 0.35, maxPos: 2, dailyLossPct: 1.25, maxConsecLoss: 3, maxDayTrades: 6,
+    atrSlMult: 1.2, tpR: 2.0, beR: 1.0, partialR: 99, partialFrac: 0,
     minStrengthOpen: 2, coolBars: 4, minHoldBars: 2, requireTrend: false, newsPadMin: 10,
-    scoreMin: 3, minNetRR: 1.15, orBars: 6, timeStopBars: 24, closeBufferMin: 15, flatBeforeCloseMin: 10,
+    scoreMin: 3, minNetRR: 1.2, orBars: 6, timeStopBars: 30, closeBufferMin: 15, flatBeforeCloseMin: 12,
     // Warunki daytradingowe (precyzja > liczba transakcji)
     allowShort: true,       // shorty wlaczone (paper). Krotka sprzedaz = CFD: koszt bez konwersji walut, pozycje tylko intraday
     strictCore: false,       // otwieraj tylko, gdy RDZEN strategii daje score >= prog (nakladki "TradeNow"/"DT mode" nie obnizaja progu)
@@ -30,7 +30,7 @@
       PL: { open: 8 * 60, close: 16 * 60 + 50, prime: [[8 * 60 + 5, 10 * 60], [14 * 60, 16 * 60]] },
       EU: { open: 8 * 60, close: 16 * 60 + 30, prime: [[8 * 60 + 5, 10 * 60], [14 * 60, 16 * 60]] },
       // FX/zloto: handel dzienny tylko 08:00-21:00 PL (Londyn + NY), reszta = azjatycki szum i niska plynnosc
-      FX: { open: 7 * 60, close: 20 * 60, prime: [[7 * 60, 16 * 60], [13 * 60, 19 * 60]] }
+      FX: { open: 7 * 60, close: 21 * 60, prime: [[8 * 60, 12 * 60], [14 * 60 + 30, 18 * 60]] }
     },
     // Okna newsow (te same godziny w czasie polskim przez caly rok: dane USA 8:30 ET = 14:30 PL itd.)
     newsWindows: [
