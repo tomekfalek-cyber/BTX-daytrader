@@ -31,7 +31,7 @@
       if (P.scoreMin == null || P.scoreMin > 3) P.scoreMin = 3;
       if (P.minStrengthOpen == null || P.minStrengthOpen > 2) P.minStrengthOpen = 2;
       if (P.primeExtra == null || P.primeExtra > 0) P.primeExtra = 0;
-      if (P.minRvol != null && P.minRvol > 0.5) P.minRvol = 0.45;
+      if (P.minRvol != null && P.minRvol > 0.5) P.minRvol = 0.35;
     }
   }
 
