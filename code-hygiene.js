@@ -50,10 +50,17 @@
   function guardBoost() {
     var P = pro();
     if (!P) return;
-    if (P.minRvol != null && P.minRvol < 0.45) P.minRvol = 0.5;
-    if (P.riskPct != null && P.riskPct > 0.5) P.riskPct = 0.35;
-    if (P.maxPos != null && P.maxPos > 2) P.maxPos = 2;
-    if (P.tpR != null && P.tpR < 1.5) P.tpR = 2.0;
+    // Kanon APEX — nie podnosic progow ponad profil
+    P.scoreMin = 3;
+    P.primeExtra = 0;
+    P.minStrengthOpen = 2;
+    P.minRvol = 0.35;
+    P.riskPct = 0.35;
+    P.maxPos = 2;
+    P.tpR = 2.0;
+    P.closeBufferMin = 15;
+    P.strictCore = false;
+    P.requireTrend = false;
   }
 
   function boot() {
