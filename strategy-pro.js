@@ -325,19 +325,35 @@
   function sizePlanPro(m, price, atr, equity, cash, sdOverride, side) {
     var hasModel = typeof global.feeOf === 'function' && typeof global.rateOf === 'function';
     var rate = hasModel ? (global.rateOf(m) || 1) : 1;
+    if (!(rate > 0)) rate = 1;
     var f = hasModel ? global.feeOf(m) : { comm: 0, conv: 0, spr: 0 };
     if (side === 'SHORT') f = { comm: f.comm, conv: 0, spr: f.spr };   // short = CFD: bez konwersji walut
-    var fx = marketOf(m) === 'FX', lev = fx ? ((global.CFG && global.CFG.fxLev) || 30) : 1, step = fx ? 1000 : ((global.CFG && global.CFG.fracStep) || 1);
+    var fx = marketOf(m) === 'FX', lev = fx ? ((global.CFG && global.CFG.fxLev) || 30) : 1;
+    // akcje/ETF: ułamki OK, ale krok nie może dawać gigantycznych pozycji
+    var step = fx ? 1000 : Math.min(1, Math.max(0.01, (global.CFG && global.CFG.fracStep) || 0.01));
     var sd = sdOverride || (atr || price * 0.004) * PRO.atrSlMult;
-    if (!(sd > 0)) return { ok: false, reason: 'ATR=0' };
-    var riskAmt = equity * (PRO.riskPct / 100), unitRisk = sd * rate, reason = '';
+    if (!(sd > 0) || !(price > 0)) return { ok: false, reason: 'ATR/cena=0' };
+    equity = +equity || 0; cash = +cash || 0;
+    if (cash <= 0 || equity <= 0) return { ok: false, reason: 'brak kapitalu' };
+    var riskAmt = equity * ((PRO.riskPct || 0.35) / 100), unitRisk = sd * rate, reason = '';
+    if (!(unitRisk > 0)) return { ok: false, reason: 'unitRisk=0' };
     var q = Math.floor(riskAmt / unitRisk / step) * step;
     q = Math.round(q * 1e6) / 1e6;
-    if (q < step) { q = step; if (q * unitRisk > riskAmt * 2.5) reason = 'minimalna pozycja (' + q + ') ryzykuje ' + (q * unitRisk).toFixed(2) + ' > limit ' + (riskAmt * 2.5).toFixed(2); }
-    var maxQ = Math.floor(cash * lev / (price * rate) / step) * step; if (q > maxQ) q = maxQ;
+    // NIE forsuj minimalnej pozycji jesli przekracza ryzyko/saldo
+    if (q < step) { q = 0; reason = 'za male saldo na min. krok'; }
+    // max po saldzie (margin) + max 35% equity na jedna pozycje (akcje bez dzwigni)
+    var maxMargin = Math.min(cash * 0.98, equity * (fx ? 0.5 : 0.35));
+    var maxQ = Math.floor(maxMargin * lev / (price * rate) / step) * step;
+    if (q > maxQ) q = maxQ;
     q = Math.round(q * 1e6) / 1e6;
     if (q < step && !reason) reason = 'za malo wolnych srodkow';
     var notional = q * price * rate, margin = notional / lev;
+    if (margin > cash * 0.98) {
+      q = Math.floor((cash * 0.98) * lev / (price * rate) / step) * step;
+      q = Math.round(q * 1e6) / 1e6;
+      notional = q * price * rate; margin = notional / lev;
+      if (q < step) reason = 'za malo wolnych srodkow';
+    }
     var feeIn = notional * (f.comm + f.conv + f.spr), feeOut = notional * (f.comm + f.conv);
     var costPU = price * (2 * (f.comm + f.conv) + f.spr);
     var netRR = (PRO.tpR * sd - costPU) / (sd + costPU);
