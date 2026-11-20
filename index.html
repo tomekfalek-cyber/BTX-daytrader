@@ -592,10 +592,19 @@ async function fetchStooq(sym){
 function defaultFees(){ return {US:{comm:0,conv:0.5,spread:0.03,slip:0.02},PL:{comm:0,conv:0,spread:0.08,slip:0.05},FX:{comm:0,conv:0,spread:0.01,slip:0.003}}; }
 function feeOf(m){ var f=(CFG.fees||defaultFees())[m.mkt||'US']||{comm:0,conv:0,spread:0}; return {comm:(+f.comm||0)/100,conv:(+f.conv||0)/100,spr:(+f.spread||0)/100,slip:(+f.slip||0)/100}; }
 function rateOf(m){
-  var r=CFG.rates||{USD:3.7,JPY:0.0245};
+  var r=CFG.rates||{USD:1,JPY:0.0067,EUR:1.08};
+  var ccy=(CFG.ccy||'USD').toUpperCase();
+  if(ccy==='USD'){
+    if(!m) return 1;
+    if(m.mkt==='US') return 1;
+    if(m.mkt==='FX'&&/USD$/.test(m.s||'')) return 1;
+    if(m.mkt==='EU'||m.ccy==='EUR') return +r.EUR||1.08;
+    if(/JPY$/.test(m.s||'')) return +r.JPY||0.0067;
+    return 1;
+  }
   if(m.mkt==='PL') return 1;
-  if(m.mkt==='US') return +r.USD||3.7;
-  var q=m.s.slice(3); return q==='USD'?(+r.USD||3.7):(q==='JPY'?(+r.JPY||0.0245):1);
+  if(m.mkt==='US') return +r.USD||1;
+  var q=m.s.slice(3); return q==='USD'?(+r.USD||1):(q==='JPY'?(+r.JPY||0.0067):1);
 }
 function scanOn(m){ var s=CFG.scan; return !s||s[m.mkt||'US']!==false; }
 function symM(sym){ for(var i=0;i<SYMBOLS.length;i++){ if(SYMBOLS[i].s===sym) return SYMBOLS[i]; } return null; }
@@ -712,11 +721,11 @@ function syncSettings(){
   sv('set-risk',CFG.risk); sv('set-max',CFG.maxPos); sv('set-cap',CFG.capital); sv('set-short',CFG.allowShort?'1':'0'); sv('set-dtrades',CFG.maxTrades||10); sv('set-dloss',CFG.dailyLoss||3);
   var s=CFG.scan||{US:true,PL:true,FX:true}; ['US','PL','FX'].forEach(function(mk){ var e=document.getElementById('scan-'+mk); if(e) e.checked=s[mk]!==false; });
   var f=CFG.fees||defaultFees(); ['US','PL','FX'].forEach(function(mk){ ['comm','conv','spread','slip'].forEach(function(k){ sv('fee-'+mk+'-'+k,f[mk][k]); }); });
-  var r=CFG.rates||{USD:3.7,JPY:0.0245}; sv('rate-usd',r.USD); sv('rate-jpy',r.JPY); sv('set-fxlev',CFG.fxLev||30);
+  var r=CFG.rates||{USD:1,JPY:0.0067,EUR:1.08}; sv('rate-usd',r.USD); sv('rate-jpy',r.JPY); sv('set-fxlev',CFG.fxLev||30);
 }
 function applySmallProfile(){
   CFG.capital=500; CFG.risk=0.5; CFG.maxPos=2; CFG.allowShort=true; CFG.dailyLoss=2; CFG.maxTrades=8; CFG.maxConsec=3;
-  CFG.scan={US:false,EU:false,PL:false,FX:true}; CFG.fees=defaultFees(); CFG.rates={USD:3.7,JPY:0.0245}; CFG.fxLev=30; CFG.autoSec=300; CFG.minHold=6; CFG.confirm=2; CFG.v5=1;
+  CFG.scan={US:false,EU:false,PL:false,FX:true}; CFG.fees=defaultFees(); CFG.rates={USD:1,JPY:0.0067,EUR:1.08}; CFG.fxLev=30; CFG.autoSec=300; CFG.minHold=6; CFG.confirm=2; CFG.v5=1;
   syncSettings(); reset();
 }
 syncSettings();
