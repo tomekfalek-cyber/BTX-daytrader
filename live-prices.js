@@ -5,7 +5,7 @@
   'use strict';
   if (global.BTX_LIVE) return;
 
-  var FRESH_MS = 20 * 60 * 1000;
+  var FRESH_MS = 45 * 60 * 1000;
   var BAR_MAX_AGE_MS = 30 * 60 * 1000;
   var MIN_GAP_MS = 8600;
   var PER_MIN = 7;
@@ -14,6 +14,13 @@
   var KEY_LS = 'btx_twelve_key';
 
   var TD_MAP = {
+    'ANT': { symbol: 'ANT' },
+    'NVDA': { symbol: 'NVDA' },
+    'TSLA': { symbol: 'TSLA' },
+    'META': { symbol: 'META' },
+    'AAPL': { symbol: 'AAPL' },
+    'QQQ': { symbol: 'QQQ' },
+    'SPY': { symbol: 'SPY' },
     'EURUSD': { symbol: 'EUR/USD' },
     'GBPUSD': { symbol: 'GBP/USD' },
     'USDJPY': { symbol: 'USD/JPY' },
@@ -23,7 +30,7 @@
     'SAP': { symbol: 'SAP', exchange: 'XETR' },
     'ASML': { symbol: 'ASML', exchange: 'Euronext' }
   };
-  var REFRESH_MIN = { US: 10, EU: 10, FX: 10 };   // 12 symboli: US 6.5h + EU 8.5h + FX 13h przy 10 min = ~620 zapytan/dzien (przy 5 min ~1240 > limit 780)   // daytrading: swieca 5 min = odswiezenie co 5 min (4 pary x 13 h x 12 = ~620 zapytan/dzien < 780)
+  var REFRESH_MIN = { US: 5, EU: 5, FX: 5 };   // 12 symboli: US 6.5h + EU 8.5h + FX 13h przy 10 min = ~620 zapytan/dzien (przy 5 min ~1240 > limit 780)   // daytrading: swieca 5 min = odswiezenie co 5 min (4 pary x 13 h x 12 = ~620 zapytan/dzien < 780)
 
   var info = {};
   var reqTimes = [];
@@ -49,22 +56,29 @@
   }
 
   function getKey() {
-    var el = document.getElementById('btx-tdkey-main');
-    if (el && String(el.value || '').trim()) return String(el.value).trim();
-    el = document.getElementById('set-tdkey');
-    if (el && String(el.value || '').trim()) return String(el.value).trim();
+    var ids = ['btx-tdkey-main', 'set-tdkey', 'td-key', 'twelve-key', 'set-twelve'];
+    for (var i = 0; i < ids.length; i++) {
+      var el = document.getElementById(ids[i]);
+      if (el && String(el.value || '').trim()) return String(el.value).trim();
+    }
+    var keys = ['btx_twelve_key', 'BTX_TWELVE_KEY', 'twelve_key', 'tdKey', 'btx_td_key'];
+    for (var k = 0; k < keys.length; k++) {
+      try {
+        var v = localStorage.getItem(keys[k]);
+        if (v && String(v).trim()) return String(v).trim();
+      } catch (e) {}
+    }
     try {
-      var k = localStorage.getItem(KEY_LS);
-      if (k && k.trim()) return k.trim();
-    } catch (e) {}
-    var C = global.CFG || {};
-    var c = C.tdKey || C.twelveKey || C.apiKey;
-    if (c && String(c).trim()) return String(c).trim();
-    try {
-      var o = JSON.parse(localStorage.getItem('btx_v4') || 'null');
-      var ck = o && o.CFG && (o.CFG.tdKey || o.CFG.twelveKey || o.CFG.apiKey);
-      if (ck) return String(ck).trim();
+      var raw = localStorage.getItem('btx_v4');
+      if (raw) {
+        var o = JSON.parse(raw);
+        var c = o && o.CFG;
+        if (c && (c.tdKey || c.twelveKey || c.apiKey)) return String(c.tdKey || c.twelveKey || c.apiKey).trim();
+      }
     } catch (e2) {}
+    var C = global.CFG || {};
+    var c2 = C.tdKey || C.twelveKey || C.apiKey;
+    if (c2 && String(c2).trim()) return String(c2).trim();
     return '';
   }
 
