@@ -1,12 +1,33 @@
 /**
- * BTX KERNEL — jedna warstwa nadrzedna (daytrading paper → reczne XTB).
- * Hierarchia: kernel > dt-config/APEX > strategy-pro > autonomia.
- * Cel: dzialajacy daytrader bez martwych blokad (LIVE/SPY/STOP/observe).
+ * BTX KERNEL — jedyne zrodlo prawdy parametrow daytradingu (paper → reczne XTB).
+ * Wszystkie inne moduly moga ustawiac wartosci; kernel co kilka sekund je ujednolica.
  */
 (function (global) {
   'use strict';
   if (global.__BTX_KERNEL__) return;
   global.__BTX_KERNEL__ = true;
+
+  var CANON = {
+    riskPct: 0.35,
+    maxPos: 2,
+    maxDayTrades: 6,
+    dailyLossPct: 1.25,
+    scoreMin: 3,
+    primeExtra: 0,
+    minStrengthOpen: 2,
+    minRvol: 0.35,
+    minNetRR: 1.2,
+    tpR: 2.0,
+    beR: 1.0,
+    closeBufferMin: 15,
+    flatBeforeCloseMin: 12,
+    timeStopBars: 30,
+    strictCore: false,
+    requireTrend: false,
+    allowShort: true,
+    capital: 6800,
+    ccy: 'USD'
+  };
 
   var FULL = [
     { s: 'NVDA', n: 'NVIDIA', t: 'Akcja', b: 140, v: 0.0022, mkt: 'US', xtb: 'NVDA.US', ccy: 'USD' },
@@ -43,44 +64,38 @@
       localStorage.setItem('BTX_LEARNER_MODE', 'trade');
       localStorage.setItem('BTX_AUTONOMY_ON', '1');
       localStorage.setItem('BTX_REQUIRE_LIVE', '0');
-      if (localStorage.getItem('BTX_ALLOW_STOP_DAY') == null) {
-        localStorage.setItem('BTX_ALLOW_STOP_DAY', '0');
-      }
+      if (localStorage.getItem('BTX_ALLOW_STOP_DAY') == null) localStorage.setItem('BTX_ALLOW_STOP_DAY', '0');
       localStorage.setItem('BTX_SESSION_PROFILE', 'ALL');
     } catch (e) {}
   }
 
-  function applyPro() {
+  function applyCanon() {
     var P = global.BTX_STRATEGY_PRO || global.BTX_PRO;
     var C = global.CFG;
     if (P) {
-      P.scoreMin = 3;
-      P.primeExtra = 0;
-      P.minStrengthOpen = 2;
-      P.minRvol = 0.35;
-      P.strictCore = false;
-      P.requireTrend = false;
-      P.allowShort = true;
-      P.closeBufferMin = 15;
-      P.flatBeforeCloseMin = 12;
-      P.tpR = P.tpR || 2.0;
-      P.maxPos = 2;
-      P.maxDayTrades = 6;
-      P.dailyLossPct = P.dailyLossPct || 1.25;
+      Object.keys(CANON).forEach(function (k) {
+        if (k === 'capital' || k === 'ccy') return;
+        P[k] = CANON[k];
+      });
       if (!P.sessions) P.sessions = {};
-      // utcMin zima ≈ PL-60
       P.sessions.US = { open: 14 * 60 + 30, close: 21 * 60, prime: [[14 * 60 + 35, 17 * 60], [18 * 60, 20 * 60 + 30]] };
       P.sessions.EU = { open: 8 * 60, close: 16 * 60 + 30, prime: [[8 * 60 + 5, 11 * 60], [14 * 60, 16 * 60]] };
       P.sessions.FX = { open: 7 * 60, close: 21 * 60, prime: [[8 * 60, 12 * 60], [14 * 60 + 30, 18 * 60]] };
     }
     if (C) {
-      C.risk = 0.35;
-      C.maxPos = 2;
-      C.maxTrades = 6;
-      C.dailyLoss = 1.25;
+      C.risk = CANON.riskPct;
+      C.maxPos = CANON.maxPos;
+      C.maxTrades = CANON.maxDayTrades;
+      C.dailyLoss = CANON.dailyLossPct;
       C.allowShort = true;
+      C.ccy = 'USD';
+      C.rates = C.rates || {};
+      C.rates.USD = 1;
+      if (C.rates.EUR == null) C.rates.EUR = 1.08;
+      if (C.rates.JPY == null) C.rates.JPY = 0.0067;
       C.scan = { US: true, EU: true, PL: false, FX: true };
-      C.autoSec = C.autoSec || 120;
+      C.fracStep = 0.01;
+      if (C.autoSec == null || C.autoSec < 60) C.autoSec = 120;
     }
   }
 
@@ -121,9 +136,7 @@
 
   function refreshSignals() {
     try {
-      if (typeof global.signals === 'function' && global.ST) {
-        global.ST.sig = global.signals() || [];
-      }
+      if (typeof global.signals === 'function' && global.ST) global.ST.sig = global.signals() || [];
     } catch (e) {}
   }
 
@@ -146,7 +159,7 @@
     var orig = global.cycle;
     global.cycle = function () {
       unlockStorage();
-      applyPro();
+      applyCanon();
       applyUniverse();
       clearBadBlocks();
       var ret = orig.apply(this, arguments);
@@ -175,8 +188,9 @@
     var sig = (global.ST && global.ST.sig) || [];
     var act = sig.filter(function (g) { return g && (g.side === 'LONG' || g.side === 'SHORT'); });
     var pos = global.ST && global.ST.pos ? Object.keys(global.ST.pos).length : 0;
-    var live = 0;
+    var live = 0, hasKey = false;
     try {
+      if (global.BTX_LIVE && global.BTX_LIVE.getKey) hasKey = !!global.BTX_LIVE.getKey();
       if (global.ST && global.ST.liveSource) {
         var now = Date.now();
         Object.keys(global.ST.liveSource).forEach(function (k) {
@@ -185,14 +199,15 @@
       }
     } catch (e2) {}
     el.innerHTML = '<b style="color:#6ee7b7">BTX KERNEL</b> · ' + w.label + ' PL · ' +
-      (us ? (entry ? '<b style="color:#86efac">US OPEN</b>' : '<b style="color:#fde68a">US zarządzanie</b>') : '<b style="color:#fca5a5">US zamknięta</b>') +
-      ' · skan <b>' + sig.length + '</b> · aktywne <b>' + act.length + '</b> · pozycje <b>' + pos + '</b> · LIVE ' + live + '/' + FULL.length +
+      (us ? (entry ? '<b style="color:#86efac">US OPEN</b>' : '<b style="color:#fde68a">US zarządzanie</b>') : '<b style="color:#fca5a5">poza US</b>') +
+      ' · skan <b>' + sig.length + '</b> · aktywne <b>' + act.length + '</b> · poz. <b>' + pos + '</b>' +
+      ' · Twelve ' + (hasKey ? ('LIVE ' + live + '/' + FULL.length) : '<span style="color:#fca5a5">brak klucza</span>') +
       (act.length ? ' · <span style="color:#fbbf24">' + act.map(function (g) { return g.side + ' ' + g.sym; }).join(', ') + '</span>' : '');
   }
 
   function boot() {
     unlockStorage();
-    applyPro();
+    applyCanon();
     applyUniverse();
     clearBadBlocks();
     patchCycle();
@@ -200,7 +215,7 @@
     statusBanner();
     setInterval(function () {
       unlockStorage();
-      applyPro();
+      applyCanon();
       applyUniverse();
       clearBadBlocks();
       patchCycle();
@@ -209,7 +224,7 @@
     }, 4000);
   }
 
-  global.BTX_KERNEL = { apply: boot, list: FULL };
+  global.BTX_KERNEL = { CANON: CANON, list: FULL, apply: boot };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function () { setTimeout(boot, 600); });
   else setTimeout(boot, 600);
 })(typeof window !== 'undefined' ? window : globalThis);
