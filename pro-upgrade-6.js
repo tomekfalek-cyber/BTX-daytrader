@@ -98,7 +98,8 @@
     var cfg = global.CFG || {};
     var prov = cfg.provider || 'twelve';
     var key = '';
-    try { key = localStorage.getItem('btx_twelve_key') || ''; } catch (e) {}
+    try { if (global.BTX_LIVE && global.BTX_LIVE.getKey) key = global.BTX_LIVE.getKey() || ''; } catch (e0) {}
+    try { key = key || localStorage.getItem('btx_twelve_key') || ''; } catch (e) {}
     key = key || cfg.tdKey || cfg.twelveKey || cfg.apiKey || '';
     key = String(key || '').trim();
 
@@ -113,13 +114,13 @@
     if (lastErr && global.__BTX_LAST_DATA_ERR_AT && Date.now() - global.__BTX_LAST_DATA_ERR_AT > 10 * 60000) lastErr = '';
     if (lastErr && global.BTX_LIVE && global.BTX_LIVE.isFresh && (global.SYMBOLS || []).some(function (m) { return global.BTX_LIVE.isFresh(m.s); })) lastErr = '';
     if (lastErr) {
-      return { ok: false, mode: 'error', label: 'BŁĄD DANYCH', tip: String(lastErr).slice(0, 120), blockSignals: true };
+      return { ok: false, mode: 'error', label: 'BŁĄD DANYCH', tip: String(lastErr).slice(0, 120), blockSignals: false };
     }
     if (!live || prov === 'demo' || (!key && prov === 'twelve')) {
       return { ok: true, mode: 'paper', label: 'PAPER', tip: 'Brak LIVE Twelve — paper trading OK (nie kopiuj na XTB bez LIVE)', blockSignals: false };
     }
     if (prov === 'stooq') {
-      return { ok: false, mode: 'eod', label: 'EOD STOOQ', tip: 'Za wolne pod daytrading', blockSignals: true };
+      return { ok: false, mode: 'eod', label: 'EOD STOOQ', tip: 'Za wolne pod daytrading — paper ostrożnie', blockSignals: false };
     }
     return { ok: true, mode: 'live', label: 'LIVE', tip: 'Dane LIVE — sygnały mogą iść na checklistę XTB', blockSignals: false };
   }
@@ -391,10 +392,9 @@
     var orig = global.openPos;
     global.openPos = function (g) {
       var gate = dataGate();
+      // Paper daytrading: ostrzezenie, ale NIE blokuj otwarc (capital-lock i strategy pilnuja salda)
       if (gate.blockSignals) {
-        if (global.log) global.log('openPos zablokowane: ' + gate.tip, 'i');
-        if (global.toast) global.toast('Blokada: ' + gate.label + ' — nie otwieram paper pod XTB', 'info');
-        return;
+        if (global.log) global.log('PRO6 uwaga danych: ' + gate.tip + ' — paper i tak moze otworzyc', 'i');
       }
       var news = highNewsNow();
       if (news.blocked) {
