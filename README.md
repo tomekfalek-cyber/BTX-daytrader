@@ -37,3 +37,15 @@ Docelowe wartości są wpisane bezpośrednio w `strategy-pro.js` (np. `minStreng
 ## Bezpieczeństwo
 - Klucze w localStorage przeglądarki — nie współdziel urządzenia
 - Docelowo: Worker proxy (`worker-proxy.js`, opis w `worker-proxy.md`) dla kluczy API
+
+## Start sesji (PRO)
+
+1. Otwórz GitHub Pages z `?v=mon1` i hard refresh (Ctrl+Shift+R).
+2. Ustawienia → klucz Twelve Data → Zapisz → Test.
+3. Reset paper na początku tygodnia / po zmianach sizingu.
+4. Auto ON, sesja ALL lub US od 15:30 PL.
+5. Na pulpicie: **PRO DAYTRADER** checklist + **Kopiuj plan XTB**.
+6. Ręcznie wprowadzaj na XTB tylko plany A+/A gdy się uczysz.
+7. Przed końcem sesji US (~21:45 PL) bez nowych wejść; flat paper.
+
+Kanon: risk 0.35%, max 2 poz., TP 2R, time-stop 24, confirm 1, capital-lock ON.
