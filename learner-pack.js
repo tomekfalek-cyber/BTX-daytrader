@@ -406,14 +406,18 @@
     if (typeof global.openPos !== 'function' || global.openPos.__learner) return;
     var orig = global.openPos;
     global.openPos = function () {
+      // Domyslnie TRADE — observe tylko gdy user jawnie ustawi
       if (modeGet() === 'observe') {
-        if (global.toast) global.toast('Tryb obserwacji — bez nowych wejść. Przełącz na "Mogę klikać XTB".', 'info');
-        return;
+        try { localStorage.setItem('BTX_TRADE_MODE', 'trade'); } catch (eM) {}
       }
-      var st = checkHardStop();
-      if (st.stopped) {
-        if (global.toast) global.toast('STOP FOR DAY: ' + st.reason, 'err');
-        return;
+      var allowStop = false;
+      try { allowStop = localStorage.getItem('BTX_ALLOW_STOP_DAY') === '1'; } catch (eS) {}
+      if (allowStop) {
+        var st = checkHardStop();
+        if (st.stopped) {
+          if (global.toast) global.toast('STOP FOR DAY: ' + st.reason, 'err');
+          return;
+        }
       }
       return orig.apply(this, arguments);
     };
