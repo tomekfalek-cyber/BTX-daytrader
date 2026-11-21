@@ -22,6 +22,8 @@
     closeBufferMin: 15,
     flatBeforeCloseMin: 12,
     timeStopBars: 24,
+    coolBars: 2,
+    minHoldBars: 2,
     strictCore: false,
     requireTrend: false,
     allowShort: true,
