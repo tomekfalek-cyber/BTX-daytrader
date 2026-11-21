@@ -726,9 +726,12 @@ function syncSettings(){
   var r=CFG.rates||{USD:1,JPY:0.0067,EUR:1.08}; sv('rate-usd',r.USD); sv('rate-jpy',r.JPY); sv('set-fxlev',CFG.fxLev||30);
 }
 function applySmallProfile(){
-  CFG.capital=500; CFG.risk=0.5; CFG.maxPos=2; CFG.allowShort=true; CFG.dailyLoss=2; CFG.maxTrades=8; CFG.maxConsec=3;
-  CFG.scan={US:false,EU:false,PL:false,FX:true}; CFG.fees=defaultFees(); CFG.rates={USD:1,JPY:0.0067,EUR:1.08}; CFG.fxLev=30; CFG.autoSec=300; CFG.minHold=6; CFG.confirm=2; CFG.v5=1;
-  syncSettings(); reset();
+  /* APEX daytrade — NIE psuj profilu do 500/FX-only */
+  CFG.capital=CFG.capital&&CFG.capital>=1000?CFG.capital:6800;
+  CFG.risk=0.35; CFG.maxPos=2; CFG.allowShort=true; CFG.dailyLoss=1.25; CFG.maxTrades=6; CFG.maxConsec=3;
+  CFG.scan={US:true,EU:true,PL:false,FX:true}; CFG.fees=defaultFees(); CFG.rates={USD:1,JPY:0.0067,EUR:1.08};
+  CFG.fxLev=20; CFG.autoSec=120; CFG.minHold=2; CFG.confirm=1; CFG.timeStop=24; CFG.v5=1; CFG.ccy='USD';
+  syncSettings();
 }
 syncSettings();
 if(!CFG.fees){ applySmallProfile(); }
@@ -1667,7 +1670,7 @@ function btCsvRun(file){
 <script src="pro-edge.js"></script>
 <script src="trade-hero.js"></script>
 
-<script src="positions-fix.js?v=mon1"></script>
+<script src="positions-fix.js?v=mon2"></script>
 
 <script src="engine-hardening.js"></script>
 
@@ -1689,8 +1692,10 @@ function btCsvRun(file){
 <script src="universe-sync.js?v=cont1"></script>
 <script src="daytrade-boost.js?v=cont1"></script>
 <script src="us-session-fix.js?v=cont1"></script>
-<script src="btx-kernel.js?v=mon1"></script>
-<script src="btx-account-fix.js?v=mon1"></script>
-<script src="btx-capital-lock.js?v=mon1"></script>
-<script src="pro-monday.js?v=mon1"></script>
+<script src="btx-kernel.js?v=mon2"></script>
+<script src="btx-account-fix.js?v=mon2"></script>
+<script src="btx-capital-lock.js?v=mon2"></script>
+<script src="pro-monday.js?v=mon2"></script>
+<script src="eod-flat-pro.js?v=mon2"></script>
+<script src="capital-bootstrap.js?v=mon2"></script>
 </body></html>
