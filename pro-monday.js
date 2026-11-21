@@ -40,7 +40,7 @@
       return { name: 'US', open: true, entry: entry, tip: entry ? 'Sesja US — można nowe wejścia.' : 'Tylko zarządzanie / flat przed zamknięciem.' };
     }
     if (w.min >= 9 * 60 && w.min < 17 * 60 + 30) {
-      return { name: 'EU/FX', open: true, entry: w.min < 16 * 60 + 30, tip: 'Okno EU/FX — ostrożnie, główna płynność US od 15:30.' };
+      return { name: 'EU/FX', open: true, entry: w.min < 16 * 60 + 30, tip: 'Okno EU/FX 9:00–16:30 — ASML/SAP/SIE + FX. To Twoje główne okno testów; US od 15:30.' };
     }
     return { name: 'Poza sesją', open: false, entry: false, tip: 'Czekaj na sesję (EU ~9:00, US 15:30 PL).' };
   }
