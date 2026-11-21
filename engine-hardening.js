@@ -167,13 +167,25 @@
       var ST = global.ST;
       var CFG = global.CFG || {};
       if (!g || !ST) return;
-      if (ST.blocked) return;
+      var allowStop = false;
+      try { allowStop = localStorage.getItem('BTX_ALLOW_STOP_DAY') === '1'; } catch (e0) {}
+      if (ST.blocked && !allowStop) { ST.blocked = false; }
+      if (ST.blocked && allowStop) {
+        if (global.log) global.log('ENGINE: blokada dnia — brak open ' + (g.sym || ''), 'i');
+        return;
+      }
       var m = null;
       (global.SYMBOLS || []).forEach(function (x) { if (x.s === g.sym) m = x; });
       var mkt = (m && m.mkt) || (/EUR|XAU|GOLD|USD/.test(g.sym) ? 'FX' : 'US');
-      if (!sessionOpenFixed(mkt)) return;
+      if (!sessionOpenFixed(mkt)) {
+        if (global.log) global.log('ENGINE: poza sesja ' + mkt + ' — ' + (g.sym || ''), 'i');
+        return;
+      }
       var w = warsawParts();
-      if (mkt === 'US' && w.min >= 21 * 60 + 30) return;
+      if (mkt === 'US' && w.min >= 21 * 60 + 45) {
+        if (global.log) global.log('ENGINE: US manage-only — brak nowych ' + (g.sym || ''), 'i');
+        return;
+      }
       // Wczesniej tu nadpisywano rozmiar, stop (1.5xATR) i cel (3R) pozycji liczone przez strategy-pro
       // (stop strukturalny, TP 1.5-2R, ksiegowosc marginu/FX) -> realna geometria nie miala nic wspolnego z backtestem.
       // Teraz: tylko poslizg wejscia; stop/cel/wielkosc liczy WYLACZNIE strategy-pro.
