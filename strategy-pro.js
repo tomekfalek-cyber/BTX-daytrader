@@ -350,7 +350,7 @@
         });
       }
     } catch (eU) {}
-    var freeCash = Math.max(0, Math.min(cash, equity - used * 0.0)); // cash jest zrodlem prawdy
+    var freeCash = Math.max(0, cash); // cash jest zrodlem prawdy (margin juz odliczony przy open)
     // dodatkowo nie pozwol zeby used+nowa > 0.8*equity
     var roomEquity = Math.max(0, equity * 0.80 - used);
     freeCash = Math.min(freeCash, cash);
@@ -425,11 +425,17 @@
     ts = ts == null ? Date.now() : ts;
     if (!g || g.side === 'WAIT') return { ok: false, reason: 'brak sygnalu' };
     if (!ST) return { ok: false, reason: 'brak stanu' };
-    if (ST.blocked) return { ok: false, reason: 'blokada dnia' };
-    // limit dzienny liczony tu (jedno zrodlo prawdy) — flaga ST.blocked jest czyszczona przez nakladki UI, wiec nie mozna na niej polegac
+    // STOP DAY tylko gdy user wlaczyl BTX_ALLOW_STOP_DAY=1; inaczej nie blokuj po ST.blocked
+    var allowStop = false;
+    try { allowStop = localStorage.getItem('BTX_ALLOW_STOP_DAY') === '1'; } catch (eStop) {}
+    if (ST.blocked && allowStop) return { ok: false, reason: 'blokada dnia' };
+    if (ST.blocked && !allowStop) ST.blocked = false;
+    // limit dzienny — twarde źródło prawdy gdy STOP dozwolony; bez flagi tylko informacyjnie w logu
     if (PRO.dailyLossPct > 0 && ST.dayStart > 0 && ST.equity != null) {
       var ddPct = (ST.equity - ST.dayStart) / ST.dayStart * 100;
-      if (ddPct <= -PRO.dailyLossPct) return { ok: false, reason: 'limit straty dnia (' + ddPct.toFixed(2) + '% <= -' + PRO.dailyLossPct + '%)' };
+      if (ddPct <= -PRO.dailyLossPct) {
+        if (allowStop) return { ok: false, reason: 'limit straty dnia (' + ddPct.toFixed(2) + '% <= -' + PRO.dailyLossPct + '%)' };
+      }
     }
     var mk = marketOf(m), nb = newsBlocked(ts);
     if (nb.blocked && nb.label !== 'weekend') return { ok: false, reason: 'blokada news: ' + nb.label };
