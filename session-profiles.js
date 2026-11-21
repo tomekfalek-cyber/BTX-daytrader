@@ -18,7 +18,14 @@
       label: (map.weekday || '') + ' ' + map.hour + ':' + map.minute
     };
   }
-  function suggestedProfile() { return 'ALL'; }
+  function suggestedProfile() {
+    var w = warsaw();
+    if (w.weekend) return 'ALL';
+    // Testy 9:00-16:00 PL: fokus EU+FX (RANO); od 15:30 dolacza US przez ALL
+    if (w.min >= 9 * 60 && w.min < 15 * 60 + 30) return 'RANO';
+    if (w.min >= 15 * 60 + 30 && w.min < 22 * 60) return 'ALL';
+    return 'ALL';
+  }
   function autoOn() { try { return localStorage.getItem(LS_AUTO) !== '0'; } catch (e) { return true; } }
   function setAuto(on) { try { localStorage.setItem(LS_AUTO, on ? '1' : '0'); } catch (e) {} }
   function getProfile() {
@@ -30,7 +37,7 @@
     try { return localStorage.getItem(LS) || 'ALL'; } catch (e) { return 'ALL'; }
   }
   function setProfile(p) {
-    if (['RANO', 'US', 'ALL'].indexOf(p) < 0) p = 'ALL';
+    if (['RANO', 'US', 'ALL'] /* RANO = EU+FX 9-16 */.indexOf(p) < 0) p = 'ALL';
     try { localStorage.setItem(LS, p); } catch (e) {}
   }
   function mktOf(sym) {
@@ -93,7 +100,7 @@
     el.innerHTML = '<div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between">' +
       '<div><b style="color:#93c5fd">Profil sesji</b> \u00b7 ' + w.label + ' PL \u00b7 ALL</div>' +
       '<div style="display:flex;gap:6px">' +
-      ['RANO', 'US', 'ALL'].map(function (x) {
+      ['RANO', 'US', 'ALL'] /* RANO = EU+FX 9-16 */.map(function (x) {
         var on = p === x;
         return '<button type="button" data-p="' + x + '" style="cursor:pointer;padding:8px 12px;border-radius:8px;border:0;font-weight:700;' +
           (on ? 'background:#2563eb;color:#fff' : 'background:#334155;color:#e2e8f0') + '">' + x + '</button>';
@@ -107,7 +114,7 @@
       'readiness.js', 'pass-telegram-only.js', 'stop-day-control.js', 'status-fix.js',
       'why-zero.js', 'currency-ui.js', 'fix-learner-gate.js', 'force-paper-trade.js',
       'entry-path-boost.js', 'apex-daytrade.js', 'force-all-markets.js',
-      'signal-lock.js', 'code-hygiene.js', 'universe-sync.js', 'daytrade-boost.js', 'us-session-fix.js', 'btx-kernel.js', 'btx-account-fix.js', 'btx-capital-lock.js', 'pro-monday.js', 'eod-flat-pro.js', 'capital-bootstrap.js', 'trade-flow-guard.js', 'engine-hardening-patch.js'
+      'signal-lock.js', 'code-hygiene.js', 'universe-sync.js', 'daytrade-boost.js', 'us-session-fix.js', 'btx-kernel.js', 'btx-account-fix.js', 'btx-capital-lock.js', 'pro-monday.js', 'eod-flat-pro.js', 'capital-bootstrap.js', 'trade-flow-guard.js', 'eu-morning-focus.js', 'engine-hardening-patch.js'
     ];
     files.forEach(function (src) {
       try {
