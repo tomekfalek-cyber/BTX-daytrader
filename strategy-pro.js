@@ -16,7 +16,7 @@
     riskPct: 0.35, maxPos: 2, dailyLossPct: 1.25, maxConsecLoss: 3, maxDayTrades: 6,
     atrSlMult: 1.2, tpR: 2.0, beR: 1.0, partialR: 99, partialFrac: 0,
     minStrengthOpen: 2, coolBars: 2, minHoldBars: 2, requireTrend: false, newsPadMin: 10,
-    scoreMin: 3, minNetRR: 1.2, orBars: 6, timeStopBars: 24, closeBufferMin: 15, flatBeforeCloseMin: 12,
+    scoreMin: 3, minNetRR: 1.1, orBars: 6, timeStopBars: 24, closeBufferMin: 15, flatBeforeCloseMin: 12,
     // Warunki daytradingowe (precyzja > liczba transakcji)
     allowShort: true,       // shorty wlaczone (paper). Krotka sprzedaz = CFD: koszt bez konwersji walut, pozycje tylko intraday
     strictCore: false,       // otwieraj tylko, gdy RDZEN strategii daje score >= prog (nakladki "TradeNow"/"DT mode" nie obnizaja progu)
