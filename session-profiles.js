@@ -107,7 +107,7 @@
       'readiness.js', 'pass-telegram-only.js', 'stop-day-control.js', 'status-fix.js',
       'why-zero.js', 'currency-ui.js', 'fix-learner-gate.js', 'force-paper-trade.js',
       'entry-path-boost.js', 'apex-daytrade.js', 'force-all-markets.js',
-      'signal-lock.js', 'code-hygiene.js', 'universe-sync.js', 'daytrade-boost.js', 'us-session-fix.js', 'btx-kernel.js', 'btx-account-fix.js', 'btx-capital-lock.js', 'pro-monday.js', 'eod-flat-pro.js', 'capital-bootstrap.js', 'engine-hardening-patch.js'
+      'signal-lock.js', 'code-hygiene.js', 'universe-sync.js', 'daytrade-boost.js', 'us-session-fix.js', 'btx-kernel.js', 'btx-account-fix.js', 'btx-capital-lock.js', 'pro-monday.js', 'eod-flat-pro.js', 'capital-bootstrap.js', 'trade-flow-guard.js', 'engine-hardening-patch.js'
     ];
     files.forEach(function (src) {
       try {
