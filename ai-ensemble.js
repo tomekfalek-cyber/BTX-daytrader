@@ -294,13 +294,16 @@
       var d = decide(bars, g.side, mkt);
       g.ai = { conf: d.conf, ok: d.ok, regime: d.regime, parts: d.parts, reason: d.reason, thr: d.thr };
       if (!d.ok) {
+        // Miekkie AI: nie kasuj sygnalu na paper/synth — tylko obniz sile / dopisz powod
         if (d.reason === 'regime-shock' || d.reason === 'ai-disagreement' ||
             (d.reason === 'ai-veto-weak' && (d.conf || 0) < 0.48)) {
-          g.why = (g.why || '') + ' · AI veto (' + (d.reason || '?') + ')';
+          g.why = (g.why || '') + ' · AI ostroznie (' + (d.reason || '?') + ')';
           g.strength = Math.min(g.strength || 0, 2);
-          if ((d.conf || 0) < 0.45 || d.reason === 'regime-shock') {
+          // Twardy WAIT tylko przy skrajnym szokowym reżimie i bardzo niskiej conf
+          if (d.reason === 'regime-shock' && (d.conf || 0) < 0.30) {
             g.side = 'WAIT';
             g.strength = 0;
+            g.why = (g.why || '') + ' · AI hard veto shock';
           }
         }
       } else {
