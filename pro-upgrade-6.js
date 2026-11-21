@@ -178,7 +178,7 @@
       var riskCash = eq * 0.005;
       var qty = sd > 0 ? Math.max(1, Math.floor(riskCash / sd)) : 1;
       plan = {
-        qty: qty, riskPct: 0.5, entry: price,
+        qty: qty, riskPct: 0.35, entry: price,
         sl: g.side === 'SHORT' ? price + sd : price - sd,
         tp: g.side === 'SHORT' ? price - 2.5 * sd : price + 2.5 * sd,
         partial: g.side === 'SHORT' ? price - 1.5 * sd : price + 1.5 * sd
