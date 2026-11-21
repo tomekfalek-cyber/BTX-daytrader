@@ -231,7 +231,7 @@
             p.be = true;
           }
         }
-        var minH = CFG.minHold || 4;
+        var minH = CFG.minHold || 2;
         var inMin = p.bars < minH;
         // swieca, w ktorej weszlismy, zawiera ruch sprzed wejscia -> na niej sprawdzamy tylko zamkniecie (inaczej falszywe stopy)
         var onEntryBar = !!(p.openedAt && b.t <= p.openedAt);
@@ -244,7 +244,7 @@
           if (bHi >= stp0) { global.closePos(k, p.be ? 'BE-stop' : 'stop', Math.max(stp0, fillO)); continue; }
           if (bLo <= p.target) { global.closePos(k, 'target', Math.min(p.target, fillO)); continue; }
         }
-        if (!inMin && p.bars >= (CFG.timeStop || 60)) global.closePos(k, 'time-stop', b.c);
+        if (!inMin && p.bars >= (CFG.timeStop || 24)) global.closePos(k, 'time-stop', b.c);
       }
       var sg = typeof global.signals === 'function' ? global.signals() : [];
       ST.sig = sg;
