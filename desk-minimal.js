@@ -47,7 +47,9 @@
     'btx-kernel-banner',
     'btx-cap-banner',
     'btx-session-profile',
-    'btx-hero-multi'
+    'btx-hero-multi',
+    'btx-session-cards',
+    'btx-edge-week'
   ];
 
   function isFull() {
