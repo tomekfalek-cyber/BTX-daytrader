@@ -12,7 +12,7 @@
     s.textContent = '#btx-auto-panel{margin:12px 0;padding:14px 16px;border-radius:14px;border:1px solid rgba(18,196,139,.35);background:rgba(18,196,139,.07)}#btx-auto-panel h3{margin:0 0 6px;font-size:14px;color:#d1fae5}#btx-auto-panel .why{font-size:12px;color:var(--tx2);line-height:1.5;margin:0 0 10px}#btx-auto-panel table{width:100%;border-collapse:collapse;font-size:12px}#btx-auto-panel th,#btx-auto-panel td{padding:5px 8px;border-bottom:1px solid rgba(255,255,255,.06);text-align:left}#btx-auto-panel .ok{color:#12c48b;font-weight:700}#btx-auto-panel .bad{color:#f87171;font-weight:700}#btx-auto-panel .row{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;align-items:center}';
     document.head.appendChild(s);
   }
-  function isOn() { try { return localStorage.getItem(LS_ON) === '1'; } catch (e) { return false; } }
+  function isOn() { try { return localStorage.getItem(LS_ON) !== '0'; } catch (e) { return true; } }
   function setOn(v) { try { localStorage.setItem(LS_ON, v ? '1' : '0'); } catch (e) {} }
   function minStr() {
     var P = global.BTX_STRATEGY_PRO || global.BTX_PRO || {};
@@ -110,7 +110,7 @@
     var k = document.getElementById('btx-auto-tick');
     if (k) k.onclick = function () { tick(); };
   }
-  function boot() { injectCss(); render(); if (isOn()) start(); setInterval(render, 6000); }
+  function boot() { try { localStorage.setItem(LS_ON, '1'); } catch (e) {} injectCss(); render(); start(); setInterval(render, 6000); }
   global.BTX_AUTONOMY = { gradeSetup: gradeSetup, rankSignals: rankSignals, tick: tick, start: start, stop: stop, isOn: isOn, tryOpenBest: tryOpenBest };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 })(typeof window !== 'undefined' ? window : globalThis);
