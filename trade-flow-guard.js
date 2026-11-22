@@ -10,22 +10,26 @@
     try {
       localStorage.setItem('BTX_TRADE_MODE', 'trade');
       localStorage.setItem('BTX_LEARNER_MODE', 'trade');
+      // ZAWSZE: autonomia ON, blokada dnia OFF przy aktywnym bocie
       localStorage.setItem('BTX_AUTONOMY_ON', '1');
+      localStorage.setItem('BTX_ALLOW_STOP_DAY', '0');
       localStorage.setItem('BTX_REQUIRE_LIVE', '0');
-      if (localStorage.getItem('BTX_ALLOW_STOP_DAY') == null) {
-        localStorage.setItem('BTX_ALLOW_STOP_DAY', '0');
-      }
-      // kill switch off unless user set it this session intentionally — only clear if null
-      if (localStorage.getItem('BTX_KILL_SWITCH') == null) {
-        localStorage.setItem('BTX_KILL_SWITCH', '0');
-      }
+      localStorage.setItem('BTX_KILL_SWITCH', '0');
     } catch (e) {}
     try {
-      if (global.ST && localStorage.getItem('BTX_ALLOW_STOP_DAY') !== '1') {
+      if (global.ST) {
         global.ST.blocked = false;
         global.ST.stopForDay = false;
       }
     } catch (e2) {}
+    // UI toggle autonomii jesli istnieje
+    try {
+      var el = document.getElementById('btx-auto-toggle');
+      if (el) {
+        if (el.type === 'checkbox') el.checked = true;
+        el.setAttribute('aria-pressed', 'true');
+      }
+    } catch (e3) {}
   }
 
   function patchCycle() {
