@@ -66,7 +66,8 @@
       localStorage.setItem('BTX_LEARNER_MODE', 'trade');
       localStorage.setItem('BTX_AUTONOMY_ON', '1');
       localStorage.setItem('BTX_REQUIRE_LIVE', '0');
-      if (localStorage.getItem('BTX_ALLOW_STOP_DAY') == null) localStorage.setItem('BTX_ALLOW_STOP_DAY', '0');
+      localStorage.setItem('BTX_ALLOW_STOP_DAY', '0');
+      localStorage.setItem('BTX_AUTONOMY_ON', '1');
       localStorage.setItem('BTX_SESSION_PROFILE', 'ALL');
     } catch (e) {}
   }
