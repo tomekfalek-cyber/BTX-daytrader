@@ -247,7 +247,7 @@
     try {
       localStorage.setItem('BTX_TRADE_MODE', 'trade');
       localStorage.setItem('BTX_AUTONOMY_ON', '1');
-      if (localStorage.getItem('BTX_ALLOW_STOP_DAY') == null) localStorage.setItem('BTX_ALLOW_STOP_DAY', '0');
+      localStorage.setItem('BTX_ALLOW_STOP_DAY', '0');
       localStorage.setItem('BTX_REQUIRE_LIVE', '0');
     } catch (e) {}
     var P = global.BTX_STRATEGY_PRO || global.BTX_PRO;
