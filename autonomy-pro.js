@@ -54,7 +54,9 @@
       if (ar) return ar;
     }
     var ST = global.ST, CFG = global.CFG || {};
-    if (!ST || ST.blocked) return null;
+    if (!ST) return null;
+    try { if (localStorage.getItem('BTX_ALLOW_STOP_DAY') !== '1') { ST.blocked = false; ST.stopForDay = false; } } catch (eB) {}
+    if (ST.blocked) return null;
     if (Object.keys(ST.pos || {}).length >= (CFG.maxPos || 2)) return null;
     if ((ST.dayTrades || 0) >= (CFG.maxTrades || 6)) return null;
     var ranked = rankSignals();
