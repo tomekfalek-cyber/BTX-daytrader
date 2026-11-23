@@ -191,13 +191,19 @@
       if (cls.zone === 'low') boost -= 1;
     }
     if (side === 'LONG' || side === 'SHORT') {
-      if (boost <= -1 && (g.strength || 0) >= 2) {
+      // nie doklejaj VPVR wielokrotnie przy kazdym cyklu
+      var why0 = g.why || '';
+      if (!/\bVPVR\b/.test(why0)) {
+        if (boost <= -1 && (g.strength || 0) >= 2) {
+          g.strength = Math.max(1, (g.strength || 0) - 1);
+          g.why = why0 + ' · VPVR: ' + cls.label + ' (−1 siła)';
+        } else if (cls.zone === 'poc') {
+          g.why = why0 + ' · VPVR: przy POC';
+        } else {
+          g.why = why0 + ' · VPVR: ' + cls.label;
+        }
+      } else if (boost <= -1 && (g.strength || 0) >= 3 && !/−1 siła|\(-1/.test(why0)) {
         g.strength = Math.max(1, (g.strength || 0) - 1);
-        g.why = (g.why || '') + ' | VPVR: ' + cls.label + ' (−1 siła)';
-      } else if (cls.zone === 'poc') {
-        g.why = (g.why || '') + ' | VPVR: przy POC';
-      } else {
-        g.why = (g.why || '') + ' | VPVR: ' + cls.label;
       }
     }
     return g;
