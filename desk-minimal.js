@@ -150,7 +150,7 @@
       if (localStorage.getItem(LS) == null) localStorage.setItem(LS, '0');
     } catch (e) {}
     ensureBar();
-    setInterval(ensureBar, 4000);
+    setInterval(ensureBar, 10000);
   }
 
   global.BTX_DESK_MIN = { apply: apply, isFull: isFull };
