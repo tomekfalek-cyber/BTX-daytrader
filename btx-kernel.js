@@ -224,7 +224,7 @@
       patchCycle();
       refreshSignals();
       statusBanner();
-    }, 4000);
+    }, 8000);
   }
 
   global.BTX_KERNEL = { CANON: CANON, list: FULL, apply: boot };
