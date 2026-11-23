@@ -3,6 +3,12 @@
  */
 (function (global) {
   'use strict';
+
+  function orderedSymbols() {
+    if (global.__BTX_LIVE_ORDER && global.__BTX_LIVE_ORDER.length) return global.__BTX_LIVE_ORDER.slice();
+    return (global.SYMBOLS || []).map(function (m) { return m.s; });
+  }
+
   if (global.BTX_LIVE) return;
 
   var FRESH_MS = 45 * 60 * 1000;
