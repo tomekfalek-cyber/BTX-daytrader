@@ -173,7 +173,7 @@
       cleanSignals();
       manageBE();
       statusLine();
-    }, 4000);
+    }, 8000);
   }
 
   global.BTX_PRO_LEVEL = { tryOpenSmart: tryOpenSmart, cleanSignals: cleanSignals };
