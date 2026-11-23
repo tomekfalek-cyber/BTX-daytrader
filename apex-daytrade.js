@@ -65,7 +65,9 @@
   }
   function canTradeMore() {
     var ST = global.ST, C = CFG(), Pr = P();
-    if (!ST || ST.blocked) return false;
+    if (!ST) return false;
+    try { if (localStorage.getItem('BTX_ALLOW_STOP_DAY') !== '1') { ST.blocked = false; ST.stopForDay = false; } } catch (eB) {}
+    if (ST.blocked) return false;
     if (Object.keys(ST.pos || {}).length >= (C.maxPos || Pr.maxPos || 2)) return false;
     if ((ST.dayTrades || 0) >= (C.maxTrades || Pr.maxDayTrades || 6)) return false;
     if (Pr.dailyLossPct > 0 && ST.dayStart > 0 && ST.equity != null) {
