@@ -59,7 +59,7 @@
   function boot() {
     unlock();
     patchCycle();
-    setInterval(function () { unlock(); patchCycle(); }, 4000);
+    setInterval(function () { unlock(); patchCycle(); }, 8000);
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function () { setTimeout(boot, 800); });
   else setTimeout(boot, 800);
