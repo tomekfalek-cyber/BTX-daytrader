@@ -1,7 +1,7 @@
 /**
  * BTX Perf Governor — anty-zamulanie dashboardu.
  * Problem: 80+ setInterval w modulach → po kilku minutach UI lag (menu, taby).
- * Rozwiazanie: ogranicz czeste timery (min 4s), zostaw tylko krotkie (countdown).
+ * Rozwiazanie: ogranicz czeste timery (min 6s), zostaw tylko krotkie (countdown).
  * + throttle requestAnimationFrame dla ciezkich zapisow (opcjonalnie).
  */
 (function (global) {
@@ -13,7 +13,7 @@
   var nativeClearInterval = global.clearInterval.bind(global);
   var nativeSetTimeout = global.setTimeout.bind(global);
 
-  var MIN_MS = 4000;          // wiekszosc modulow
+  var MIN_MS = 6000;          // wiekszosc modulow
   var ALLOW_SHORT_MAX = 400;  // countdown / animacje <400ms OK
   var patched = 0;
   var active = 0;
@@ -72,7 +72,7 @@
       if (pane === document.body) pane.insertBefore(el, pane.firstChild);
       else pane.appendChild(el);
     }
-    el.textContent = 'Wydajność: limity timerów ON (min 4s) · złagodzono ' + patched + ' częstych intervali · UI powinno zostać płynne';
+    el.textContent = 'Wydajność: limity timerów ON (min 6s) · złagodzono ' + patched + ' częstych intervali · UI powinno zostać płynne';
   }
 
   function boot() {
