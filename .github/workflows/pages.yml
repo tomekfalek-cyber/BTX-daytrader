@@ -17,11 +17,14 @@ jobs:
       - uses: actions/checkout@v4
       - name: Guard - krytyczne moduly nie moga byc puste/placeholder
         run: |
-          for f in autonomy-pro.js pro-edge.js strategy-pro.js index.html; do
+          for f in autonomy-pro.js strategy-pro.js index.html btx-entry-engine.js skip-reason-ui.js; do
+            if [ ! -f "$f" ]; then echo "FAIL brak $f"; exit 1; fi
             sz=$(wc -c < "$f")
             if [ "$sz" -lt 500 ]; then echo "FAIL $f ma tylko $sz B"; exit 1; fi
             if grep -q PLACEHOLDER "$f"; then echo "FAIL $f zawiera PLACEHOLDER"; exit 1; fi
           done
+          # radar musi byc w HTML pulpitu
+          if ! grep -q 'btx-skip-panel' index.html; then echo "FAIL brak radaru btx-skip-panel w index.html"; exit 1; fi
       - name: Syntax check all client JS
         run: |
           fail=0
