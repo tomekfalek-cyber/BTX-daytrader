@@ -49,6 +49,7 @@
     'btx-session-profile',
     'btx-hero-multi',
     'btx-session-cards',
+    'btx-skip-panel',
     'btx-edge-week'
   ];
 

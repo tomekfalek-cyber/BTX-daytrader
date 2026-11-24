@@ -113,7 +113,7 @@
     } catch (e) {}
     return '<b>' + xtbSym(g.sym) + '</b> · ' + humanSide(g.side) +
       '<br>Wejście ok. <b>' + f2(px) + '</b> · SL <b>' + f2(sl) + '</b> · TP <b>' + f2(tp) + '</b>' + units +
-      '<br><span style="color:#94a3b8">Paper — sprawdź spread i wielkość na XTB zanim klikniesz.</span>';
+      '<br><span style="color:#94a3b8">Paper → XTB 1:1: ten sam kierunek, SL/TP; wielkość i margin sprawdź w oknie brokera.</span>';
   }
 
   function card(title, body, color) {

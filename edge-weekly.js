@@ -78,7 +78,7 @@
       pane.appendChild(el);
     }
     // only show in full desk or always compact one line
-    el.textContent = summaryText();
+    el.innerHTML = '<b>Raport tygodniowy paper</b> — ' + summaryText();
   }
   function boot() {
     patchClose();

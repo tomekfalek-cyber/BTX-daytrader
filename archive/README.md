@@ -1,0 +1,46 @@
+# Archiwum BTX
+
+Pliki nieużywane przez `index.html` (przeniesione, żeby nie mylić silnika).
+
+- `active-dt-mode.js`
+- `ai-panel.js`
+- `api-budget.js`
+- `btx-master-fix.js`
+- `chart-ta-lesson.js`
+- `coach-ui.js`
+- `currency-ui.js`
+- `day-report.js`
+- `daytrade-panel.js`
+- `daytrader-mode.js`
+- `desk-compact.js`
+- `dt-canon.js`
+- `dt-final-pack.js`
+- `fix-learner-gate.js`
+- `force-all-markets.js`
+- `force-paper-trade.js`
+- `guide-7days.js`
+- `learner-pack.js`
+- `macro-calendar.js`
+- `paper-open-engine.js`
+- `pass-telegram-only.js`
+- `pro-assistant.js`
+- `pro-daytrader-5.js`
+- `pro-edge.js`
+- `pro-report.js`
+- `quality-cap-eu-map.js`
+- `quality-cap.js`
+- `readiness.js`
+- `real-daytrader-7.js`
+- `shadow-shorts.js`
+- `status-fix.js`
+- `stop-day-control.js`
+- `trade-hero-multi.js`
+- `trade-now.js`
+- `trade-path-boot.js`
+- `ui-less-noise.js`
+- `ui-plain-polish.js`
+- `unblock-trading.js`
+- `why-zero.js`
+- `worker-proxy.js`
+- `xtb-api-connect.js`
+- `xtb-bridge.js`

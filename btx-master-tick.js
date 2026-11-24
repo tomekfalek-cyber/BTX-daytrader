@@ -1,5 +1,5 @@
 /**
- * 1) Wspolny tick 4s — centralny rytm zamiast chaosu timerow (subskrypcje).
+ * 1) Wspolny tick 4s — centralny rytm (moduly powinny uzywac BTX_TICK.on zamiast setInterval) zamiast chaosu timerow (subskrypcje).
  */
 (function (global) {
   'use strict';
