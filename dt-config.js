@@ -20,7 +20,7 @@
       primeExtra: 0,
       minStrengthOpen: 2,
       minRvol: 0.35,
-      minNetRR: 1.25,
+      minNetRR: 1.1,
       strictCore: false,
       requireTrend: false,
       allowShort: true,
