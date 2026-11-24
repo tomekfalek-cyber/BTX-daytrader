@@ -16,7 +16,7 @@
     primeExtra: 0,
     minStrengthOpen: 2,
     minRvol: 0.35,
-    minNetRR: 1.2,
+    minNetRR: 1.1,
     tpR: 2.0,
     beR: 1.0,
     closeBufferMin: 15,
