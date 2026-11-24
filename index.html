@@ -162,7 +162,12 @@ details.gl p{margin-top:10px;line-height:1.75;color:var(--tx2);font-size:12.8px}
 <div class="kpi"><div class="l">Otwarte</div><div class="v" id="s-pos">0</div><div class="d">max 4 pozycje</div></div>
 <div class="kpi"><div class="l">Win rate</div><div class="v" id="s-win">—</div><div class="d" id="s-trades">0 transakcji</div></div>
 </div>
-<section class="pane on" id="pane-desk"><div class="grid g2">
+<section class="pane on" id="pane-desk">
+<div id="btx-skip-panel" style="display:block;margin:10px 0;padding:14px 16px;border-radius:12px;border:2px solid #fbbf24;background:#1c1000;color:#fde68a;font-size:13px">
+<b>RADAR SYGNAŁÓW → KOLEJKA OTWARCIA</b><br>
+Ładowanie radaru… (odśwież Ctrl+Shift+R jeśli zostaje ten tekst dłużej niż 5 s)
+</div>
+<div class="grid g2">
 <div class="card"><h2><span class="dot"></span>Krzywa kapitału</h2><canvas id="eq" height="180"></canvas></div>
 <div class="card"><h2><span class="dot"></span>Najlepsze sygnały</h2><div id="desk-sig"></div></div>
 </div><div class="card" style="margin-top:12px"><h2><span class="dot"></span>Rynek — skrót</h2><div id="desk-mkt"></div></div></section>
@@ -1673,8 +1678,8 @@ function btCsvRun(file){
 <script src="edge-weekly.js?v=lvl1"></script>
 <script src="openpos-pipeline.js?v=lvl1"></script>
 <script src="pro-trade-level.js?v=prolvl1"></script>
-<script src="btx-entry-engine.js?v=all1"></script>
-<script src="skip-reason-ui.js?v=all1"></script>
+<script src="btx-entry-engine.js?v=radar2"></script>
+<script src="skip-reason-ui.js?v=radar2"></script>
 
 <script src="capital-bootstrap.js?v=mon2"></script>
 </body></html>
