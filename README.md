@@ -77,3 +77,10 @@ Kanon: risk 0.35%, max 2 poz., TP 2R, time-stop 24, confirm 1, capital-lock ON.
 ### Backtest
 Przycisk backtest na demo generuje wynik na **świecach syntetycznych/demo**, nie na 250 sesjach dziennych. Traktuj jako test silnika, nie dowód edge.
 
+
+### Backtest PRO
+Przycisk **Backtest** (prawy dolny róg) + zakładka Backtest:
+- dane **5m z Twelve Data** (wymaga klucza)
+- koszty + poślizg
+- porównanie **RANDOM baseline**
+- bez klucza / na demo = **brak dowodu edge**

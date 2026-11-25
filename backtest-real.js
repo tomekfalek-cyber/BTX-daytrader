@@ -93,7 +93,18 @@
         while (mj + 1 < mb.length && mb[mj + 1].t <= bar.t) mj++;
         eo.marketBars = mj >= 0 ? mb.slice(Math.max(0, mj - 399), mj + 1) : null;
       }
-      var g = opts.signalFn ? opts.signalFn(i, bar, bars) : C.evalCore(meta, bars.slice(Math.max(0, i - 399), i + 1), ts, eo);
+      var g;
+      if (opts.randomEntry) {
+        // Baseline: losowe LONG/SHORT z ta sama czestotliwoscia co maxDay (nie model)
+        if (Math.random() > (opts.randomProb != null ? opts.randomProb : 0.02)) continue;
+        var sideR = Math.random() < 0.5 ? 'LONG' : 'SHORT';
+        if (!opts.allowShort && sideR === 'SHORT') sideR = 'LONG';
+        var atrR = null;
+        try { atrR = C.atr(bars.slice(Math.max(0, i - 20), i + 1), 14); } catch (eA) {}
+        g = { side: sideR, strength: P.minStrengthOpen, atr: atrR || bar.c * 0.004, why: 'RANDOM' };
+      } else {
+        g = opts.signalFn ? opts.signalFn(i, bar, bars) : C.evalCore(meta, bars.slice(Math.max(0, i - 399), i + 1), ts, eo);
+      }
       if (!g || g.side === 'WAIT' || (g.strength || 0) < P.minStrengthOpen) continue;
       var nxt = bars[i + 1];
       if (nxt.t - bar.t > 600000) continue;                    // luka w danych
@@ -194,7 +205,12 @@
   function format(results, meta) {
     var L = [];
     L.push('BACKTEST (prawdziwe dane 5-min, koszty+poslizg wliczone, wyniki w R)');
+    L.push('Jesli E[R] strategii <= E[R] RANDOM — brak dowodu przewagi na tym zbiorze.');
     if (meta && meta.coverage) L.push(meta.coverage);
+    if (meta && meta.random) {
+      var rs = meta.random;
+      L.push('RANDOM BASELINE: N=' + rs.n + ' Win%=' + (rs.winRate * 100).toFixed(0) + '% E[R]=' + f2(rs.expectancy) + ' PF=' + pf(rs));
+    }
     L.push('');
     if (meta && meta.scen) {
       L.push('SCENARIUSZE KOSZTOWE (te same reguly, BAZA):');
@@ -290,7 +306,25 @@
     var scen = global.BTX_BT.scenarios(rowSets, { allowShort: !!PRO().allowShort, slipPct: 0.0002, marketBars: marketBars });
     var sd2 = global.BTX_BT.sides(rowSets, { slipPct: 0.0002, marketBars: marketBars });
     var attr = global.BTX_BT.attribution(rowSets, { allowShort: false, marketBars: marketBars });
-    out.textContent = format(res, { coverage: cov, scen: scen, sides: sd2, attrib: attr });
+    // RANDOM baseline — te same koszty/SL/TP, losowe wejscia
+    var rndTrades = [];
+    rowSets.forEach(function (rs) {
+      var rr = run(rs.bars, rs.meta, { allowShort: !!PRO().allowShort, slipPct: 0.0002, marketBars: marketBars, randomEntry: true, randomProb: 0.025,
+        roundTripPct: rs.roundTripPct, roundTripShortPct: rs.roundTripShortPct });
+      rndTrades = rndTrades.concat(rr.trades || []);
+    });
+    function simpleStats(tr) {
+      var n = tr.length, wins = 0, sum = 0, i;
+      for (i = 0; i < n; i++) { sum += tr[i].R || tr[i].pnl || 0; if ((tr[i].R || tr[i].pnl || 0) > 0) wins++; }
+      var exp = n ? sum / n : 0;
+      var gw = 0, gl = 0;
+      for (i = 0; i < n; i++) { var x = tr[i].R || tr[i].pnl || 0; if (x > 0) gw += x; else gl += -x; }
+      return { n: n, winRate: n ? wins / n : 0, expectancy: exp, profitFactor: gl > 0 ? gw / gl : (gw > 0 ? 99 : 0) };
+    }
+    var rndStats = simpleStats(rndTrades);
+    out.textContent = format(res, { coverage: cov, scen: scen, sides: sd2, attrib: attr, random: rndStats }) +
+      '\n\n=== WERDYKT ===\n' +
+      'Porownaj E[R] strategii z RANDOM. Brak trwalej przewagi = nie zwiekszaj ryzyka na XTB.';
     btn.disabled = false;
   }
 

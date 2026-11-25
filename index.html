@@ -1651,7 +1651,7 @@ function btCsvRun(file){
 <script src="positions-fix.js?v=fin1"></script>
 
 <script src="live-prices.js"></script>
-<script src="backtest-real.js"></script>
+<script src="backtest-real.js?v=bt2"></script>
 <script src="dt-config.js?v=cont1"></script>
 <script src="apex-daytrade.js?v=prolvl1"></script>
 <script src="universe-sync.js?v=cont1"></script>
@@ -1680,4 +1680,22 @@ function btCsvRun(file){
 
 <script src="capital-bootstrap.js?v=mon2"></script>
 <script src="btx-engine-singleton.js?v=core1"></script>
+<script>
+(function(){
+  function wire(){
+    var b=document.getElementById('btn-bt');
+    if(!b||b.__btWired)return;
+    b.__btWired=true;
+    b.addEventListener('click',function(e){
+      e.preventDefault();
+      var real=document.getElementById('btx-bt-btn');
+      if(real){real.click();return;}
+      var out=document.getElementById('bt-out');
+      if(out) out.innerHTML='Użyj przycisku <b>Backtest</b> (prawy dolny róg) — prawdziwe dane 5m Twelve Data + koszty + RANDOM baseline. Wymaga klucza w Ustawieniach.';
+    });
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',function(){setTimeout(wire,800);});
+  else setTimeout(wire,800);
+})();
+</script>
 </body></html>
