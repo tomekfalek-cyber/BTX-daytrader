@@ -197,6 +197,9 @@ details.gl p{margin-top:10px;line-height:1.75;color:var(--tx2);font-size:12.8px}
 <div class="row" style="margin-top:9px"><label class="mut" style="width:200px">Dzienny limit strat (%)</label><input id="set-dloss" type="number" step="0.5" style="width:100px"></div>
 <div class="row" style="margin-top:9px"><label class="mut" style="width:200px">Max transakcji / dzień</label><input id="set-dtrades" type="number" style="width:100px"></div>
 <div class="row" style="margin-top:9px"><label class="mut" style="width:200px">Max strat z rzędu</label><input id="set-dconsec" type="number" style="width:100px"></div>
+<div class="row" style="margin-top:9px"><label class="mut" style="width:200px">Dźwignia FX</label><select id="set-fxlev" style="width:120px"><option value="1">1×</option><option value="5">5×</option><option value="10">10×</option><option value="20" selected>20×</option><option value="30">30×</option></select></div>
+<div class="row" style="margin-top:9px"><label class="mut" style="width:200px">Dźwignia akcje/ETF (CFD)</label><select id="set-eqlev" style="width:120px"><option value="1" selected>1× (bez)</option><option value="2">2×</option><option value="5">5×</option><option value="10">10×</option></select></div>
+<div class="mut" style="margin:6px 0 0 0;font-size:11px;max-width:420px">Dźwignia zwiększa ekspozycję przy tym samym marginie. Na XTB sprawdź max dla instrumentu. Paper używa tych wartości do size/margin.</div>
 <div class="row" style="margin-top:9px"><label class="mut" style="width:200px">Klucz Twelve Data</label><input id="set-tdkey" type="password" placeholder="opcjonalnie" style="width:220px"></div>
 <div class="row" style="margin-top:12px"><button class="btn ghost" id="btn-real">Pobierz realne dane (wykres)</button></div>
 <div class="row" style="margin-top:9px"><label class="mut" style="width:200px">Min. trzymanie (świece)</label><input id="set-minhold" type="number" min="1" max="40" style="width:100px"></div>
@@ -218,7 +221,7 @@ details.gl p{margin-top:10px;line-height:1.75;color:var(--tx2);font-size:12.8px}
 <script src="ai-ensemble.js">
 </script>
 <script src="export-csv.js"></script>
-<script src="strategy-pro.js"></script>
+<script src="strategy-pro.js?v=lev1"></script>
 <script>
 var SYMBOLS=[
 {s:'NVDA',n:'NVIDIA',t:'Akcja',b:140,v:0.0022,mkt:'US',ccy:'USD'},
@@ -352,12 +355,12 @@ document.getElementById('btn-cycle').addEventListener('click',function(){cycle()
 document.getElementById('btn-auto').addEventListener('click',autoToggle);
 document.getElementById('btn-reset').addEventListener('click',function(){reset();});
 document.getElementById('btn-bt').addEventListener('click',function(){backtest();});document.getElementById('btn-real').addEventListener('click',function(){var q=document.getElementById('chart-sym');fetchReal(q?q.value:'SPY');});document.getElementById('btn-worker').addEventListener('click',workerPing);document.getElementById('btn-prov').addEventListener('click',providerTest);
-document.getElementById('btn-save').addEventListener('click',function(){CFG.risk=Number(document.getElementById('set-risk').value)||0.35;CFG.maxPos=Number(document.getElementById('set-max').value)||2;CFG.capital=Number(document.getElementById('set-cap').value)||100000;CFG.allowShort=document.getElementById('set-short').value==='1';CFG.dailyLoss=Number(document.getElementById('set-dloss').value)||3;CFG.maxTrades=Number(document.getElementById('set-dtrades').value)||10;CFG.maxConsec=Number(document.getElementById('set-dconsec').value)||3;CFG.tdKey=document.getElementById('set-tdkey').value.trim();CFG.workerUrl=document.getElementById('set-worker').value.trim();CFG.provider=document.getElementById('set-prov').value;CFG.minHold=Number(document.getElementById('set-minhold').value)||2;CFG.autoSec=Number(document.getElementById('set-autosec').value)||60;CFG.timeStop=Number(document.getElementById('set-tstop').value)||24;CFG.alpKey=document.getElementById('set-alpkey').value.trim();CFG.alpSec=document.getElementById('set-alpsec').value.trim();if(!ST.eq.length){ST.equity=CFG.capital;ST.cash=CFG.capital;}log('Zapisano ustawienia','i');render();save();toast('Zapisano');});
+document.getElementById('btn-save').addEventListener('click',function(){CFG.risk=Number(document.getElementById('set-risk').value)||0.35;CFG.maxPos=Number(document.getElementById('set-max').value)||2;CFG.capital=Number(document.getElementById('set-cap').value)||100000;CFG.allowShort=document.getElementById('set-short').value==='1';CFG.dailyLoss=Number(document.getElementById('set-dloss').value)||3;CFG.maxTrades=Number(document.getElementById('set-dtrades').value)||10;CFG.maxConsec=Number(document.getElementById('set-dconsec').value)||3;CFG.fxLev=Math.max(1,Math.min(30,Number(document.getElementById('set-fxlev')&&document.getElementById('set-fxlev').value)||20));CFG.eqLev=Math.max(1,Math.min(10,Number(document.getElementById('set-eqlev')&&document.getElementById('set-eqlev').value)||1));CFG.tdKey=document.getElementById('set-tdkey').value.trim();CFG.workerUrl=document.getElementById('set-worker').value.trim();CFG.provider=document.getElementById('set-prov').value;CFG.minHold=Number(document.getElementById('set-minhold').value)||2;CFG.autoSec=Number(document.getElementById('set-autosec').value)||60;CFG.timeStop=Number(document.getElementById('set-tstop').value)||24;CFG.alpKey=document.getElementById('set-alpkey').value.trim();CFG.alpSec=document.getElementById('set-alpsec').value.trim();if(!ST.eq.length){ST.equity=CFG.capital;ST.cash=CFG.capital;}log('Zapisano ustawienia','i');render();save();toast('Zapisano');});
 document.getElementById('chart-sym').addEventListener('change',function(){drawCandles();});
 var sel=document.getElementById('chart-sym');sel.innerHTML=SYMBOLS.map(function(m){return '<option value="'+m.s+'">'+m.s+' — '+m.n+'</option>';}).join('');
 document.getElementById('uni').innerHTML=SYMBOLS.map(function(m){return '<span class="tag">'+m.s+'</span> '+m.n;}).join('<br>');
 if(!load()){reset();}else{render();}initAI();
-document.getElementById('set-risk').value=CFG.risk;document.getElementById('set-max').value=CFG.maxPos;document.getElementById('set-cap').value=CFG.capital;document.getElementById('set-short').value=CFG.allowShort?'1':'0';document.getElementById('set-dloss').value=CFG.dailyLoss||3;document.getElementById('set-dtrades').value=CFG.maxTrades||10;document.getElementById('set-dconsec').value=CFG.maxConsec||3;document.getElementById('set-tdkey').value=CFG.tdKey||'';document.getElementById('set-worker').value=CFG.workerUrl||'';document.getElementById('set-prov').value=CFG.provider||'twelve';document.getElementById('set-minhold').value=CFG.minHold||2;document.getElementById('set-autosec').value=CFG.autoSec||120;document.getElementById('set-tstop').value=CFG.timeStop||30;document.getElementById('set-alpkey').value=CFG.alpKey||'';document.getElementById('set-alpsec').value=CFG.alpSec||'';
+document.getElementById('set-risk').value=CFG.risk;document.getElementById('set-max').value=CFG.maxPos;document.getElementById('set-cap').value=CFG.capital;document.getElementById('set-short').value=CFG.allowShort?'1':'0';document.getElementById('set-dloss').value=CFG.dailyLoss||3;document.getElementById('set-dtrades').value=CFG.maxTrades||10;document.getElementById('set-dconsec').value=CFG.maxConsec||3;try{var fxel=document.getElementById('set-fxlev');if(fxel)fxel.value=String(CFG.fxLev||20);var eqel=document.getElementById('set-eqlev');if(eqel)eqel.value=String(CFG.eqLev||1);}catch(eL){}document.getElementById('set-tdkey').value=CFG.tdKey||'';document.getElementById('set-worker').value=CFG.workerUrl||'';document.getElementById('set-prov').value=CFG.provider||'twelve';document.getElementById('set-minhold').value=CFG.minHold||2;document.getElementById('set-autosec').value=CFG.autoSec||120;document.getElementById('set-tstop').value=CFG.timeStop||30;document.getElementById('set-alpkey').value=CFG.alpKey||'';document.getElementById('set-alpsec').value=CFG.alpSec||'';
 setInterval(function(){document.getElementById('clock');},60000);render();
 function pivots(b,k){var hi=[],lo=[];for(var i=k;i<b.length-k;i++){var isH=true,isL=true;for(var j=1;j<=k;j++){if(b[i].h<=b[i-j].h||b[i].h<=b[i+j].h)isH=false;if(b[i].l>=b[i-j].l||b[i].l>=b[i+j].l)isL=false;}if(isH)hi.push(b[i].h);if(isL)lo.push(b[i].l);}return {hi:hi,lo:lo};}
 drawCandles=function(){
@@ -616,7 +619,7 @@ function scanOn(m){ var s=CFG.scan; return !s||s[m.mkt||'US']!==false; }
 function symM(sym){ for(var i=0;i<SYMBOLS.length;i++){ if(SYMBOLS[i].s===sym) return SYMBOLS[i]; } return null; }
 function sizePlan(m,price,a,eq,cash){
   var rate=rateOf(m)||1; if(!(rate>0)) rate=1;
-  var fx=m.mkt==='FX', lev=fx?Math.min(20,(CFG.fxLev||20)):1, f=feeOf(m), step=fx?1000:Math.min(1,Math.max(0.01,CFG.fracStep||0.01));
+  var fx=m.mkt==='FX', lev=fx?Math.max(1,Math.min(30,CFG.fxLev||20)):Math.max(1,Math.min(10,CFG.eqLev||1)), f=feeOf(m), step=fx?1000:Math.min(1,Math.max(0.01,CFG.fracStep||0.01));
   var sd=(a||price*0.004)*1.5, riskAmt=eq*(CFG.risk/100), unitRisk=sd*rate, reason='';
   var q=Math.floor(riskAmt/unitRisk/step)*step;
   if(q<step) q=0;
@@ -726,7 +729,7 @@ function readExtra(){
 }
 function syncSettings(){
   function sv(id,v){ var e=document.getElementById(id); if(e) e.value=v; }
-  sv('set-risk',CFG.risk); sv('set-max',CFG.maxPos); sv('set-cap',CFG.capital); sv('set-short',CFG.allowShort?'1':'0'); sv('set-dtrades',CFG.maxTrades||10); sv('set-dloss',CFG.dailyLoss||3);
+  sv('set-risk',CFG.risk); sv('set-max',CFG.maxPos); sv('set-cap',CFG.capital); sv('set-short',CFG.allowShort?'1':'0'); sv('set-dtrades',CFG.maxTrades||10); sv('set-dloss',CFG.dailyLoss||3); sv('set-fxlev',CFG.fxLev||20); sv('set-eqlev',CFG.eqLev||1);
   var s=CFG.scan||{US:true,PL:true,FX:true}; ['US','PL','FX'].forEach(function(mk){ var e=document.getElementById('scan-'+mk); if(e) e.checked=s[mk]!==false; });
   var f=CFG.fees||defaultFees(); ['US','PL','FX'].forEach(function(mk){ ['comm','conv','spread','slip'].forEach(function(k){ sv('fee-'+mk+'-'+k,f[mk][k]); }); });
   var r=CFG.rates||{USD:1,JPY:0.0067,EUR:1.08}; sv('rate-usd',r.USD); sv('rate-jpy',r.JPY); sv('set-fxlev',CFG.fxLev||30);
@@ -734,7 +737,7 @@ function syncSettings(){
 function applySmallProfile(){
   /* APEX daytrade — NIE psuj profilu do 500/FX-only */
   CFG.capital=CFG.capital&&CFG.capital>=1000?CFG.capital:6800;
-  CFG.risk=0.35; CFG.maxPos=2; CFG.allowShort=true; CFG.dailyLoss=1.25; CFG.maxTrades=6; CFG.maxConsec=3;
+  CFG.risk=0.35; CFG.maxPos=2;if(CFG.fxLev==null)CFG.fxLev=20;if(CFG.eqLev==null)CFG.eqLev=1; CFG.allowShort=true; CFG.dailyLoss=1.25; CFG.maxTrades=6; CFG.maxConsec=3;
   CFG.scan={US:true,EU:true,PL:false,FX:true}; CFG.fees=defaultFees(); CFG.rates={USD:1,JPY:0.0067,EUR:1.08};
   CFG.fxLev=20; CFG.autoSec=120; CFG.minHold=2; CFG.confirm=1; CFG.timeStop=24; CFG.v5=1; CFG.ccy='USD';
   syncSettings();
@@ -1647,7 +1650,7 @@ function btCsvRun(file){
 
 <script src="trade-hero.js"></script>
 
-<script src="positions-fix.js?v=mon2"></script>
+<script src="positions-fix.js?v=lev1"></script>
 
 <script src="engine-hardening.js"></script>
 
@@ -1679,6 +1682,7 @@ function btCsvRun(file){
 <script src="openpos-pipeline.js?v=lvl1"></script>
 <script src="pro-trade-level.js?v=prolvl1"></script>
 <script src="btx-entry-engine.js?v=radar2"></script>
+<script src="leverage-settings.js?v=lev1"></script>
 <script src="skip-reason-ui.js?v=radar2"></script>
 
 <script src="capital-bootstrap.js?v=mon2"></script>

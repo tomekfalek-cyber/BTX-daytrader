@@ -42,8 +42,8 @@
 
   function levOf(p, m) {
     if (p && p.lev != null && +p.lev > 0) return +p.lev;
-    if (m && m.mkt === 'FX') return Math.min(20, (global.CFG && global.CFG.fxLev) || 20);
-    return 1;
+    if (m && m.mkt === 'FX') return Math.max(1, Math.min(30, (global.CFG && global.CFG.fxLev) || 20));
+    return Math.max(1, Math.min(10, (global.CFG && global.CFG.eqLev) || 1));
   }
 
   function list() {

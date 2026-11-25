@@ -330,7 +330,10 @@
     var f = hasModel ? global.feeOf(m) : { comm: 0, conv: 0, spr: 0 };
     if (side === 'SHORT') f = { comm: f.comm, conv: 0, spr: f.spr };
     var fx = marketOf(m) === 'FX';
-    var lev = fx ? Math.min(20, (global.CFG && global.CFG.fxLev) || 20) : 1;
+    // Dźwignia z ustawień użytkownika (FX vs akcje/ETF CFD)
+    var fxLev = Math.max(1, Math.min(30, +((global.CFG && global.CFG.fxLev) || 20) || 20));
+    var eqLev = Math.max(1, Math.min(10, +((global.CFG && global.CFG.eqLev) || 1) || 1));
+    var lev = fx ? fxLev : eqLev;
     var step = fx ? 1000 : Math.min(1, Math.max(0.01, (global.CFG && global.CFG.fracStep) || 0.01));
     price = +price; equity = +equity; cash = +cash;
     if (!(price > 0) || !(equity > 0) || !(cash > 0)) return { ok: false, reason: 'brak kapitalu/ceny', qty: 0, margin: 0 };
