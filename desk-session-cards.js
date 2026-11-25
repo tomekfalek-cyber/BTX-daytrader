@@ -9,6 +9,36 @@
   var ROOT = 'btx-session-cards';
   var lastHtml = '';
 
+  function openPosLevStrip() {
+    var ST = global.ST || {};
+    var pos = ST.pos || {};
+    var keys = Object.keys(pos);
+    if (!keys.length) return '<div style="margin-top:8px;font-size:12px;color:#94a3b8">Brak otwartych pozycji</div>';
+    var html = '<div style="margin-top:10px">';
+    keys.forEach(function (sym) {
+      var p = pos[sym];
+      if (!p) return;
+      var lev = (p.lev != null && +p.lev > 0) ? +p.lev : 1;
+      try {
+        var list = global.SYMBOLS || [];
+        var m = null;
+        for (var i = 0; i < list.length; i++) if (list[i].s === sym) { m = list[i]; break; }
+        if (m && m.mkt === 'FX') lev = (p.lev != null && +p.lev > 0) ? +p.lev : ((global.CFG && global.CFG.fxLev) || 20);
+        else if (!(p.lev > 0)) lev = (global.CFG && global.CFG.eqLev) || 1;
+      } catch (e) {}
+      var lab = lev <= 1 ? '1× (bez dźwigni)' : (Math.round(lev) + '×');
+      var col = lev > 1 ? '#fbbf24' : '#86efac';
+      html += '<div style="margin:6px 0;padding:8px 10px;border-radius:8px;background:rgba(0,0,0,.25);font-size:12.5px;color:#e2e8f0">';
+      html += '<b style="color:#fff">' + sym + '</b> ' + (p.side || '') +
+        ' · <span style="color:' + col + ';font-weight:800">DŹWIGNIA ' + lab + '</span>';
+      if (p.margin != null) html += ' · margin ' + (Number(p.margin).toFixed(2));
+      html += '</div>';
+    });
+    html += '</div>';
+    return html;
+  }
+
+
   function f2(x) {
     if (typeof global.f2 === 'function') return global.f2(x);
     return (Number(x) || 0).toFixed(2);
@@ -157,7 +187,7 @@
     // bez drgania: nie przepisuj DOM gdy to samo
     if (html === lastHtml) return;
     lastHtml = html;
-    el.innerHTML = html;
+    el.innerHTML = html + openPosLevStrip();
   }
 
   function boot() {

@@ -115,7 +115,7 @@
       var levCol = it.lev > 1 ? '#fbbf24' : '#86efac';
       html += '<div style="margin:8px 0;padding:10px 12px;border-radius:10px;background:rgba(0,0,0,.2);font-size:12.5px;color:#cbd5e1;line-height:1.5">';
       html += '<b style="color:#fff">' + it.sym + '</b> ' + it.p.side +
-        ' · dźwignia <b style="color:' + levCol + '">' + it.levLabel + '</b>' +
+        ' · <span style="color:' + levCol + ';font-weight:800">DŹWIGNIA ' + it.levLabel + '</span>' +
         ' · <span style="color:' + col + ';font-weight:700">' + sign + money(it.pnl) + ' (' + sign + it.pnlPct.toFixed(2) + '%)</span><br>';
       html += 'Margin (z salda): <b style="color:#fde68a">' + money(it.margin) + '</b> (' + it.pctPort.toFixed(1) + '%) · nominał ' + money(it.notional) + ' · qty ' + it.qty;
       html += '</div>';
