@@ -49,3 +49,31 @@ Docelowe wartości są wpisane bezpośrednio w `strategy-pro.js` (np. `minStreng
 7. Przed końcem sesji US (~21:45 PL) bez nowych wejść; flat paper.
 
 Kanon: risk 0.35%, max 2 poz., TP 2R, time-stop 24, confirm 1, capital-lock ON.
+
+## Stan kanoniczny (zgodny z kodem)
+
+| Parametr | Wartość |
+|----------|---------|
+| Risk / trade | **0.35%** |
+| Max pozycji | **2** |
+| Max trades / dzień | **6** (CFG) |
+| TP | **~2R** |
+| Time-stop | **24 świece** (przy cyklu≠5m to nie jest 24×5min ściśle) |
+| Min hold | **8 świec** + **10 min zegarowych** (hold-discipline) |
+| Auto-OPEN | tylko grade **A/A+** (pro-elite-pack) |
+| Paper | asystent pod **ręczne XTB** — brak auto-egzekucji u brokera |
+
+### Architektura (po porządkach)
+- Wskaźniki testowane: `engine-core.mjs` (Node testy).
+- UI/paper: `index.html` + moduły `.js`.
+- **Jedna ścieżka open/close:** `btx-engine-singleton.js` (na końcu ładownia) — dalsze nakładki `openPos` są ignorowane.
+- Usunięte z runtime m.in. `pro-upgrade-6`, `signal-lock`, `code-hygiene`, `engine-hardening-patch`, `openpos-pipeline` (nadmiar wrapperów).
+
+### Czego NIE ma
+- Oficjalnego API XTB / auto-orderów
+- Dowodu przewagi na realnych danych 5m (demo ≠ rynek)
+- Gwarancji zysku
+
+### Backtest
+Przycisk backtest na demo generuje wynik na **świecach syntetycznych/demo**, nie na 250 sesjach dziennych. Traktuj jako test silnika, nie dowód edge.
+

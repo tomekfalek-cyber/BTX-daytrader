@@ -5,6 +5,7 @@
  *  - wyniki w R (wielokrotnosc ryzyka), podzial na probe uczaca (60%) i testowa (40%) — wykrywa dopasowanie do szumu
  *  - porownanie wariantow BE / wyjscia czesciowego / TP (decyzje o parametrach opieraja sie na danych, nie na odczuciu)
  */
+/* UWAGA: bez LIVE/Twelve wyniki na demo nie dowodza edge. */
 (function (global) {
   'use strict';
   var CORE = function () { return global.BTX_STRATEGY_CORE; };

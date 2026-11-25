@@ -58,3 +58,23 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();
 })(typeof window !== 'undefined' ? window : globalThis);
+
+
+  /** Poślizg — aktywny (wcześniej pole było martwe). */
+  function applySlip(price, side, mkt) {
+    var c = COST[mkt] || COST.US;
+    var slip = (c.slipPct || 0) / 100;
+    if (!(price > 0) || slip <= 0) return price;
+    // LONG kupuje drożej, SHORT shortuje taniej (gorszy fill)
+    if (side === 'LONG') return price * (1 + slip);
+    if (side === 'SHORT') return price * (1 - slip);
+    return price;
+  }
+  function roundTripCostPct(mkt) {
+    var c = COST[mkt] || COST.US;
+    return ((c.spreadPct || 0) + (c.slipPct || 0) * 2 + (c.commPct || 0) * 2) / 100;
+  }
+  global.BTX_COST = global.BTX_COST || {};
+  global.BTX_COST.applySlip = applySlip;
+  global.BTX_COST.roundTripCostPct = roundTripCostPct;
+  global.BTX_COST.table = COST;
