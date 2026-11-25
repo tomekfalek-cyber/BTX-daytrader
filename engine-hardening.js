@@ -243,7 +243,7 @@
             p.be = true;
           }
         }
-        var minH = CFG.minHold || 2;
+        var minH = CFG.minHold || 8;
         var inMin = p.bars < minH;
         // swieca, w ktorej weszlismy, zawiera ruch sprzed wejscia -> na niej sprawdzamy tylko zamkniecie (inaczej falszywe stopy)
         var onEntryBar = !!(p.openedAt && b.t <= p.openedAt);

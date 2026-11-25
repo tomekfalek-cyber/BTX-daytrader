@@ -29,7 +29,7 @@
       partialR: 99,
       partialFrac: 0,
       coolBars: 2,
-      minHoldBars: 2,
+      minHoldBars: 8,
       timeStopBars: 24,
       stopMinAtr: 1.0,
       stopMaxAtr: 2.0,
@@ -50,7 +50,7 @@
     },
     cfg: {
       risk: 0.35, maxPos: 2, maxTrades: 6, dailyLoss: 1.25, maxConsec: 3,
-      minHold: 2, timeStop: 24, autoSec: 120, allowShort: true,
+      minHold: 8, timeStop: 24, autoSec: 120, allowShort: true,
       fxLev: 30, slip: 0.004, ccy: 'USD',
       scan: { US: true, EU: true, PL: false, FX: true },
       rates: { USD: 1, JPY: 0.0067, EUR: 1.08 },

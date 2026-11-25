@@ -50,6 +50,7 @@
     'btx-hero-multi',
     'btx-session-cards',
     'btx-skip-panel',
+    'btx-hold-warn',
     'btx-edge-week'
   ];
 
