@@ -38,6 +38,12 @@
     if (ST.cool && ST.cool[g.sym] > 0) return 'cooldown ' + g.sym;
     if (!(ST.cash > 0)) return 'brak cash';
     if ((g.strength || 0) < 2) return 'sila < 2';
+    try {
+      if (global.BTX_ELITE && global.BTX_ELITE.canAutoOpen) {
+        var cg = global.BTX_ELITE.canAutoOpen(g);
+        if (!cg.ok) return cg.why;
+      }
+    } catch (eE) {}
     return '';
   }
 

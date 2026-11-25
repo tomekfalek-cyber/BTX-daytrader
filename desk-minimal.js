@@ -51,6 +51,7 @@
     'btx-session-cards',
     'btx-skip-panel',
     'btx-hold-warn',
+    'btx-elite-panel',
     'btx-edge-week'
   ];
 
