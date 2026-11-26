@@ -52,6 +52,7 @@
     'btx-skip-panel',
     'btx-hold-warn',
     'btx-elite-panel',
+    'btx-edge-panel',
     'btx-sig-skip-box',
     'btx-hero-lev',
     'btx-edge-week'
