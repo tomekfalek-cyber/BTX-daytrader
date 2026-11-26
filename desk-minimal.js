@@ -55,6 +55,7 @@
     'btx-edge-panel',
     'btx-freq-panel',
     'btx-pro-status',
+    'btx-xtb-ticket',
     'btx-sig-skip-box',
     'btx-hero-lev',
     'btx-edge-week'

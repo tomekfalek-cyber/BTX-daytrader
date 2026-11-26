@@ -17,7 +17,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Guard - krytyczne moduly nie moga byc puste/placeholder
         run: |
-          for f in autonomy-pro.js strategy-pro.js index.html btx-entry-engine.js skip-reason-ui.js pro-elite-pack.js; do
+          for f in btx-core.mjs autonomy-pro.js strategy-pro.js index.html btx-entry-engine.js skip-reason-ui.js pro-elite-pack.js; do
             if [ ! -f "$f" ]; then echo "FAIL brak $f"; exit 1; fi
             sz=$(wc -c < "$f")
             if [ "$sz" -lt 500 ]; then echo "FAIL $f ma tylko $sz B"; exit 1; fi
@@ -44,8 +44,7 @@ jobs:
           done
           exit $fail
       - name: Testy (nie blokuj deploy)
-        continue-on-error: true
-        run: npm test || true
+        run: node --test tests/btx-core.test.mjs
   deploy:
     needs: verify
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'

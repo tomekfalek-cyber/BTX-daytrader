@@ -102,3 +102,18 @@ Cel operacyjny: **ok. 2 transakcje / dzień sesyjny** przy sile≥3, grade A/B+,
 | Gate | `btx-engine-singleton` v2 + CANON |
 
 Nie jest to autobroker XTB. Paper + ręczne kopiowanie.
+
+
+## Silnik `btx-core.mjs` (jedno źródło prawdy)
+
+Czyste funkcje bez DOM:
+- sygnał na **zamknięciu** świecy, wejście na **otwarciu** następnej
+- koszty (spread, poślizg, prowizja, przewalutowanie)
+- EOD flat, limity dnia, backtest + **random baseline**
+
+```bash
+npm test
+node backtest.mjs --demo --market FX
+```
+
+UI: karta **KOPIUJ NA XTB** (bridge ładuje core).
