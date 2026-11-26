@@ -144,7 +144,7 @@
   }
 
   // dynamic import — działa na GitHub Pages (ten sam origin)
-  import('./btx-core.mjs?v=core1')
+  import('./btx-core.mjs?v=core1').catch(function(){return import('./btx-core-esm.js?v=core1');})
     .then(boot)
     .catch(function (err) {
       log('Nie załadowano btx-core.mjs: ' + (err && err.message), 'r');
