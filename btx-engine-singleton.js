@@ -1,22 +1,20 @@
 /**
- * BTX Engine Singleton — jedna sciezka open/close.
- * Ladowac NA KONCU. Zamraza window.openPos / closePos:
- * dalsze nakladki sa ignorowane (log raz).
- * Kolejnosc bramek: korelacja -> elite A/A+ -> capital (w srodku raw) -> koszt.
- * Hold-discipline owija close PRZED tym plikiem; tutaj zachowujemy aktualny close.
+ * BTX Professional Engine Gate (singleton).
+ * Jedyna sciezka openPos po starcie. Kolejnosc:
+ * sesja/noise -> korelacja -> sila/canon -> edge soft -> elite soft -> raw open.
  */
 (function (global) {
   'use strict';
-  if (global.__BTX_ENGINE_SINGLETON__) return;
-  global.__BTX_ENGINE_SINGLETON__ = true;
+  if (global.__BTX_ENGINE_SINGLETON_V2__) return;
+  global.__BTX_ENGINE_SINGLETON_V2__ = true;
 
   var logOnce = {};
   function log(msg, c) {
     if (global.log) global.log(msg, c || 'i');
   }
-  function log1(key, msg, c) {
-    if (logOnce[key]) return;
-    logOnce[key] = true;
+  function log1(k, msg, c) {
+    if (logOnce[k]) return;
+    logOnce[k] = 1;
     log(msg, c);
   }
 
@@ -32,22 +30,33 @@
     var ST = global.ST;
     if (!ST || !ST.pos) return false;
     var fam = family(sym);
-    for (var s in ST.pos) {
-      if (s !== sym && family(s) === fam) return true;
-    }
+    for (var s in ST.pos) if (s !== sym && family(s) === fam) return true;
     return false;
   }
 
-  function canOpen(g) {
+  function canonMinStr() {
+    return (global.BTX_CANON && global.BTX_CANON.minStrengthOpen) || 3;
+  }
+
+  function unifiedGate(g) {
     if (!g || (g.side !== 'LONG' && g.side !== 'SHORT')) return { ok: false, why: 'brak kierunku' };
+    if ((g.strength || 0) < canonMinStr()) return { ok: false, why: 'sila < ' + canonMinStr() };
     if (corrBlocked(g.sym)) return { ok: false, why: 'korelacja (1 na rodzine)' };
-    if (global.BTX_ELITE && global.BTX_ELITE.canAutoOpen) {
-      try {
-        var e = global.BTX_ELITE.canAutoOpen(g);
+    // edge
+    try {
+      if (global.BTX_EDGE && global.BTX_EDGE.gate) {
+        var e = global.BTX_EDGE.gate(g);
         if (!e.ok) return e;
-      } catch (err) {}
-    }
-    return { ok: true, why: 'OK' };
+      }
+    } catch (err) {}
+    // elite
+    try {
+      if (global.BTX_ELITE && global.BTX_ELITE.canAutoOpen) {
+        var c = global.BTX_ELITE.canAutoOpen(g);
+        if (!c.ok) return c;
+      }
+    } catch (err2) {}
+    return { ok: true, why: 'PRO gate OK' };
   }
 
   function freeze(name, impl) {
@@ -56,9 +65,7 @@
         configurable: true,
         enumerable: true,
         get: function () { return impl; },
-        set: function () {
-          log1('freeze-' + name, 'Ignoruje nakladke ' + name + ' — singleton jest jedynym zrodlem', 'i');
-        }
+        set: function () { log1('ign-' + name, 'PRO gate: ignoruje kolejna nakladke ' + name, 'i'); }
       });
     } catch (e) {
       global[name] = impl;
@@ -66,43 +73,55 @@
   }
 
   function boot() {
-    var rawOpen = typeof global.openPos === 'function' ? global.openPos : null;
-    var rawClose = typeof global.closePos === 'function' ? global.closePos : null;
+    var rawOpen = null;
+    try {
+      if (global.BTX_ENGINE && global.BTX_ENGINE.rawOpen) rawOpen = global.BTX_ENGINE.rawOpen;
+    } catch (e) {}
+    if (typeof global.openPos === 'function') {
+      // capture underlying if not already frozen badly
+      var cur = global.openPos;
+      if (cur && !cur.__proGate) rawOpen = cur;
+    }
+    if (!rawOpen && global.BTX_ENGINE && global.BTX_ENGINE.rawOpen) rawOpen = global.BTX_ENGINE.rawOpen;
     if (!rawOpen) {
-      log('Singleton: brak openPos — sprobuję pozniej', 'r');
-      setTimeout(boot, 1500);
+      setTimeout(boot, 1200);
       return;
     }
 
-    function openPosUnified(g) {
-      var gate = canOpen(g);
+    var rawClose = typeof global.closePos === 'function' ? global.closePos : function () {};
+
+    function openPosPro(g) {
+      var gate = unifiedGate(g);
       if (!gate.ok) {
-        log('SKIP OPEN ' + (g && g.sym) + ' — ' + gate.why, 'i');
+        log('PRO SKIP ' + (g && g.sym) + ' — ' + gate.why, 'i');
         return null;
       }
+      log('PRO OPEN ' + g.sym + ' ' + g.side + ' s' + (g.strength || 0), 'g');
       return rawOpen.apply(global, arguments);
     }
+    openPosPro.__proGate = true;
 
-    function closePosUnified(sym, why, px) {
-      if (!rawClose) return null;
+    function closePosPro(sym, why, px) {
       return rawClose.apply(global, arguments);
     }
+    closePosPro.__proGate = true;
 
-    freeze('openPos', openPosUnified);
-    freeze('closePos', closePosUnified);
+    freeze('openPos', openPosPro);
+    freeze('closePos', closePosPro);
 
     global.BTX_ENGINE = {
-      version: 'singleton-1',
-      canOpen: canOpen,
+      version: 'pro-gate-v2',
+      gate: unifiedGate,
       rawOpen: rawOpen,
       rawClose: rawClose
     };
-    log('Engine singleton aktywny — jedna sciezka open/close', 'g');
+    log('PRO Engine Gate v2 aktywny — jedna sciezka decyzji', 'g');
   }
 
+  // pozno — po edge/elite/freq
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', function () { setTimeout(boot, 2500); });
+    document.addEventListener('DOMContentLoaded', function () { setTimeout(boot, 4000); });
   } else {
-    setTimeout(boot, 2500);
+    setTimeout(boot, 4000);
   }
 })(typeof window !== 'undefined' ? window : globalThis);

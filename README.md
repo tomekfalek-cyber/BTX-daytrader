@@ -87,3 +87,18 @@ Przycisk **Backtest** (prawy dolny róg) + zakładka Backtest:
 
 ### Częstotliwość (daytrade)
 Cel operacyjny: **ok. 2 transakcje / dzień sesyjny** przy sile≥3, grade A/B+, RVOL≥0.65. Nie forsujemy ilości kosztem risk 0.35%.
+
+## BTX PRO (kanon)
+
+| Parametr | Wartość |
+|----------|---------|
+| Risk | 0.35% |
+| Max pozycji | 2 |
+| Max trades/dzień | 6 |
+| Cel operacyjny | ~2/dzień |
+| Min siła | 3 |
+| Min hold | 4 świece / 6 min |
+| Time-stop | 24 świece |
+| Gate | `btx-engine-singleton` v2 + CANON |
+
+Nie jest to autobroker XTB. Paper + ręczne kopiowanie.

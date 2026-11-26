@@ -221,7 +221,8 @@ details.gl p{margin-top:10px;line-height:1.75;color:var(--tx2);font-size:12.8px}
 <script src="ai-ensemble.js">
 </script>
 <script src="export-csv.js"></script>
-<script src="strategy-pro.js?v=freq1"></script>
+<script src="strategy-pro.js?v=pro10"></script>
+<script src="btx-canon.js?v=pro10"></script>
 <script>
 var SYMBOLS=[
 {s:'NVDA',n:'NVIDIA',t:'Akcja',b:140,v:0.0022,mkt:'US',ccy:'USD'},
@@ -355,7 +356,7 @@ document.getElementById('btn-cycle').addEventListener('click',function(){cycle()
 document.getElementById('btn-auto').addEventListener('click',autoToggle);
 document.getElementById('btn-reset').addEventListener('click',function(){reset();});
 document.getElementById('btn-bt').addEventListener('click',function(){backtest();});document.getElementById('btn-real').addEventListener('click',function(){var q=document.getElementById('chart-sym');fetchReal(q?q.value:'SPY');});document.getElementById('btn-worker').addEventListener('click',workerPing);document.getElementById('btn-prov').addEventListener('click',providerTest);
-document.getElementById('btn-save').addEventListener('click',function(){CFG.risk=Number(document.getElementById('set-risk').value)||0.35;CFG.maxPos=Number(document.getElementById('set-max').value)||2;CFG.capital=Number(document.getElementById('set-cap').value)||100000;CFG.allowShort=document.getElementById('set-short').value==='1';CFG.dailyLoss=Number(document.getElementById('set-dloss').value)||3;CFG.maxTrades=Number(document.getElementById('set-dtrades').value)||10;CFG.maxConsec=Number(document.getElementById('set-dconsec').value)||3;CFG.fxLev=Math.max(1,Math.min(30,Number(document.getElementById('set-fxlev')&&document.getElementById('set-fxlev').value)||20));CFG.eqLev=Math.max(1,Math.min(10,Number(document.getElementById('set-eqlev')&&document.getElementById('set-eqlev').value)||1));CFG.tdKey=document.getElementById('set-tdkey').value.trim();CFG.workerUrl=document.getElementById('set-worker').value.trim();CFG.provider=document.getElementById('set-prov').value;CFG.minHold=Number(document.getElementById('set-minhold').value)||8;CFG.autoSec=Number(document.getElementById('set-autosec').value)||60;CFG.timeStop=Number(document.getElementById('set-tstop').value)||24;CFG.alpKey=document.getElementById('set-alpkey').value.trim();CFG.alpSec=document.getElementById('set-alpsec').value.trim();if(!ST.eq.length){ST.equity=CFG.capital;ST.cash=CFG.capital;}log('Zapisano ustawienia','i');render();save();toast('Zapisano');});
+document.getElementById('btn-save').addEventListener('click',function(){CFG.risk=Number(document.getElementById('set-risk').value)||0.35;CFG.maxPos=Number(document.getElementById('set-max').value)||2;CFG.capital=Number(document.getElementById('set-cap').value)||100000;CFG.allowShort=document.getElementById('set-short').value==='1';CFG.dailyLoss=Number(document.getElementById('set-dloss').value)||3;CFG.maxTrades=Number(document.getElementById('set-dtrades').value)||6;CFG.maxConsec=Number(document.getElementById('set-dconsec').value)||3;CFG.fxLev=Math.max(1,Math.min(30,Number(document.getElementById('set-fxlev')&&document.getElementById('set-fxlev').value)||20));CFG.eqLev=Math.max(1,Math.min(10,Number(document.getElementById('set-eqlev')&&document.getElementById('set-eqlev').value)||1));CFG.tdKey=document.getElementById('set-tdkey').value.trim();CFG.workerUrl=document.getElementById('set-worker').value.trim();CFG.provider=document.getElementById('set-prov').value;CFG.minHold=Number(document.getElementById('set-minhold').value)||4;CFG.autoSec=Number(document.getElementById('set-autosec').value)||60;CFG.timeStop=Number(document.getElementById('set-tstop').value)||24;CFG.alpKey=document.getElementById('set-alpkey').value.trim();CFG.alpSec=document.getElementById('set-alpsec').value.trim();if(!ST.eq.length){ST.equity=CFG.capital;ST.cash=CFG.capital;}log('Zapisano ustawienia','i');render();save();toast('Zapisano');});
 document.getElementById('chart-sym').addEventListener('change',function(){drawCandles();});
 var sel=document.getElementById('chart-sym');sel.innerHTML=SYMBOLS.map(function(m){return '<option value="'+m.s+'">'+m.s+' — '+m.n+'</option>';}).join('');
 document.getElementById('uni').innerHTML=SYMBOLS.map(function(m){return '<span class="tag">'+m.s+'</span> '+m.n;}).join('<br>');
@@ -739,7 +740,7 @@ function applySmallProfile(){
   CFG.capital=CFG.capital&&CFG.capital>=1000?CFG.capital:6800;
   CFG.risk=0.35; CFG.maxPos=2;if(CFG.fxLev==null)CFG.fxLev=20;if(CFG.eqLev==null)CFG.eqLev=1; CFG.allowShort=true; CFG.dailyLoss=1.25; CFG.maxTrades=6; CFG.maxConsec=3;
   CFG.scan={US:true,EU:true,PL:false,FX:true}; CFG.fees=defaultFees(); CFG.rates={USD:1,JPY:0.0067,EUR:1.08};
-  CFG.fxLev=20; CFG.autoSec=120; CFG.minHold=8; CFG.confirm=1; CFG.timeStop=24; CFG.v5=1; CFG.ccy='USD';
+  CFG.fxLev=20; CFG.autoSec=120; CFG.minHold=4; CFG.confirm=1; CFG.timeStop=24; CFG.v5=1; CFG.ccy='USD';
   syncSettings();
 }
 syncSettings();
@@ -765,7 +766,7 @@ render=function(){
 function pf(x,m){ if(x===null||x===undefined||isNaN(x)) return '—'; var d=2; if(m&&m.mkt==='FX') d=x>50?3:5; return Number(x).toFixed(d); }
 function xtbSym(m){ if(m.mkt==='US') return m.s+'.US'; if(m.mkt==='PL') return m.s.replace('.WA','.PL'); return m.s; }
 function minBars(){ return Math.max(6,CFG.minHold||2); }
-if(!CFG.v5){ CFG.v5=1; CFG.minHold=8; CFG.confirm=1; CFG.timeStop=24; CFG.autoSec=120; }
+if(!CFG.v5){ CFG.v5=1; CFG.minHold=4; CFG.confirm=1; CFG.timeStop=24; CFG.autoSec=120; }
 (function(){ function sv(i,v){ var e=document.getElementById(i); if(e) e.value=v; } sv('set-minhold',CFG.minHold); sv('set-autosec',CFG.autoSec||300);
   var l=document.getElementById('set-minhold'); if(l){ l.min=6; l.parentNode.querySelector('label').textContent='Min. trzymanie (świece×5 min; 6 = 30 min)'; }
   var a=document.getElementById('set-autosec'); if(a){ a.parentNode.querySelector('label').textContent='Auto: sekundy na świecę (300 = czas rzeczywisty)'; }
@@ -1629,13 +1630,9 @@ function btCsvRun(file){
 
 <script src="eu-session.js"></script>
 
-<script src="session-profiles.js?v=cont1"></script>
-
 <script src="live-hard-gate.js"></script>
 
 <script src="auto-180.js"></script>
-<script src="ui-stable.js"></script>
-
 <script src="scan-countdown.js"></script>
 
 <script src="pro-desk.js"></script>
@@ -1653,16 +1650,12 @@ function btCsvRun(file){
 <script src="live-prices.js"></script>
 <script src="backtest-real.js?v=bt2"></script>
 <script src="dt-config.js?v=cont1"></script>
-<script src="apex-daytrade.js?v=prolvl1"></script>
 <script src="universe-sync.js?v=cont1"></script>
 <script src="us-session-fix.js?v=cont1"></script>
 <script src="btx-kernel.js?v=auto1"></script>
 <script src="btx-account-fix.js?v=mon2"></script>
 <script src="btx-capital-lock.js?v=mon2"></script>
-<script src="pro-monday.js?v=auto1"></script>
 <script src="eod-flat-pro.js?v=mon2"></script>
-<script src="trade-flow-guard.js?v=auto1"></script>
-<script src="eu-morning-focus.js?v=eu1"></script>
 <script src="desk-minimal.js?v=prolvl1"></script>
 <script src="btx-master-tick.js?v=lvl1"></script>
 <script src="live-priority.js?v=lvl1"></script>
@@ -1672,16 +1665,17 @@ function btCsvRun(file){
 <script src="edge-weekly.js?v=lvl1"></script>
 <script src="btx-entry-engine.js?v=radar2"></script>
 <script src="leverage-settings.js?v=lev1"></script>
-<script src="hold-discipline.js?v=freq1"></script>
-<script src="pro-elite-pack.js?v=freq1"></script>
+<script src="hold-discipline.js?v=pro10"></script>
+<script src="pro-elite-pack.js?v=pro10"></script>
 <script src="desk-lev-banner.js?v=fin1"></script>
 <script src="btx-final-polish.js?v=core1"></script>
 <script src="skip-reason-ui.js?v=radar2"></script>
 
 <script src="capital-bootstrap.js?v=mon2"></script>
-<script src="btx-edge-core.js?v=freq1"></script>
-<script src="btx-pro-frequency.js?v=freq1"></script>
-<script src="btx-engine-singleton.js?v=core1"></script>
+<script src="btx-edge-core.js?v=pro10"></script>
+<script src="btx-pro-frequency.js?v=pro10"></script>
+<script src="btx-pro-status.js?v=pro10"></script>
+<script src="btx-engine-singleton.js?v=pro10"></script>
 <script>
 (function(){
   function wire(){
