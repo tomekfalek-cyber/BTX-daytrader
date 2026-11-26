@@ -9,7 +9,7 @@
   if (global.__BTX_HOLD_DISC__) return;
   global.__BTX_HOLD_DISC__ = true;
 
-  var MIN_HOLD_MS = 10 * 60 * 1000; // 10 min — realny daytrade, czas na XTB
+  var MIN_HOLD_MS = 6 * 60 * 1000; // 6 min — daytrade, nie swing // 10 min — realny daytrade, czas na XTB
   var WARN_MS = 2 * 60 * 1000;      // ostrzezenie 2 min przed min. hold / przed time-stop
 
   function log(msg, c) {

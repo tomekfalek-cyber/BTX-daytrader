@@ -83,23 +83,23 @@
     if (!g || (g.side !== 'LONG' && g.side !== 'SHORT')) return { ok: false, why: 'brak kierunku' };
 
     // sila minimum 4 pod auto (twardsze niz 2)
-    if ((g.strength || 0) < 4) return { ok: false, why: 'sila < 4 — za slaby setup' };
+    if ((g.strength || 0) < 3) return { ok: false, why: 'sila < 3 — za slaby setup' };
 
     var bars = lastN(g.sym, 30);
     if (!bars) return { ok: false, why: 'brak serii swiec' };
 
     var reg = regime(g.sym);
-    if (reg === 'CHOP') return { ok: false, why: 'rynek CHOP — bez wejscia' };
+    if (reg === 'CHOP' && (g.strength || 0) < 4) return { ok: false, why: 'CHOP + sila < 4' };
     if (g.side === 'LONG' && reg === 'DOWN') return { ok: false, why: 'LONG przeciw reżimowi DOWN' };
     if (g.side === 'SHORT' && reg === 'UP') return { ok: false, why: 'SHORT przeciw reżimowi UP' };
 
     var rv = rvolApprox(bars);
-    if (rv < 0.85) return { ok: false, why: 'RVOL niski (' + rv.toFixed(2) + ') — brak impulsu' };
+    if (rv < 0.65) return { ok: false, why: 'RVOL niski (' + rv.toFixed(2) + ') — brak impulsu' };
 
     var atr = atrApprox(bars, 14) || g.atr || g.price * 0.004;
     var px = g.price || bars[bars.length - 1].c;
     var atrPct = atr / (px || 1);
-    if (atrPct < 0.0008) return { ok: false, why: 'ATR za niski — szum, nie daytrade' };
+    if (atrPct < 0.0005) return { ok: false, why: 'ATR za niski — szum, nie daytrade' };
     if (atrPct > 0.025) return { ok: false, why: 'ATR za wysoki — ryzyko eventu/luki' };
 
     var c = costOk(g);

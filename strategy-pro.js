@@ -15,7 +15,7 @@
   var PRO = {
     riskPct: 0.35, maxPos: 2, dailyLossPct: 1.25, maxConsecLoss: 3, maxDayTrades: 6,
     atrSlMult: 1.2, tpR: 2.0, beR: 1.0, partialR: 1.0, partialFrac: 0.5,
-    minStrengthOpen: 2, coolBars: 2, minHoldBars: 8, requireTrend: false, newsPadMin: 10,
+    minStrengthOpen: 3, coolBars: 1, minHoldBars: 4, requireTrend: false, newsPadMin: 10,
     scoreMin: 3, minNetRR: 1.1, orBars: 6, timeStopBars: 24, closeBufferMin: 15, flatBeforeCloseMin: 12,
     // Warunki daytradingowe (precyzja > liczba transakcji)
     allowShort: true,       // shorty wlaczone (paper). Krotka sprzedaz = CFD: koszt bez konwersji walut, pozycje tylko intraday

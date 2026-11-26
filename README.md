@@ -84,3 +84,6 @@ Przycisk **Backtest** (prawy dolny róg) + zakładka Backtest:
 - koszty + poślizg
 - porównanie **RANDOM baseline**
 - bez klucza / na demo = **brak dowodu edge**
+
+### Częstotliwość (daytrade)
+Cel operacyjny: **ok. 2 transakcje / dzień sesyjny** przy sile≥3, grade A/B+, RVOL≥0.65. Nie forsujemy ilości kosztem risk 0.35%.

@@ -139,13 +139,22 @@
     return gr === 'A' || gr === 'A+' || gr === 'A-';
   }
 
+  /** Daytrade: A/A+ zawsze; B tylko przy sile >= 3 (cel ~2 trade/dzien, nie raz/tydzien) */
+  function isTradeGrade(g) {
+    var gr = gradeOf(g);
+    if (gr === 'A' || gr === 'A+' || gr === 'A-') return true;
+    if (gr === 'B' && (g.strength || 0) >= 3) return true;
+    return false;
+  }
+
   function canAutoOpen(g) {
     if (!g || (g.side !== 'LONG' && g.side !== 'SHORT')) return { ok: false, why: 'brak kierunku' };
     if (inOpenNoiseWindow()) return { ok: false, why: 'pierwsze minuty sesji (szum) — tylko obserwacja' };
-    if (!biasAllows(g.side)) return { ok: false, why: 'przeciw biasowi sesji (' + sessionBias() + ')' };
+    // bias: RANGE obie strony; BULL/BEAR tylko lekki filtr (nie twardy blok przy sile>=4)
+    if (!biasAllows(g.side) && (g.strength || 0) < 4) return { ok: false, why: 'przeciw biasowi sesji (' + sessionBias() + ')' };
     if (isKilled(g)) return { ok: false, why: 'setup ' + setupKey(g) + ' w kill-switch (slaby tydzien)' };
-    if (!isAGrade(g)) return { ok: false, why: 'grade ' + gradeOf(g) + ' — auto tylko A/A+ (B=alert)' };
-    return { ok: true, why: 'A-grade OK' };
+    if (!isTradeGrade(g)) return { ok: false, why: 'grade ' + gradeOf(g) + ' sila ' + (g.strength||0) + ' — za slabo na auto' };
+    return { ok: true, why: 'grade ' + gradeOf(g) + ' OK' };
   }
 
   function patchOpenPos() {
@@ -272,9 +281,9 @@
       : 'brak';
     el.innerHTML =
       '<b style="color:#ecfdf5">PRO Elite</b> · bias <b>' + sessionBias() + '</b>' +
-      (inOpenNoiseWindow() ? ' · <span style="color:#fcd34d">strefa otwarcia — bez auto-OPEN</span>' : ' · auto A/A+') +
+      (inOpenNoiseWindow() ? ' · <span style="color:#fcd34d">strefa otwarcia — bez auto-OPEN</span>' : ' · auto A/B+') +
       '<br>Kill-switch setupów: <b>' + killTxt + '</b>' +
-      '<br><span style="color:#6ee7b7">Partial 50%@1R + trail · tylko grade A/A+ · filtr 15 min po otwarciu sesji</span>';
+      '<br><span style="color:#6ee7b7">Partial 50%@1R + trail · grade A/A+ lub B@sila≥3 · filtr 15 min po otwarciu sesji</span>';
   }
 
   function patchCycle() {
