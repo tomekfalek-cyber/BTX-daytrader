@@ -51,4 +51,6 @@ for (const s of sets) {
   all.push(...res.trades);
 }
 if (sets.length > 1) { console.log('\n== RAZEM'); console.table([summarize(all)]); }
-console.log('\nUwaga: wynik wiarygodny dopiero na prawdziwych danych. To nie jest rekomendacja inwestycyjna.');
+console.log('\nUwaga: wynik jest wiarygodny dopiero na prawdziwych danych, przy dodatniej średniej R po kosztach');
+console.log('w co najmniej 3 niezależnych okresach (walk-forward). Sam percentyl testu losowego wejścia nie wystarcza:');
+console.log('na danych czysto losowych bywa ≥95 w ok. 1 z 4 serii. To nie jest rekomendacja inwestycyjna.');

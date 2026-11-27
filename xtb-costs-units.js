@@ -57,7 +57,6 @@
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();
-})(typeof window !== 'undefined' ? window : globalThis);
 
 
   /** Poślizg — aktywny (wcześniej pole było martwe). */
@@ -78,3 +77,4 @@
   global.BTX_COST.applySlip = applySlip;
   global.BTX_COST.roundTripCostPct = roundTripCostPct;
   global.BTX_COST.table = COST;
+})(typeof window !== 'undefined' ? window : globalThis);

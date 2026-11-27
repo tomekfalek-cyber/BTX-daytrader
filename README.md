@@ -20,18 +20,18 @@ Paper / sygnałowy asystent daytradingu (akcje, ETF, FX) pod ręczne XTB. Dział
 - Box **Dlaczego 0 trade** + zwijane panele na Pulpicie
 
 ## Instrumenty i limity
-- 11 symboli (US, EU, FX) — lista jest wpisana na stałe w `index.html` (`SYMBOLS`)
-- Free Twelve Data ma limit zapytań — przy 11 symbolach i skanie co 120 s pilnuj budżetu API (moduł `api-budget.js`)
+- 13 symboli (US: NVDA, ANT, TSLA, META, AAPL, QQQ, SPY; EU: ASML, SAP, SIE.DE; FX: EURUSD, GBPUSD, USDJPY) — lista jest wpisana na stałe w `index.html` (`SYMBOLS`)
+- Free Twelve Data ma limit zapytań — przy 13 symbolach i skanie co 120–180 s pilnuj budżetu API
 - To nie gwarancja zysku; paper ≠ real XTB
 - Auto-zlecenia XTB tylko przy xAPI ONLINE + świadomy ARM (DEMO)
 
 ## Parametry strategii
-Docelowe wartości są wpisane bezpośrednio w `strategy-pro.js` (np. `minStrengthOpen: 3`, `tpR: 1.6`, `maxDayTrades: 6`). CI niczego już nie nadpisuje.
+Wartości efektywne po starcie ustawia `btx-canon.js` (CANON: `tpR: 2`, `maxDayTrades: 6`, `minStrengthOpen: 3`), a `btx-pro-frequency.js` może obniżyć minimalną siłę do 2. Domyślne wartości w `strategy-pro.js` są nadpisywane. CI niczego nie nadpisuje.
 
 ## Dev / CI
 - Moduły JS są dopisane jako `<script src>` na końcu `index.html` (kolejność = kolejność ładowania; `anti-flicker.js` pierwszy)
 - Workflow `.github/workflows/pages.yml`: guard rozmiaru krytycznych plików → `node --check` → sprawdzenie, że wszystkie skrypty istnieją → `npm test` → dopiero deploy (tylko z `main`)
-- Testy: `tests/engine-core.test.mjs`
+- Testy: `npm test` (jednostkowe) oraz `npm run test:app` (smoke całej aplikacji w jsdom: czy bot handluje, sesje, brak pozycji na noc, brak błędów JS)
 - `dashboard/index.html` to tylko przekierowanie do strony głównej
 
 ## Bezpieczeństwo
@@ -96,15 +96,17 @@ Cel operacyjny: **ok. 2 transakcje / dzień sesyjny** przy sile≥3, grade A/B+,
 | Max pozycji | 2 |
 | Max trades/dzień | 6 |
 | Cel operacyjny | ~2/dzień |
-| Min siła | 3 |
+| Min siła | 2 w trybie częstotliwości (CANON: 3) |
 | Min hold | 4 świece / 6 min |
 | Time-stop | 24 świece |
-| Gate | `btx-engine-singleton` v2 + CANON |
+| Gate | `gateCheck` w `strategy-pro.js` + CANON (singleton nie jest efektywną ścieżką, patrz ARCHITECTURE.md) |
 
 Nie jest to autobroker XTB. Paper + ręczne kopiowanie.
 
 
-## Silnik `btx-core.mjs` (jedno źródło prawdy)
+## Silnik `btx-core.mjs` (rdzeń CLI/backtestu)
+
+Przeglądarka używa równoległej implementacji (`index.html`, `strategy-pro.js`); pełna migracja jest w planach (ARCHITECTURE.md).
 
 Czyste funkcje bez DOM:
 - sygnał na **zamknięciu** świecy, wejście na **otwarciu** następnej
