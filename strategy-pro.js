@@ -19,7 +19,7 @@
     scoreMin: 3, minNetRR: 1.1, orBars: 6, timeStopBars: 24, closeBufferMin: 15, flatBeforeCloseMin: 12,
     // Warunki daytradingowe (precyzja > liczba transakcji)
     allowShort: true,       // shorty wlaczone (paper). Krotka sprzedaz = CFD: koszt bez konwersji walut, pozycje tylko intraday
-    strictCore: false,       // otwieraj tylko, gdy RDZEN strategii daje score >= prog (nakladki "TradeNow"/"DT mode" nie obnizaja progu)
+    strictCore: true,       // otwieraj tylko, gdy RDZEN strategii daje score >= prog (nakladki "TradeNow"/"DT mode" nie obnizaja progu)
     primeExtra: 0,          // poza oknami prime wymagany score o tyle wyzszy
     minRvol: 0.35,           // min. wzgledny wolumen (ostatnie 3 swiece vs 20 wczesniejszych) dla akcji/ETF
     marketFilter: true,     // akcje USA: kierunek zgodny z trendem 15m SPY
@@ -30,7 +30,7 @@
       PL: { open: 8 * 60, close: 16 * 60 + 50, prime: [[8 * 60 + 5, 10 * 60], [14 * 60, 16 * 60]] },
       EU: { open: 8 * 60, close: 16 * 60 + 30, prime: [[8 * 60 + 5, 10 * 60], [14 * 60, 16 * 60]] },
       // FX/zloto: handel dzienny tylko 08:00-21:00 PL (Londyn + NY), reszta = azjatycki szum i niska plynnosc
-      FX: { open: 7 * 60, close: 21 * 60, prime: [[8 * 60, 12 * 60], [14 * 60 + 30, 18 * 60]] }
+      FX: { open: 7 * 60, close: 20 * 60, prime: [[8 * 60, 12 * 60], [14 * 60 + 30, 18 * 60]] }
     },
     // Okna newsow (te same godziny w czasie polskim przez caly rok: dane USA 8:30 ET = 14:30 PL itd.)
     newsWindows: [
@@ -87,7 +87,8 @@
     var ts = toTs(d);
     if (!weekday(ts) || !inSession(mkt, ts)) return 0;
     var t = utcMin(ts), s = PRO.sessions[mkt] || PRO.sessions.US;
-    if (t >= s.close - PRO.closeBufferMin) return 0;
+    var buf = mkt === 'FX' ? Math.max(PRO.closeBufferMin || 15, 45) : (PRO.closeBufferMin || 15);
+    if (t >= s.close - buf) return 0;
     if (t < s.open + 5) return 0.3;
     if (newsBlocked(ts).blocked) return 0.15;
     var prime = s.prime || [];
@@ -339,6 +340,16 @@
     if (!(price > 0) || !(equity > 0) || !(cash > 0)) return { ok: false, reason: 'brak kapitalu/ceny', qty: 0, margin: 0 };
     var sd = sdOverride || (atr || price * 0.004) * (PRO.atrSlMult || 1.2);
     if (!(sd > 0) || !isFinite(sd)) return { ok: false, reason: 'ATR=0', qty: 0, margin: 0 };
+    // R:R netto po kosztach (spread+comm+conv) — bez tego paper klamie
+    try {
+      var feeRate = (f.comm || 0) + (f.conv || 0) + (f.spr || 0);
+      var rt = price * feeRate * 2; // obie strony w przyblizeniu
+      var tpDist = (PRO.tpR || 2) * sd;
+      var netRR = (tpDist - rt) / (sd + rt);
+      if (netRR < (PRO.minNetRR != null ? PRO.minNetRR : 1.1)) {
+        return { ok: false, reason: 'koszty zjadaja R:R (netRR=' + netRR.toFixed(2) + ')', qty: 0, margin: 0, sd: sd };
+      }
+    } catch (eRR) {}
 
     // wolne srodki juz zajete przez otwarte pozycje (jesli cash nie odliczony)
     var used = 0;
@@ -452,12 +463,15 @@
     // bez wymogu: wystarczy seria z cena
     if (!requireLive && !(g.price > 0)) return { ok: false, reason: 'brak ceny' };
     if ((g.strength || 0) < PRO.minStrengthOpen) return { ok: false, reason: 'sygnal za slaby' };
-    if (PRO.strictCore) {
+    // Scoring rdzenia: wymagany przy strictCore; gdy _pro jest — zawsze sprawdzaj score strony
+    if (g._pro) {
       var pr = g._pro;
-      if (!pr) return { ok: false, reason: 'brak scoringu rdzenia' };
       if (pr.veto) return { ok: false, reason: 'veto: ' + pr.veto };
-      var sc = g.side === 'LONG' ? pr.scoreL : pr.scoreS, need = pr.need || PRO.scoreMin;
-      if (sc < need) return { ok: false, reason: 'rdzen: score ' + sc + ' < ' + need + ' (nakladka obnizyla prog)' };
+      var sc = g.side === 'LONG' ? (pr.scoreL || 0) : (pr.scoreS || 0);
+      var need = pr.need != null ? pr.need : (PRO.scoreMin || 3);
+      if (sc < need) return { ok: false, reason: 'rdzen: score ' + sc + ' < ' + need };
+    } else if (PRO.strictCore) {
+      return { ok: false, reason: 'brak scoringu rdzenia' };
     }
     if (ST.pos && ST.pos[g.sym]) return { ok: false, reason: 'pozycja juz otwarta' };
     if (Object.keys(ST.pos || {}).length >= PRO.maxPos) return { ok: false, reason: 'limit pozycji (' + PRO.maxPos + ')' };
