@@ -71,6 +71,8 @@ test('aplikacja: handluje, w oknach sesji, bez pozycji na noc, bez błędów JS'
 
   assert.deepEqual(errors, [], 'nieobsłużone błędy JS: ' + errors.join(' || '));
   assert.ok(w.BTX_COST && typeof w.BTX_COST.applySlip === 'function', 'BTX_COST.applySlip niezdefiniowane');
+  assert.equal(w.BTX_CANON.minStrengthOpen, 3, 'BTX_CANON nadpisany (kolizja nazwy z symbols-canon)');
+  assert.ok(Array.isArray(w.BTX_SYMBOLS && w.BTX_SYMBOLS.list), 'BTX_SYMBOLS.list brak');
   assert.ok(opens.length >= 3, `bot prawie nie handluje: ${opens.length} wejść w 3 dni`);
   const bad = opens.filter(o => WIN[o.mkt] && (o.min < WIN[o.mkt][0] || o.min >= WIN[o.mkt][1]));
   assert.deepEqual(bad, [], 'wejścia poza oknem sesji: ' + JSON.stringify(bad.slice(0, 3)));

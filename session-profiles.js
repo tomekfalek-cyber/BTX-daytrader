@@ -41,7 +41,7 @@
     try { localStorage.setItem(LS, p); } catch (e) {}
   }
   function mktOf(sym) {
-    var list = (global.BTX_CANON && global.BTX_CANON.list) || (global.SYMBOLS || []);
+    var list = (global.BTX_SYMBOLS && global.BTX_SYMBOLS.list) || (global.SYMBOLS || []);
     for (var i = 0; i < list.length; i++) if (list[i].s === sym) return list[i].mkt || 'US';
     if (/EUR|GBP|USDJPY|AUDUSD/.test(sym)) return 'FX';
     if (/ASML|SAP|SIE/.test(sym)) return 'EU';

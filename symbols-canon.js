@@ -57,7 +57,7 @@
     } catch (e) {}
   }
 
-  global.BTX_CANON = {
+  global.BTX_SYMBOLS = {
     list: LIST,
     ccyOf: ccyOf,
     apply: apply,

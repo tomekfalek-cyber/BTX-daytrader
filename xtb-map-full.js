@@ -26,7 +26,7 @@
 
   function apply() {
     if (global.BTX_QCAP) global.BTX_QCAP.mapSym = mapSym;
-    if (global.BTX_CANON) global.BTX_CANON.mapXtb = mapSym;
+    if (global.BTX_SYMBOLS) global.BTX_SYMBOLS.mapXtb = mapSym;
   }
 
   apply();
