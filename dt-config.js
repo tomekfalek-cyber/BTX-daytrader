@@ -18,7 +18,7 @@
       maxConsecLoss: 3,
       scoreMin: 3,
       primeExtra: 0,
-      minStrengthOpen: 2,
+      minStrengthOpen: 3,
       minRvol: 0.35,
       minNetRR: 1.1,
       strictCore: false,
@@ -26,14 +26,14 @@
       allowShort: true,
       tpR: 2.0,
       beR: 1.0,
-      partialR: 99,
-      partialFrac: 0,
-      coolBars: 2,
-      minHoldBars: 8,
+      partialR: 1.0,
+      partialFrac: 0.5,
+      coolBars: 1,
+      minHoldBars: 4,
       timeStopBars: 24,
       stopMinAtr: 1.0,
       stopMaxAtr: 2.0,
-      stopAtr: { US: [0.9, 1.5], EU: [0.9, 1.5], FX: [1.4, 2.2] },
+      stopAtr: { US: [0.9, 1.5], EU: [0.9, 1.5], FX: [1.5, 2.5] },
       newsPadMin: 10,
       closeBufferMin: 15,
       flatBeforeCloseMin: 12,
@@ -84,7 +84,7 @@
       CFG.fees = CFG.fees || {};
       if (force || !CFG.fees.FX) CFG.fees.FX = merge({}, PROFILE.fxFees);
       if (force || !CFG.fees.US) CFG.fees.US = { comm: 0, conv: 0, spread: 0.025, slip: 0.015 };
-      if (force || !CFG.fees.EU) CFG.fees.EU = { comm: 0, conv: 0.35, spread: 0.03, slip: 0.015 };
+      if (force || !CFG.fees.EU) CFG.fees.EU = { comm: 0, conv: 0.5, spread: 0.03, slip: 0.015 };
       merge(CFG, o.cfg || {});
       CFG.scan.US = true; CFG.scan.EU = true; CFG.scan.FX = true;
       CFG.ccy = 'USD';

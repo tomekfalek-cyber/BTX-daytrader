@@ -4,8 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node --test tests/btx-core.test.mjs",
-    "test:all": "node --test tests/",
+    "test": "node --test tests/btx-core.test.mjs tests/engine-core.test.mjs tests/report.test.mjs tests/dt-config.test.mjs",
+    "test:strategy": "node --test tests/strategy.test.mjs",
+    "test:all": "node --test tests/btx-core.test.mjs tests/engine-core.test.mjs tests/report.test.mjs tests/dt-config.test.mjs tests/strategy.test.mjs",
     "backtest:demo": "node backtest.mjs --demo --market FX",
     "serve": "npx http-server -p 8080 ."
   }

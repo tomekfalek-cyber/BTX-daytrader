@@ -145,7 +145,7 @@ export function simulateTrade(ctx, sig, cfg) {
 }
 
 export function backtest(bars, mkt, over = {}) {
-  const cfg = { ...DEFAULTS, ...over, costs: { ...DEFAULT_COSTS[mkt] || DEFAULT_COSTS.US, ...(over.costs || {}) } };
+  const cfg = { ...DEFAULTS, ...over, costs: { ...(DEFAULT_COSTS[mkt] || DEFAULT_COSTS.US), ...(over.costs || {}) } };
   if (mkt === 'PL' && over.allowShort === undefined) cfg.allowShort = false;
   const ctx = prepare(bars, mkt, cfg);
   const trades = [], skipped = { RR: 0, session: 0, cost: 0, limit: 0 };

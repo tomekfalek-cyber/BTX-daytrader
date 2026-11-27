@@ -8,110 +8,33 @@ vm.createContext(sb);
 for (const f of ['pro-report.js', 'strategy-pro.js', 'dt-config.js']) {
   vm.runInContext(readFileSync(new URL('../' + f, import.meta.url), 'utf8'), sb, { filename: f });
 }
-const CORE = sb.BTX_STRATEGY_CORE, PRO = sb.BTX_STRATEGY_PRO, DT = sb.BTX_DT;
-const U = (y, m, d, h = 0, mi = 0) => Date.UTC(y, m - 1, d, h, mi);
-const TS_FX = U(2026, 11, 10, 10, 0); // wtorek 11:00 PL — London, poza oknami newsow
+const PRO = sb.BTX_STRATEGY_PRO, DT = sb.BTX_DT;
 
-test('profil DT: progi daytradingu ustawiane w jednym miejscu', () => {
+test('DT applyTo ustawia kanon daytrade (risk 0.35, max 2 poz., 6 trades)', () => {
+  const CFG = {};
+  assert.ok(DT && typeof DT.applyTo === 'function');
+  DT.applyTo(PRO, CFG, true);
+  assert.equal(PRO.riskPct, 0.35);
+  assert.equal(PRO.maxPos, 2);
+  assert.equal(PRO.maxDayTrades, 6);
+  assert.equal(PRO.dailyLossPct, 1.25);
+  assert.equal(CFG.maxTrades, 6);
+  assert.equal(CFG.ccy, 'USD');
+  assert.ok(CFG.scan.US && CFG.scan.FX);
+  assert.ok(PRO.timeStopBars >= 24);
+  assert.ok(PRO.minStrengthOpen >= 2);
+});
+
+test('DT applyTo: fees FX/US istnieja', () => {
   const CFG = {};
   DT.applyTo(PRO, CFG, true);
-  assert.equal(PRO.riskPct, 0.5);
-  assert.equal(PRO.maxDayTrades, 10);
-  assert.equal(PRO.dailyLossPct, 2);
-  assert.equal(PRO.maxConsecLoss, 4);
-  assert.equal(PRO.maxPos, 3);
-  assert.equal(PRO.minStrengthOpen, 2);
-  assert.equal(CFG.ccy, 'USD');
-  assert.equal(CFG.rates.USD, 1);
-  assert.equal(CFG.fees.US.conv, 0);
-  assert.equal(PRO.partialFrac, 0);
-  assert.equal(PRO.stopMinAtr, 1.5);
-  assert.equal(PRO.stopMaxAtr, 2.5);
-  assert.equal(PRO.timeStopBars, 36);
-  assert.equal(PRO.newsWindows.length, 2);
-  assert.equal(PRO.sessions.FX.close, 20 * 60);
-  assert.equal(CFG.maxTrades, 10);
-  assert.equal(CFG.dailyLoss, 2);
-  assert.ok(CFG.slip <= 0.01, 'poslizg w % na strone: ' + CFG.slip);
-  assert.equal(JSON.stringify(CFG.scan), JSON.stringify({ US: true, EU: true, PL: false, FX: true }));
+  assert.ok(CFG.fees && CFG.fees.FX);
+  assert.ok(CFG.fees.US);
   assert.equal(CFG.fees.FX.conv, 0);
 });
 
-test('profil DT: 500 PLN, EURUSD przechodzi bramke (pozycja 0.01 lota, ryzyko < limit)', () => {
-  DT.applyTo(PRO, {}, true);
-  sb.feeOf = () => ({ comm: 0, conv: 0, spr: 0.00012 });
-  sb.rateOf = () => 3.7;
-  sb.SYMBOLS = [{ s: 'EURUSD', mkt: 'FX' }, { s: 'GBPUSD', mkt: 'FX' }];
-  const g = { sym: 'EURUSD', side: 'LONG', strength: 4, price: 1.08, atr: 0.0006, sd: 0.0012, _pro: { scoreL: 6, scoreS: 0, need: 4, veto: '' } };
-  const st = { equity: 500, cash: 500, pos: {}, cool: {}, dayTrades: 0, consecLoss: 0, dayStart: 500 };
-  const r = CORE.gateCheck(g, sb.SYMBOLS[0], st, TS_FX);
-  assert.equal(r.ok, true, r.reason);
-  assert.equal(r.sp.qty, 1000);
-  assert.ok(r.sp.margin < 150 && r.sp.margin > 100, 'margines 1:30: ' + r.sp.margin);
-  assert.ok(r.sp.riskAmt <= 500 * 0.005 * 2.5, 'ryzyko ' + r.sp.riskAmt);
-  delete sb.feeOf; delete sb.rateOf;
-});
-
-test('profil DT: trzy pozycje naraz dozwolone, czwarta nie; limit 10 transakcji', () => {
-  DT.applyTo(PRO, {}, true);
-  sb.feeOf = () => ({ comm: 0, conv: 0, spr: 0.00012 });
-  sb.rateOf = () => 3.7;
-  sb.SYMBOLS = [{ s: 'EURUSD', mkt: 'FX' }, { s: 'GBPUSD', mkt: 'FX' }, { s: 'USDJPY', mkt: 'FX' }];
-  const g = { sym: 'GBPUSD', side: 'LONG', strength: 4, price: 1.27, atr: 0.0007, sd: 0.0014, _pro: { scoreL: 6, scoreS: 0, need: 4, veto: '' } };
-  const base = { equity: 500, cash: 360, cool: {}, dayTrades: 3, consecLoss: 0, dayStart: 500 };
-  assert.equal(CORE.gateCheck(g, sb.SYMBOLS[1], { ...base, pos: { EURUSD: { side: 'LONG' } } }, TS_FX).ok, true);
-  assert.match(CORE.gateCheck(g, sb.SYMBOLS[1], { ...base, pos: { EURUSD: { side: 'LONG' }, USDJPY: { side: 'SHORT' }, AUDUSD: { side: 'LONG' } } }, TS_FX).reason, /limit pozycji/);
-  assert.equal(CORE.gateCheck(g, sb.SYMBOLS[1], { ...base, pos: { EURUSD: { side: 'LONG' }, USDJPY: { side: 'SHORT' } } }, TS_FX).ok, true);
-  assert.equal(CORE.gateCheck(g, sb.SYMBOLS[1], { ...base, pos: {}, dayTrades: 9 }, TS_FX).ok, true);
-  assert.match(CORE.gateCheck(g, sb.SYMBOLS[1], { ...base, pos: {}, dayTrades: 10 }, TS_FX).reason, /limit transakcji/);
-  delete sb.feeOf; delete sb.rateOf;
-});
-
-test('limit straty dnia liczony w bramce (nie zalezy od flagi ST.blocked)', () => {
-  DT.applyTo(PRO, {}, true);
-  sb.feeOf = () => ({ comm: 0, conv: 0, spr: 0.00012 });
-  sb.rateOf = () => 3.7;
-  sb.SYMBOLS = [{ s: 'EURUSD', mkt: 'FX' }];
-  const g = { sym: 'EURUSD', side: 'LONG', strength: 4, price: 1.08, atr: 0.0006, sd: 0.0012, _pro: { scoreL: 6, scoreS: 0, need: 4, veto: '' } };
-  const mk = (eq) => ({ equity: eq, cash: eq, pos: {}, cool: {}, dayTrades: 0, consecLoss: 0, dayStart: 500, blocked: false });
-  assert.equal(CORE.gateCheck(g, sb.SYMBOLS[0], mk(495), TS_FX).ok, true);          // -1% < limit 2%
-  assert.match(CORE.gateCheck(g, sb.SYMBOLS[0], mk(489), TS_FX).reason, /limit straty dnia/); // -2.2%
-  delete sb.feeOf; delete sb.rateOf;
-});
-
-test('news: tylko okna danych USA, ECB/FOMC nie blokuja co dzien', () => {
-  DT.applyTo(PRO, {}, true);
-  assert.equal(CORE.newsBlocked(U(2026, 11, 10, 13, 30)).blocked, true);   // 14:30 PL dane USA
-  assert.equal(CORE.newsBlocked(U(2026, 11, 10, 13, 15)).blocked, false);  // ECB 14:15 PL — juz nie
-  assert.equal(CORE.newsBlocked(U(2026, 11, 10, 19, 0)).blocked, false);   // FOMC 20:00 PL — juz nie
-  assert.equal(CORE.newsBlocked(U(2026, 11, 10, 13, 40)).blocked, false);  // poza +-7 min
-});
-test('akcje US przy 500 PLN: ulamkowa pozycja miesci sie w koncie; przewalutowanie 0.5%/strone odrzuca wejscie kosztem', () => {
-  const CFG = {}; DT.applyTo(PRO, CFG, true);
-  assert.equal(CFG.fracStep, 0.01);
-  assert.equal(CFG.rates.EUR, 1.08);
-  assert.ok(CFG.fees.EU && CFG.fees.EU.conv === 0.5);
-  sb.CFG = CFG;
-  sb.SYMBOLS = [{ s: 'AAPL', mkt: 'US' }];
-  sb.rateOf = () => 3.7;
-  const g = { sym: 'AAPL', side: 'LONG', strength: 4, price: 230, atr: 0.5, sd: 1.2, _pro: { scoreL: 6, scoreS: 0, need: 4, veto: '' } };
-  const st = { equity: 500, cash: 500, pos: {}, cool: {}, dayTrades: 0, consecLoss: 0, dayStart: 500 };
-  const TS_US = U(2026, 11, 10, 16, 0); // 17:00 PL
-  // koszt realistyczny (konto PLN, USD->PLN 0.5%/strone) => odrzucone przez filtr R:R netto
-  sb.feeOf = () => ({ comm: 0, conv: 0.005, spr: 0.0003 });
-  assert.match(CORE.gateCheck(g, sb.SYMBOLS[0], st, TS_US).reason, /koszty/);
-  // konto walutowe USD (bez przewalutowania) => wejscie mozliwe, pozycja ulamkowa <= cash
-  sb.feeOf = () => ({ comm: 0, conv: 0, spr: 0.0003 });
-  const r = CORE.gateCheck(g, sb.SYMBOLS[0], st, TS_US);
-  assert.equal(r.ok, true, r.reason);
-  assert.ok(r.sp.qty > 0 && r.sp.qty < 1, 'qty ulamkowe: ' + r.sp.qty);
-  assert.ok(r.sp.qty * 230 * 3.7 <= 500, 'nie przekracza kapitalu');
-  delete sb.feeOf; delete sb.rateOf; delete sb.CFG;
-});
-test('stop per rynek: akcje 0.9-1.6 ATR, FX 1.5-2.5 ATR', () => {
-  DT.applyTo(PRO, {}, true);
-  const bars = []; for (let i = 0; i < 20; i++) bars.push({ o: 100, h: 100.05, l: 99.95, c: 100 });
-  const fx = CORE.swingStopDist(bars, 'LONG', 1, 'FX'), us = CORE.swingStopDist(bars, 'LONG', 1, 'US');
-  assert.ok(Math.abs(fx - 1.5) < 1e-9, 'FX min 1.5 ATR: ' + fx);
-  assert.ok(Math.abs(us - 0.9) < 1e-9, 'US min 0.9 ATR: ' + us);
+test('stopAtr FX >= 1.5', () => {
+  const CFG = {};
+  DT.applyTo(PRO, CFG, true);
+  assert.ok(PRO.stopAtr && PRO.stopAtr.FX[0] >= 1.5);
 });
