@@ -238,7 +238,7 @@ var SYMBOLS=[
 {s:'GBPUSD',n:'GBP/USD',t:'FX',b:1.27,v:0.0004,mkt:'FX',ccy:'USD'},
 {s:'USDJPY',n:'USD/JPY',t:'FX',b:150,v:0.0004,mkt:'FX',ccy:'JPY'}
 ];
-var CFG={capital:100000,risk:1,maxPos:4,allowShort:false};
+var CFG={capital:100000,risk:0.35,maxPos:2,allowShort:true};
 var ST={equity:100000,cash:100000,pos:{},closed:[],sig:[],log:[],eq:[],series:{},n:0,cool:{}};
 var AUTO=null;
 function rnd(x){var v=Math.sin(x)*10000;return v-Math.floor(v);}
