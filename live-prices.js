@@ -1,0 +1,371 @@
+/**
+ * Prawdziwe ceny LIVE (Twelve Data) — jedno zrodlo prawdy o swiezosci danych.
+ */
+(function (global) {
+  'use strict';
+
+  function orderedSymbols() {
+    if (global.__BTX_LIVE_ORDER && global.__BTX_LIVE_ORDER.length) return global.__BTX_LIVE_ORDER.slice();
+    return (global.SYMBOLS || []).map(function (m) { return m.s; });
+  }
+
+  if (global.BTX_LIVE) return;
+
+  var FRESH_MS = 45 * 60 * 1000;
+  var BAR_MAX_AGE_MS = 30 * 60 * 1000;
+  var MIN_GAP_MS = 8600;
+  var PER_MIN = 7;
+  var DAY_LIMIT = 780;
+  var BUDGET_LS = 'btx_live_budget';
+  var KEY_LS = 'btx_twelve_key';
+
+  var TD_MAP = {
+    'ANT': { symbol: 'ANT' },
+    'NVDA': { symbol: 'NVDA' },
+    'TSLA': { symbol: 'TSLA' },
+    'META': { symbol: 'META' },
+    'AAPL': { symbol: 'AAPL' },
+    'QQQ': { symbol: 'QQQ' },
+    'SPY': { symbol: 'SPY' },
+    'EURUSD': { symbol: 'EUR/USD' },
+    'GBPUSD': { symbol: 'GBP/USD' },
+    'USDJPY': { symbol: 'USD/JPY' },
+    'AUDUSD': { symbol: 'AUD/USD' },
+    'XAUUSD': { symbol: 'XAU/USD' },
+    'SIE.DE': { symbol: 'SIE', exchange: 'XETR' },
+    'SAP': { symbol: 'SAP', exchange: 'XETR' },
+    'ASML': { symbol: 'ASML', exchange: 'Euronext' }
+  };
+  var REFRESH_MIN = { US: 5, EU: 5, FX: 5 };   // 12 symboli: US 6.5h + EU 8.5h + FX 13h przy 10 min = ~620 zapytan/dzien (przy 5 min ~1240 > limit 780)   // daytrading: swieca 5 min = odswiezenie co 5 min (4 pary x 13 h x 12 = ~620 zapytan/dzien < 780)
+
+  var info = {};
+  var reqTimes = [];
+  var cooldownUntil = 0;
+  var lastReq = 0;
+  var busy = false;
+
+  function now() { return Date.now(); }
+  function today() { return new Date().toISOString().slice(0, 10); }
+
+  function budget() {
+    var b = { day: today(), n: 0 };
+    try {
+      var r = JSON.parse(localStorage.getItem(BUDGET_LS) || 'null');
+      if (r && r.day === b.day) b = r;
+    } catch (e) {}
+    return b;
+  }
+  function bumpBudget() {
+    var b = budget();
+    b.n++;
+    try { localStorage.setItem(BUDGET_LS, JSON.stringify(b)); } catch (e) {}
+  }
+
+  function getKey() {
+    var ids = ['btx-tdkey-main', 'set-tdkey', 'td-key', 'twelve-key', 'set-twelve'];
+    for (var i = 0; i < ids.length; i++) {
+      var el = document.getElementById(ids[i]);
+      if (el && String(el.value || '').trim()) return String(el.value).trim();
+    }
+    var keys = ['btx_twelve_key', 'BTX_TWELVE_KEY', 'twelve_key', 'tdKey', 'btx_td_key'];
+    for (var k = 0; k < keys.length; k++) {
+      try {
+        var v = localStorage.getItem(keys[k]);
+        if (v && String(v).trim()) return String(v).trim();
+      } catch (e) {}
+    }
+    try {
+      var raw = localStorage.getItem('btx_v4');
+      if (raw) {
+        var o = JSON.parse(raw);
+        var c = o && o.CFG;
+        if (c && (c.tdKey || c.twelveKey || c.apiKey)) return String(c.tdKey || c.twelveKey || c.apiKey).trim();
+      }
+    } catch (e2) {}
+    var C = global.CFG || {};
+    var c2 = C.tdKey || C.twelveKey || C.apiKey;
+    if (c2 && String(c2).trim()) return String(c2).trim();
+    return '';
+  }
+
+  function symMeta(sym) {
+    var list = global.SYMBOLS || [];
+    for (var i = 0; i < list.length; i++) if (list[i].s === sym) return list[i];
+    return null;
+  }
+
+  function sessionOpen(mkt) {
+    try { if (typeof global.sessionOpen === 'function') return !!global.sessionOpen(mkt); } catch (e) {}
+    return true;
+  }
+
+  function slog(msg, cls) { try { if (typeof global.log === 'function') global.log(msg, cls || 'i'); } catch (e) {} }
+
+  function parseUtc(dt) {
+    var s = String(dt || '').trim();
+    if (!s) return NaN;
+    if (s.length <= 10) s += ' 00:00:00';
+    return Date.parse(s.replace(' ', 'T') + 'Z');
+  }
+
+  function checkLimits() {
+    var t = now();
+    reqTimes = reqTimes.filter(function (x) { return t - x < 60000; });
+    if (t < cooldownUntil) throw new Error('limit zapytan Twelve — pauza ' + Math.ceil((cooldownUntil - t) / 1000) + ' s');
+    if (reqTimes.length >= PER_MIN) throw new Error('limit 8 zapytan/min — odczekaj chwile');
+    if (budget().n >= DAY_LIMIT) throw new Error('wyczerpany dzienny limit Twelve (' + DAY_LIMIT + ')');
+  }
+
+  async function fetchTwelve(sym) {
+    var key = getKey();
+    if (!key) {
+      info[sym] = Object.assign(info[sym] || {}, { ok: false, err: 'brak klucza Twelve', errAt: now() });
+      throw new Error('Brak klucza Twelve Data (Ustawienia)');
+    }
+    var cur = info[sym];
+    if (cur && cur.ok && cur.fetchedAt) {
+      var m0 = symMeta(sym);
+      if (now() - cur.fetchedAt < 150000 || (m0 && !sessionOpen(m0.mkt))) return (global.ST && global.ST.series && global.ST.series[sym]) || [];
+    }
+    checkLimits();
+    var p = TD_MAP[sym] || { symbol: sym };
+    var url = 'https://api.twelvedata.com/time_series?symbol=' + encodeURIComponent(p.symbol) +
+      (p.exchange ? '&exchange=' + encodeURIComponent(p.exchange) : '') +
+      '&interval=5min&outputsize=400&timezone=UTC&apikey=' + encodeURIComponent(key);
+    reqTimes.push(now());
+    lastReq = now();
+    bumpBudget();
+    var j;
+    try {
+      var r = await fetch(url);
+      j = await r.json();
+    } catch (e) {
+      info[sym] = Object.assign(info[sym] || {}, { ok: false, err: 'siec: ' + (e.message || e), errAt: now() });
+      throw e;
+    }
+    if (!j || j.status === 'error' || !j.values || !j.values.length) {
+      var msg = (j && j.message) || 'brak danych';
+      var code = j && j.code;
+      if (code === 429 || /run out of API credits|per minute/i.test(msg)) cooldownUntil = now() + 65000;
+      var permanent = code === 400 || code === 401 || code === 403 || code === 404 || /plan|symbol|not found|exchange/i.test(msg);
+      info[sym] = Object.assign(info[sym] || {}, { ok: false, err: msg, errAt: now(), permanent: permanent && code !== 429 });
+      slog('Twelve [' + sym + ']: ' + msg, 'r');
+      throw new Error('Twelve [' + sym + ']: ' + msg);
+    }
+    var bars = [];
+    for (var i = j.values.length - 1; i >= 0; i--) {
+      var v = j.values[i];
+      var b = { t: parseUtc(v.datetime), o: +v.open, h: +v.high, l: +v.low, c: +v.close, v: +(v.volume || 0) };
+      if (isFinite(b.t) && b.o > 0 && b.h > 0 && b.l > 0 && b.c > 0) bars.push(b);
+    }
+    if (bars.length < 20) {
+      info[sym] = Object.assign(info[sym] || {}, { ok: false, err: 'za malo swiec (' + bars.length + ')', errAt: now() });
+      throw new Error('Twelve [' + sym + ']: za malo swiec');
+    }
+    var ST = global.ST;
+    if (ST) {
+      ST.series = ST.series || {};
+      ST.series[sym] = bars;
+      ST.liveSource = ST.liveSource || {};
+      ST.liveSource[sym] = now();
+    }
+    var last = bars[bars.length - 1];
+    info[sym] = { ok: true, price: last.c, barT: last.t, fetchedAt: now(), err: '' };
+    return bars;
+  }
+
+  async function fetchHistory(sym, size) {
+    var key = getKey();
+    if (!key) throw new Error('Brak klucza Twelve Data (Ustawienia)');
+    checkLimits();
+    var p = TD_MAP[sym] || { symbol: sym };
+    var url = 'https://api.twelvedata.com/time_series?symbol=' + encodeURIComponent(p.symbol) +
+      (p.exchange ? '&exchange=' + encodeURIComponent(p.exchange) : '') +
+      '&interval=5min&outputsize=' + (size || 5000) + '&timezone=UTC&apikey=' + encodeURIComponent(key);
+    reqTimes.push(now()); lastReq = now(); bumpBudget();
+    var j = await (await fetch(url)).json();
+    if (!j || j.status === 'error' || !j.values || !j.values.length) {
+      if (j && (j.code === 429 || /per minute|credits/i.test(j.message || ''))) cooldownUntil = now() + 65000;
+      throw new Error('Twelve [' + sym + ']: ' + ((j && j.message) || 'brak danych'));
+    }
+    var bars = [];
+    for (var i = j.values.length - 1; i >= 0; i--) {
+      var v = j.values[i];
+      var b = { t: parseUtc(v.datetime), o: +v.open, h: +v.high, l: +v.low, c: +v.close, v: +(v.volume || 0) };
+      if (isFinite(b.t) && b.o > 0 && b.h > 0 && b.l > 0 && b.c > 0) bars.push(b);
+    }
+    return bars;
+  }
+
+  function providerIsTwelve() {
+    var p = String((global.CFG && global.CFG.provider) || 'twelve');
+    return p === 'twelve';
+  }
+
+  function refreshMs(m) {
+    var base = (REFRESH_MIN[m.mkt] || 5) * 60000;
+    var used = budget().n / DAY_LIMIT;
+    if (used > 0.9) return base * 2;
+    return base;
+  }
+
+  function pickNext() {
+    var list = global.SYMBOLS || [];
+    var t = now();
+    var best = null, bestScore = -1;
+    for (var i = 0; i < list.length; i++) {
+      var m = list[i], inf = info[m.s];
+      if (inf && inf.permanent && t - inf.errAt < 6 * 3600000) continue;
+      if (inf && !inf.ok && inf.errAt && t - inf.errAt < 60000) continue;
+      if (!sessionOpen(m.mkt) && inf && inf.ok) continue;
+      // poza oknem handlu strategii (FX 08:00-21:00 PL) nie wydajemy budzetu API (wczesniej: FX 01:00-23:00 -> budzet konczyl sie przed sesja USA)
+      try { var C0 = global.BTX_STRATEGY_CORE; if (C0 && inf && inf.ok && !C0.inSession(m.mkt || 'FX', t)) continue; } catch (e0) {}
+      var age = inf && inf.fetchedAt ? t - inf.fetchedAt : Infinity;
+      if (age < refreshMs(m)) continue;
+      var score = age === Infinity ? 1e12 : age;
+      if (score > bestScore) { best = m; bestScore = score; }
+    }
+    return best;
+  }
+
+  async function tick() {
+    if (busy || document.hidden || !providerIsTwelve() || !getKey()) return;
+    var t = now();
+    if (t < cooldownUntil || t - lastReq < MIN_GAP_MS) return;
+    if (budget().n >= DAY_LIMIT) return;
+    var m = pickNext();
+    if (!m) return;
+    busy = true;
+    try {
+      if (typeof global.fetchReal === 'function') await global.fetchReal(m.s);
+      else await fetchTwelve(m.s);
+    } catch (e) {}
+    busy = false;
+    try { if (typeof global.render === 'function') global.render(); } catch (e2) {}
+  }
+
+  function status(m) {
+    var inf = info[m.s], t = now();
+    if (!getKey()) return { ok: false, why: 'brak klucza Twelve' };
+    if (!inf || !inf.fetchedAt) return { ok: false, why: inf && inf.err ? inf.err : 'jeszcze nie pobrano' };
+    if (t - inf.fetchedAt > FRESH_MS) return { ok: false, why: 'dane sprzed ' + Math.round((t - inf.fetchedAt) / 60000) + ' min' + (inf.err ? ' (' + inf.err + ')' : '') };
+    if (sessionOpen(m.mkt) && t - inf.barT > BAR_MAX_AGE_MS) return { ok: false, why: 'ostatnia swieca sprzed ' + Math.round((t - inf.barT) / 60000) + ' min' };
+    return { ok: true, why: '' };
+  }
+
+  function copyFlags(from, to) {
+    Object.keys(from).forEach(function (k) { try { to[k] = from[k]; } catch (e) {} });
+  }
+
+  var wraps = 0;
+  function installGuards() {
+    if (typeof global.evaluate === 'function' && !global.evaluate.__btxTruth) {
+      var oe = global.evaluate;
+      global.evaluate = function (m) {
+        var sym = m && (m.s || m.sym);
+        var meta = (sym && symMeta(sym)) || m;
+        if (sym && meta) {
+          var s = status(meta);
+          if (!s.ok) {
+            var inf = info[sym];
+            return { sym: sym, name: meta.n || sym, side: 'WAIT', strength: 0, price: inf && inf.price ? inf.price : 0,
+              why: 'Brak swiezej ceny LIVE: ' + s.why, liveBlocked: true };
+          }
+        }
+        return oe.apply(this, arguments);
+      };
+      copyFlags(oe, global.evaluate);
+      global.evaluate.__btxTruth = true;
+      wraps++;
+    }
+    if (typeof global.nextBar === 'function' && !global.nextBar.__btxTruth) {
+      var on = global.nextBar;
+      global.nextBar = function (m, last) {
+        var sym = m && (m.s || m.sym);
+        if (sym && info[sym] && info[sym].ok) return last;
+        return on.apply(this, arguments);
+      };
+      copyFlags(on, global.nextBar);
+      global.nextBar.__btxTruth = true;
+      wraps++;
+    }
+  }
+
+  function setFetch() {
+    global.fetchTwelve = fetchTwelve;
+  }
+
+  var badge, panel;
+  function ensureUi() {
+    if (badge && document.body.contains(badge)) return;
+    badge = document.createElement('div');
+    badge.id = 'btx-live-badge';
+    badge.style.cssText = 'position:fixed;left:10px;bottom:10px;z-index:9999;padding:6px 10px;border-radius:10px;' +
+      'font:600 12px ui-monospace,Menlo,Consolas,monospace;cursor:pointer;background:#1e293b;color:#e2e8f0;' +
+      'border:1px solid #334155;font-variant-numeric:tabular-nums;max-width:92vw';
+    badge.title = 'Kliknij: szczegoly cen LIVE';
+    panel = document.createElement('div');
+    panel.id = 'btx-live-panel';
+    panel.style.cssText = 'position:fixed;left:10px;bottom:46px;z-index:9999;display:none;padding:10px 12px;border-radius:10px;' +
+      'font:12px ui-monospace,Menlo,Consolas,monospace;background:#0f172a;color:#e2e8f0;border:1px solid #334155;max-height:60vh;overflow:auto';
+    badge.addEventListener('click', function () { panel.style.display = panel.style.display === 'none' ? 'block' : 'none'; renderUi(); });
+    document.body.appendChild(panel);
+    document.body.appendChild(badge);
+  }
+
+  function ago(ts) {
+    if (!ts) return '\u2014';
+    var m = Math.round((now() - ts) / 60000);
+    return m < 1 ? '<1 min' : m + ' min';
+  }
+
+  function renderUi() {
+    ensureUi();
+    var list = global.SYMBOLS || [];
+    var okN = 0, oldest = 0, rows = '';
+    list.forEach(function (m) {
+      var s = status(m), inf = info[m.s] || {};
+      if (s.ok) { okN++; oldest = Math.max(oldest, now() - inf.fetchedAt); }
+      var open = sessionOpen(m.mkt);
+      rows += '<tr><td style="padding:1px 8px 1px 0">' + m.s + '</td><td style="padding:1px 8px;text-align:right">' +
+        (inf.price ? inf.price.toFixed(inf.price < 10 ? 4 : 2) : '\u2014') + '</td><td style="padding:1px 8px">' + ago(inf.fetchedAt) +
+        '</td><td style="padding:1px 0;color:' + (s.ok ? '#34d399' : (open ? '#f87171' : '#94a3b8')) + '">' +
+        (s.ok ? 'LIVE' : (open ? 'BRAK: ' : 'rynek zamkniety \u2014 ') + s.why) + '</td></tr>';
+    });
+    var b = budget();
+    var hasKey = !!getKey();
+    var color = !hasKey ? '#7f1d1d' : (okN === 0 ? '#7f1d1d' : (okN < list.length ? '#78350f' : '#064e3b'));
+    badge.style.background = color;
+    badge.textContent = !hasKey ? 'CENY: BRAK KLUCZA \u2014 symulacja' :
+      'CENY LIVE ' + okN + '/' + list.length + (okN ? ' \u00b7 najstarsza ' + Math.round(oldest / 60000) + ' min' : '') + ' \u00b7 API ' + b.n + '/' + DAY_LIMIT;
+    if (panel.style.display !== 'none') {
+      panel.innerHTML = '<table style="border-collapse:collapse">' + rows + '</table>' +
+        '<div style="margin-top:6px;color:#94a3b8">Symbol bez swiezej ceny = sygnal WAIT (bot nie handluje na symulacji).</div>';
+    }
+  }
+
+  function boot() {
+    setFetch();
+    ensureUi();
+    renderUi();
+    try {
+      if (!global.__BTX_SIGNAL_LOCK__ && !document.querySelector('script[src="signal-lock.js"]')) {
+        var sLock = document.createElement('script');
+        sLock.src = 'signal-lock.js';
+        (document.body || document.documentElement).appendChild(sLock);
+      }
+    } catch (e0) {}
+    setTimeout(function () { setFetch(); installGuards(); }, 3000);
+    setInterval(function () { if (wraps < 4) installGuards(); setFetch(); }, 7000);
+    setInterval(tick, 3000);
+    setInterval(renderUi, 5000);
+  }
+
+  global.BTX_LIVE = {
+    info: info, status: status, fetchTwelve: fetchTwelve, fetchHistory: fetchHistory, getKey: getKey, budget: budget,
+    isFresh: function (sym) { var m = symMeta(sym); return m ? status(m).ok : false; }
+  };
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+  else boot();
+})(typeof window !== 'undefined' ? window : globalThis);
